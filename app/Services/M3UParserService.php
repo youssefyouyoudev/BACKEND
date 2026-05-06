@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Playlist;
+use App\Support\StreamUrl;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -135,7 +136,7 @@ class M3UParserService
                 continue;
             }
 
-            $streamUrl  = $this->resolveUrl($line, $baseUrl);
+            $streamUrl  = StreamUrl::browserSafe($this->resolveUrl($line, $baseUrl));
             $streamHash = sha1(strtolower($streamUrl));
 
             // Deduplicate

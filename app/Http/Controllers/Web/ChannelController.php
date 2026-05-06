@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
+use App\Support\StreamUrl;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Schema;
@@ -57,7 +58,7 @@ class ChannelController extends Controller
             'id' => $channel->id,
             'name' => $channel->name,
             'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
-            'stream_url' => $source['url'] ?? $channel->stream_url,
+            'stream_url' => $source['url'] ?? StreamUrl::browserSafe($channel->stream_url),
             'stream_type' => $source['type'] ?? $channel->stream_type ?? 'hls',
             'category' => $channel->group_title ?: 'General',
             'description' => ($channel->group_title ?: 'Live TV').' stream from '.($channel->playlist?->name ?? 'approved playlist').'.',
