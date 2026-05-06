@@ -84,7 +84,7 @@ class Channel extends Model
                 ->where('is_active', true)
                 ->values()
                 ->map(fn (ChannelStream $s) => [
-                    'url'   => StreamUrl::browserSafe($s->stream_url),
+                    'url'   => StreamUrl::proxied($s->stream_url),
                     'type'  => $s->stream_type,
                     'label' => $s->label,
                     'source_code' => $s->source_code,
@@ -98,7 +98,7 @@ class Channel extends Model
         // Fallback: legacy single stream_url column.
         if ($this->stream_url) {
             return collect([[
-                'url'   => StreamUrl::browserSafe($this->stream_url),
+                'url'   => StreamUrl::proxied($this->stream_url),
                 'type'  => $this->stream_type ?? 'hls',
                 'label' => 'Primary',
             ]]);

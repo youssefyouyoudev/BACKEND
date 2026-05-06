@@ -88,7 +88,7 @@ class PublicChannelController extends Controller
             'id' => $channel->id,
             'name' => $channel->name,
             'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
-            'stream_url' => $source['url'] ?? StreamUrl::browserSafe($channel->stream_url),
+            'stream_url' => $source['url'] ?? StreamUrl::proxied($channel->stream_url),
             'stream_type' => $source['type'] ?? $channel->stream_type ?? 'hls',
             'category' => $channel->group_title ?: 'General',
             'description' => ($channel->group_title ?: 'Live TV').' stream from '.($channel->playlist?->name ?? 'approved playlist').'.',

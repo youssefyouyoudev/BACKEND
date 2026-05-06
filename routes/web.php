@@ -6,11 +6,14 @@ use App\Http\Controllers\Web\Admin\PlaylistController as AdminPlaylistController
 use App\Http\Controllers\Web\ChannelController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\LiveTvController;
+use App\Http\Controllers\StreamProxyController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
 Route::get('/live', LiveTvController::class)->name('live');
 Route::get('/watch/{channel}', [ChannelController::class, 'show'])->name('channels.show');
+Route::get('/stream/{encodedUrl}', StreamProxyController::class)
+    ->name('stream.proxy');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/admin/login', [AdminAuthController::class, 'create'])->name('admin.login');
