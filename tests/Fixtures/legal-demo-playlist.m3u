@@ -1,0 +1,7 @@
+#EXTM3U playlist-name="RiFiMedia Legal Demo"
+#EXTINF:-1 tvg-id="rifi-news" tvg-name="RiFi News" group-title="News",RiFi News
+https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8
+#EXTINF:-1 tvg-id="rifi-sports" tvg-name="RiFi Sports" group-title="Sports",RiFi Sports
+https://mojenozki.github.io/hls-vod/media.m3u8
+#EXTINF:-1 tvg-id="rifi-kids" tvg-name="RiFi Kids" group-title="Kids",RiFi Kids
+https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8
