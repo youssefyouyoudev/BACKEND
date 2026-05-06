@@ -2,60 +2,64 @@
 
 @section('content')
 <div
-    class="clean-watch"
-    x-data="cleanWatchPlayer({
+    class="sat-watch"
+    x-data="satWatchPage({
+        activeId: @js($activeChannel['id'] ?? null),
         channels: @js($channelList),
-        active: @js($activeChannel),
     })"
     x-init="init"
 >
-    <aside class="clean-watch__list" aria-label="Channels">
-        <div class="clean-watch__brand">
-            <x-logo compact />
-        </div>
+    <x-sidebar :channels="$channelList" :active-id="$activeChannel['id'] ?? null" />
 
-        <div class="clean-watch__search">
-            <input type="search" x-model.debounce.250ms="search" placeholder="Search channels">
-        </div>
+    <main class="sat-watch__main">
+        <section class="sat-watch__player" data-sticky-player>
+            <x-video-player
+                :channel="$activeChannel"
+                :sources="$sources"
+                :poster="$activeChannel['logo'] ?? null"
+            />
+        </section>
 
-        <div class="clean-watch__items">
-            <template x-for="channel in filteredChannels" :key="channel.id">
-                <button
-                    type="button"
-                    class="clean-channel"
-                    :class="{ 'is-active': activeChannel && activeChannel.id === channel.id }"
-                    @click="switchChannel(channel.id)"
-                >
-                    <img :src="channel.logo" :alt="channel.name" loading="lazy" x-on:error="$event.target.src='{{ asset('brand/rifi-logo.png') }}'">
-                    <span>
-                        <strong x-text="channel.name"></strong>
-                        <small x-text="channel.category"></small>
-                    </span>
-                    <i aria-hidden="true"></i>
-                </button>
-            </template>
-        </div>
-    </aside>
-
-    <main class="clean-watch__player">
-        <section class="clean-player-shell" :class="{ 'is-switching': switching }">
-            <video x-ref="video" controls autoplay muted playsinline></video>
-            <div class="clean-player-loading" x-show="loading" x-transition.opacity>
-                <span></span>
+        <section class="sat-info-panel">
+            <div>
+                <span class="sat-kicker"><i></i> Now watching</span>
+                <h1>{{ $activeChannel['name'] }}</h1>
+                <p>{{ $activeChannel['description'] }}</p>
+                @if(! empty($activeChannel['program']))
+                    <strong>{{ $activeChannel['program']['title'] }} · {{ $activeChannel['program']['start_time'] }} - {{ $activeChannel['program']['end_time'] }}</strong>
+                @else
+                    <strong>Live broadcast · Schedule coming soon</strong>
+                @endif
+            </div>
+            <div class="sat-info-panel__actions">
+                <a class="sat-button sat-button--ghost" href="{{ route('home') }}">Channel wall</a>
+                <a class="sat-button sat-button--primary" href="{{ route('live') }}">TV guide</a>
             </div>
         </section>
 
-        <section class="clean-channel-meta" x-show="activeChannel" x-transition.opacity>
-            <div>
-                <h1 x-text="activeChannel?.name"></h1>
-                <p>
-                    <span x-text="activeChannel?.category"></span>
-                    <template x-if="activeChannel?.description">
-                        <em x-text="activeChannel.description"></em>
-                    </template>
-                </p>
+        <section class="sat-epg">
+            <div class="sat-section__heading">
+                <div>
+                    <span>Electronic program guide</span>
+                    <h2>Up next</h2>
+                </div>
             </div>
-            <a href="{{ route('home') }}">Home</a>
+            @if($programs->count())
+                <div class="sat-epg__timeline">
+                    @foreach($programs as $program)
+                        <article class="{{ $program->start_time <= now() && $program->end_time > now() ? 'is-now' : '' }}">
+                            <time>{{ $program->start_time->format('H:i') }} - {{ $program->end_time->format('H:i') }}</time>
+                            <strong>{{ $program->title }}</strong>
+                            <p>{{ $program->description ?: 'Live programming from this channel.' }}</p>
+                        </article>
+                    @endforeach
+                </div>
+            @else
+                <div class="sat-empty">
+                    <strong>No EPG data yet</strong>
+                    <p>The channel is live, but no program schedule has been published.</p>
+                </div>
+            @endif
         </section>
     </main>
 </div>
@@ -63,87 +67,32 @@
 @push('scripts')
 <script>
 document.addEventListener('alpine:init', () => {
-    Alpine.data('cleanWatchPlayer', ({ channels, active }) => ({
+    Alpine.data('satWatchPage', ({ activeId, channels }) => ({
+        activeId,
         channels: channels || [],
-        activeChannel: active || null,
-        search: '',
-        loading: false,
-        switching: false,
-        hls: null,
-
-        get filteredChannels() {
-            const query = this.search.trim().toLowerCase();
-            if (!query) return this.channels;
-
-            return this.channels.filter((channel) =>
-                channel.name.toLowerCase().includes(query)
-                || channel.category.toLowerCase().includes(query)
-            );
-        },
-
         init() {
-            if (this.activeChannel) {
-                this.play(this.activeChannel);
-            }
+            window.addEventListener('rifi:player-next', () => this.goNext());
+            window.addEventListener('keydown', (event) => this.handleKeys(event));
+            window.addEventListener('scroll', () => {
+                document.body.classList.toggle('has-mini-player', window.scrollY > 420);
+            }, { passive: true });
         },
-
-        async switchChannel(id) {
-            if (this.activeChannel && Number(this.activeChannel.id) === Number(id)) return;
-
-            this.loading = true;
-            this.switching = true;
-
-            const cached = this.channels.find((channel) => Number(channel.id) === Number(id));
-            if (cached) this.activeChannel = cached;
-
-            try {
-                const response = await fetch(`/api/channels/${id}`, { headers: { Accept: 'application/json' } });
-                if (!response.ok) throw new Error('Channel could not be loaded.');
-
-                const payload = await response.json();
-                this.activeChannel = payload.data;
-                this.play(payload.data);
-                history.replaceState(null, '', `/watch/${id}`);
-            } catch (error) {
-                console.error(error);
-                this.loading = false;
-                this.switching = false;
-            }
+        goNext() {
+            const index = this.channels.findIndex((channel) => Number(channel.id) === Number(this.activeId));
+            const next = this.channels[index + 1] || this.channels[0];
+            if (next) window.location.href = `/watch/${next.id}`;
         },
-
-        play(channel) {
-            const video = this.$refs.video;
-            if (!video || !channel?.stream_url) {
-                this.loading = false;
-                this.switching = false;
-                return;
+        handleKeys(event) {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowRight') {
+                event.preventDefault();
+                this.goNext();
             }
-
-            if (this.hls) {
-                this.hls.destroy();
-                this.hls = null;
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                const index = this.channels.findIndex((channel) => Number(channel.id) === Number(this.activeId));
+                const previous = this.channels[index - 1] || this.channels[this.channels.length - 1];
+                if (previous) window.location.href = `/watch/${previous.id}`;
             }
-
-            const finish = () => {
-                this.loading = false;
-                setTimeout(() => { this.switching = false; }, 180);
-                video.play().catch(() => {});
-            };
-
-            if (window.Hls && Hls.isSupported() && String(channel.stream_url).includes('.m3u')) {
-                this.hls = new Hls({ lowLatencyMode: true, backBufferLength: 30 });
-                this.hls.loadSource(channel.stream_url);
-                this.hls.attachMedia(video);
-                this.hls.on(Hls.Events.MANIFEST_PARSED, finish);
-                this.hls.on(Hls.Events.ERROR, (_, data) => {
-                    if (data.fatal) finish();
-                });
-                return;
-            }
-
-            video.src = channel.stream_url;
-            video.oncanplay = finish;
-            video.load();
         },
     }));
 });

@@ -3617,3 +3617,787 @@ input {
         display: grid;
     }
 }
+
+/* Premium satellite TV experience */
+.shell--public:has(.sat-home),
+.shell--public:has(.sat-watch) {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
+}
+
+.shell--public:has(.sat-home) > .sidebar,
+.shell--public:has(.sat-watch) > .sidebar {
+    display: none;
+}
+
+.main-content:has(.sat-home),
+.main-content:has(.sat-watch) {
+    padding: 0;
+}
+
+.sat-home,
+.sat-watch {
+    --sat-bg: #050708;
+    --sat-panel: rgba(15, 19, 24, 0.72);
+    --sat-panel-strong: rgba(12, 16, 20, 0.9);
+    --sat-line: rgba(255, 255, 255, 0.1);
+    --sat-text: #f7fafc;
+    --sat-muted: #9aa8b7;
+    --sat-green: #76db3a;
+    --sat-green-2: #31a84d;
+    --sat-red: #ff3d45;
+    min-height: 100vh;
+    color: var(--sat-text);
+    background:
+        radial-gradient(circle at 10% -10%, rgba(118, 219, 58, 0.16), transparent 30%),
+        radial-gradient(circle at 90% 0%, rgba(56, 189, 248, 0.1), transparent 26%),
+        linear-gradient(135deg, #050708 0%, #0c1116 52%, #050708 100%);
+}
+
+.sat-home {
+    padding: 24px;
+}
+
+.sat-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: auto minmax(240px, 560px) auto;
+    gap: 18px;
+    align-items: center;
+    width: min(1440px, 100%);
+    margin: 0 auto 24px;
+    padding: 14px 16px;
+    border: 1px solid var(--sat-line);
+    border-radius: 8px;
+    background: rgba(8, 11, 14, 0.74);
+    backdrop-filter: blur(18px);
+}
+
+.sat-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    border: 1px solid var(--sat-line);
+    border-radius: 999px;
+    padding: 10px 16px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.sat-search span {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--sat-green);
+    box-shadow: 0 0 18px rgba(118, 219, 58, 0.8);
+}
+
+.sat-search input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    color: var(--sat-text);
+    background: transparent;
+}
+
+.sat-topbar__links,
+.sat-hero__actions,
+.sat-info-panel__actions,
+.admin-actions,
+.toggle-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.sat-topbar__links a {
+    padding: 10px 14px;
+    border-radius: 999px;
+    color: #dfe8f1;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.sat-hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.55fr);
+    align-items: end;
+    min-height: min(72vh, 680px);
+    width: min(1440px, 100%);
+    margin: 0 auto 34px;
+    overflow: hidden;
+    border: 1px solid var(--sat-line);
+    border-radius: 8px;
+    background: #080b0e;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.46);
+    animation: sat-fade-up 520ms ease both;
+}
+
+.sat-hero__backdrop,
+.sat-hero__backdrop::after {
+    position: absolute;
+    inset: 0;
+}
+
+.sat-hero__backdrop img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.34;
+    filter: blur(18px) saturate(1.25);
+    transform: scale(1.1);
+}
+
+.sat-hero__backdrop::after {
+    content: "";
+    background: linear-gradient(90deg, rgba(5, 7, 8, 0.94), rgba(5, 7, 8, 0.42) 58%, rgba(5, 7, 8, 0.82));
+}
+
+.sat-hero__content,
+.sat-hero__preview {
+    position: relative;
+    z-index: 1;
+}
+
+.sat-hero__content {
+    padding: clamp(28px, 6vw, 72px);
+}
+
+.sat-kicker,
+.sat-section__heading span {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--sat-green);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.sat-kicker i,
+.sat-live-dot,
+.sat-channel-card__art em i,
+.sat-sidebar-channel i {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: var(--sat-red);
+    box-shadow: 0 0 14px rgba(255, 61, 69, 0.9);
+    animation: sat-pulse 1.35s ease infinite;
+}
+
+.sat-hero h1 {
+    max-width: 760px;
+    margin: 16px 0 12px;
+    font-size: clamp(3rem, 7vw, 7.5rem);
+    line-height: 0.9;
+    letter-spacing: 0;
+}
+
+.sat-hero p {
+    margin: 0 0 28px;
+    color: #d2dce6;
+    font-size: clamp(1.05rem, 2vw, 1.35rem);
+}
+
+.sat-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0 18px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+    transition: transform 300ms ease, box-shadow 300ms ease, background 300ms ease;
+}
+
+.sat-button:hover,
+.sat-button:focus-visible {
+    transform: translateY(-2px);
+}
+
+.sat-button--primary {
+    color: #061007;
+    background: linear-gradient(135deg, var(--sat-green), #b9ff6a);
+    box-shadow: 0 18px 44px rgba(118, 219, 58, 0.22);
+}
+
+.sat-button--ghost {
+    border-color: var(--sat-line);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.sat-hero__preview {
+    margin: 0 clamp(22px, 4vw, 52px) clamp(22px, 4vw, 52px) 0;
+    overflow: hidden;
+    border: 1px solid rgba(118, 219, 58, 0.22);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.42);
+}
+
+.sat-hero__preview img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+}
+
+.sat-hero__preview span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    font-weight: 900;
+}
+
+.sat-category-rail,
+.sat-section {
+    width: min(1440px, 100%);
+    margin: 0 auto 30px;
+}
+
+.sat-category-rail {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.sat-category-rail a {
+    flex: 0 0 auto;
+    padding: 11px 16px;
+    border: 1px solid var(--sat-line);
+    border-radius: 999px;
+    color: #d8e2ec;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.sat-category-rail a.is-active,
+.sat-category-rail a:hover,
+.sat-category-rail a:focus-visible {
+    border-color: rgba(118, 219, 58, 0.42);
+    color: #061007;
+    background: var(--sat-green);
+}
+
+.sat-section__heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: end;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.sat-section__heading h2 {
+    margin: 6px 0 0;
+    font-size: clamp(1.7rem, 3vw, 2.7rem);
+    letter-spacing: 0;
+}
+
+.sat-section__heading a,
+.sat-section__heading p {
+    color: var(--sat-muted);
+}
+
+.sat-feature-grid,
+.sat-channel-grid {
+    display: grid;
+    gap: 20px;
+}
+
+.sat-feature-grid {
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+}
+
+.sat-channel-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+.sat-channel-card__link {
+    display: grid;
+    gap: 12px;
+}
+
+.sat-channel-card__art {
+    position: relative;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    aspect-ratio: 16 / 10;
+    border: 1px solid var(--sat-line);
+    border-radius: 8px;
+    background: var(--sat-panel);
+    box-shadow: 0 20px 46px rgba(0, 0, 0, 0.28);
+    transition: transform 300ms ease, border-color 300ms ease, box-shadow 300ms ease;
+}
+
+.sat-channel-card__art::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 42%, rgba(0, 0, 0, 0.78));
+}
+
+.sat-channel-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 300ms ease, opacity 300ms ease;
+}
+
+.sat-channel-card:hover .sat-channel-card__art,
+.sat-channel-card:focus-within .sat-channel-card__art {
+    transform: translateY(-5px) scale(1.025);
+    border-color: rgba(118, 219, 58, 0.46);
+    box-shadow: 0 24px 60px rgba(118, 219, 58, 0.16);
+}
+
+.sat-channel-card:hover img {
+    transform: scale(1.07);
+    opacity: 0.88;
+}
+
+.sat-channel-card__art em,
+.sat-channel-card__art b {
+    position: absolute;
+    z-index: 1;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-style: normal;
+    font-weight: 900;
+}
+
+.sat-channel-card__art em {
+    top: 12px;
+    right: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    color: #fff;
+    background: rgba(255, 61, 69, 0.92);
+}
+
+.sat-channel-card__art b {
+    left: 12px;
+    bottom: 12px;
+    padding: 7px 10px;
+    color: #071007;
+    background: rgba(118, 219, 58, 0.94);
+}
+
+.sat-channel-card__body {
+    display: grid;
+    gap: 4px;
+}
+
+.sat-channel-card__body strong {
+    overflow: hidden;
+    font-size: 1.04rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sat-channel-card__body small,
+.sat-empty p {
+    color: var(--sat-muted);
+}
+
+.sat-empty {
+    padding: 44px;
+    border: 1px dashed var(--sat-line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.sat-watch {
+    display: grid;
+    grid-template-columns: minmax(270px, 360px) minmax(0, 1fr);
+}
+
+.sat-sidebar {
+    position: sticky;
+    top: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100vh;
+    border-right: 1px solid var(--sat-line);
+    background: rgba(7, 10, 13, 0.88);
+    backdrop-filter: blur(18px);
+}
+
+.sat-sidebar__brand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid var(--sat-line);
+}
+
+.sat-sidebar__brand span {
+    color: var(--sat-green);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.sat-sidebar__scroll {
+    display: grid;
+    align-content: start;
+    gap: 8px;
+    overflow-y: auto;
+    padding: 14px;
+    scroll-behavior: smooth;
+}
+
+.sat-sidebar-channel {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    transition: transform 300ms ease, border-color 300ms ease, background 300ms ease, box-shadow 300ms ease;
+}
+
+.sat-sidebar-channel:hover,
+.sat-sidebar-channel:focus-visible,
+.sat-sidebar-channel.is-active {
+    border-color: rgba(118, 219, 58, 0.38);
+    background: rgba(118, 219, 58, 0.1);
+    box-shadow: 0 16px 34px rgba(118, 219, 58, 0.12);
+}
+
+.sat-sidebar-channel.is-active {
+    transform: translateX(4px);
+}
+
+.sat-sidebar-channel img {
+    width: 46px;
+    height: 46px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #111;
+}
+
+.sat-sidebar-channel span {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+}
+
+.sat-sidebar-channel strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sat-sidebar-channel small {
+    color: var(--sat-muted);
+}
+
+.sat-watch__main {
+    min-width: 0;
+    padding: 22px;
+}
+
+.sat-watch__player {
+    position: sticky;
+    top: 18px;
+    z-index: 10;
+    margin-bottom: 18px;
+}
+
+.has-mini-player .sat-watch__player {
+    max-width: min(520px, 42vw);
+    margin-left: auto;
+}
+
+.sat-player {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(118, 219, 58, 0.2);
+    border-radius: 8px;
+    background: #000;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.46);
+}
+
+.sat-player .video-js {
+    min-height: min(68vh, 680px);
+}
+
+.sat-player__loading,
+.sat-player__error {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 14px;
+    padding: 28px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.72);
+}
+
+.sat-player__loading[hidden],
+.sat-player__error[hidden] {
+    display: none;
+}
+
+.sat-player__loading span {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(118, 219, 58, 0.18);
+    border-top-color: var(--sat-green);
+    border-radius: 999px;
+    animation: watch-spin 0.75s linear infinite;
+}
+
+.sat-player__error span {
+    color: var(--sat-red);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.sat-player__error h3 {
+    margin: 0;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+}
+
+.sat-player__error p {
+    max-width: 560px;
+    margin: 0;
+    color: #d5dde6;
+    line-height: 1.7;
+}
+
+.sat-player__error-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.sat-player__topline {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+}
+
+.sat-player__topline strong {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.48);
+    backdrop-filter: blur(10px);
+}
+
+.sat-player__topline select {
+    margin-left: auto;
+    pointer-events: auto;
+    border: 1px solid var(--sat-line);
+    border-radius: 999px;
+    padding: 8px 10px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.58);
+}
+
+.sat-info-panel,
+.sat-epg {
+    border: 1px solid var(--sat-line);
+    border-radius: 8px;
+    background: var(--sat-panel);
+    backdrop-filter: blur(18px);
+}
+
+.sat-info-panel {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    align-items: center;
+    padding: 22px;
+    margin-bottom: 18px;
+}
+
+.sat-info-panel h1 {
+    margin: 10px 0;
+    font-size: clamp(2rem, 4vw, 4rem);
+    letter-spacing: 0;
+}
+
+.sat-info-panel p {
+    max-width: 760px;
+    color: #d4dde7;
+    line-height: 1.7;
+}
+
+.sat-epg {
+    padding: 22px;
+}
+
+.sat-epg__timeline {
+    display: grid;
+    gap: 10px;
+}
+
+.sat-epg__timeline article {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 0.45fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+    padding: 14px;
+    border: 1px solid var(--sat-line);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.sat-epg__timeline article.is-now {
+    border-color: rgba(118, 219, 58, 0.4);
+    background: rgba(118, 219, 58, 0.08);
+}
+
+.sat-epg__timeline time,
+.sat-epg__timeline p {
+    color: var(--sat-muted);
+}
+
+.sat-epg__timeline p {
+    margin: 0;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.form-grid__wide {
+    grid-column: 1 / -1;
+}
+
+.field select,
+.field textarea {
+    width: 100%;
+    padding: 0.95rem 1rem;
+    background: rgba(2, 10, 16, 0.68);
+    border: 1px solid rgba(132, 170, 196, 0.12);
+    border-radius: 16px;
+    color: var(--text);
+    outline: none;
+}
+
+.table-channel {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.table-channel img {
+    width: 46px;
+    height: 46px;
+    border-radius: 8px;
+    object-fit: cover;
+}
+
+.table-channel span {
+    display: grid;
+    gap: 3px;
+}
+
+.tv-swatch-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.tv-swatch-grid span {
+    padding: 18px;
+    border-radius: 8px;
+    color: #071007;
+    background: var(--swatch);
+    font-weight: 900;
+}
+
+@keyframes sat-pulse {
+    0%, 100% { opacity: 0.55; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.18); }
+}
+
+@keyframes sat-fade-up {
+    from { opacity: 0; transform: translateY(18px) scale(0.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 980px) {
+    .sat-topbar,
+    .sat-hero,
+    .sat-watch {
+        grid-template-columns: 1fr;
+    }
+
+    .sat-sidebar {
+        position: relative;
+        height: auto;
+        max-height: 46vh;
+        border-right: 0;
+        border-bottom: 1px solid var(--sat-line);
+    }
+
+    .sat-watch__player,
+    .has-mini-player .sat-watch__player {
+        position: relative;
+        top: auto;
+        max-width: none;
+    }
+
+    .sat-hero__preview {
+        margin: 0 24px 24px;
+    }
+
+    .sat-info-panel,
+    .sat-epg__timeline article {
+        grid-template-columns: 1fr;
+    }
+
+    .sat-info-panel {
+        display: grid;
+    }
+}
+
+@media (max-width: 640px) {
+    .sat-home,
+    .sat-watch__main {
+        padding: 14px;
+    }
+
+    .sat-feature-grid,
+    .sat-channel-grid,
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .sat-player .video-js {
+        min-height: 300px;
+    }
+}
