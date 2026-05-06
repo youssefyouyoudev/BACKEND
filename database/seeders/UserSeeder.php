@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class UserSeeder extends Seeder
 {
@@ -19,19 +20,32 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        if (! app()->environment(['local', 'testing'])) {
-            return;
+        $isProduction = app()->environment('production');
+        $adminEmail = config('rifimedia.admin.email');
+        $adminName = config('rifimedia.admin.name');
+        $adminPassword = config('rifimedia.admin.password');
+
+        if (! $adminPassword && $isProduction) {
+            throw new RuntimeException('Set RIFIMEDIA_ADMIN_PASSWORD in .env before running the production seeder.');
         }
 
+        $adminPassword ??= 'Password123!';
+
         $admin = User::query()->updateOrCreate(
-            ['email' => 'admin@rifimedia.test'],
+            ['email' => $adminEmail],
             [
-                'name' => 'RiFiMedia Admin',
-                'password' => Hash::make('Password123!'),
+                'name' => $adminName,
+                'password' => Hash::make($adminPassword),
                 'role' => User::ROLE_ADMIN,
                 'is_active' => true,
             ]
         );
+
+        $this->command?->info("Admin user seeded: {$admin->email}");
+
+        if ($isProduction) {
+            return;
+        }
 
         $user = User::query()->updateOrCreate(
             ['email' => 'demo@rifimedia.test'],
