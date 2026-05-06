@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
+use App\Services\StreamService;
 use App\Support\StreamUrl;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
 
 class ChannelController extends Controller
 {
-    public function show(Channel $channel): View
+    public function show(Channel $channel, StreamService $streamService): View
     {
         abort_unless(
             $channel->is_active
@@ -19,7 +20,7 @@ class ChannelController extends Controller
             404
         );
 
-        $relations = ['playlist'];
+        $relations = ['playlist', 'category', 'currentProgram', 'programs' => fn ($query) => $query->where('end_time', '>', now())->orderBy('start_time')->limit(8)];
 
         if (Schema::hasTable('channel_streams')) {
             $relations['streams'] = fn ($query) => $query->where('is_active', true)->orderBy('priority');
@@ -31,6 +32,8 @@ class ChannelController extends Controller
             ->where('is_active', true)
             ->whereHas('playlist', fn (Builder $query) => $query->where('is_public', true)->whereNotNull('approved_at'))
             ->with([
+                'category',
+                'currentProgram',
                 'playlist',
                 'streams' => fn ($query) => $query->where('is_active', true)->orderBy('priority'),
             ])
@@ -45,12 +48,14 @@ class ChannelController extends Controller
 
         return view('public.channel', [
             'channel' => $channel,
-            'activeChannel' => $this->serializeWatchChannel($channel),
+            'activeChannel' => $this->serializeWatchChannel($channel, $streamService),
             'channelList' => $channelList,
+            'sources' => $streamService->sourcesFor($channel),
+            'programs' => $channel->programs,
         ]);
     }
 
-    private function serializeWatchChannel(Channel $channel): array
+    private function serializeWatchChannel(Channel $channel, ?StreamService $streamService = null): array
     {
         $source = $channel->active_stream_sources->first();
 
@@ -60,7 +65,13 @@ class ChannelController extends Controller
             'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'stream_url' => $source['url'] ?? StreamUrl::proxied($channel->stream_url),
             'stream_type' => $source['type'] ?? $channel->stream_type ?? 'hls',
-            'category' => $channel->group_title ?: 'General',
+            'sources' => $streamService ? $streamService->sourcesFor($channel) : $channel->active_stream_sources->values()->all(),
+            'category' => $channel->category?->name ?? $channel->group_title ?: 'General',
+            'program' => $channel->currentProgram ? [
+                'title' => $channel->currentProgram->title,
+                'start_time' => $channel->currentProgram->start_time?->format('H:i'),
+                'end_time' => $channel->currentProgram->end_time?->format('H:i'),
+            ] : null,
             'description' => ($channel->group_title ?: 'Live TV').' stream from '.($channel->playlist?->name ?? 'approved playlist').'.',
         ];
     }

@@ -30,11 +30,11 @@ class HomeController extends Controller
         $heroChannel = Cache::remember('public-dashboard:hero-channel', now()->addMinutes(5), fn () => $baseQuery()
             ->orderByDesc('is_featured')
             ->orderBy('featured_rank')
-            ->with('playlist')
+            ->with(['category', 'playlist', 'currentProgram'])
             ->first());
 
         $recommendedChannels = Cache::remember('public-dashboard:recommended', now()->addMinutes(5), fn () => $baseQuery()
-            ->with('playlist')
+            ->with(['category', 'playlist', 'currentProgram'])
             ->orderByDesc('is_featured')
             ->orderBy('featured_rank')
             ->orderBy('name')
@@ -44,7 +44,7 @@ class HomeController extends Controller
 
         $sections = Cache::remember('public-dashboard:sections', now()->addMinutes(5), fn () => $baseQuery()
             ->whereNotNull('group_title')
-            ->with('playlist')
+            ->with(['category', 'playlist', 'currentProgram'])
             ->orderByDesc('is_featured')
             ->orderBy('featured_rank')
             ->limit(30)
@@ -54,7 +54,7 @@ class HomeController extends Controller
             ->map(fn ($group) => $group->take(4)));
 
         $channels = $baseQuery()
-            ->with('playlist')
+            ->with(['category', 'playlist', 'currentProgram'])
             ->when($selectedCategory !== '', fn (Builder $query) => $query->where('group_title', $selectedCategory))
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $query->where('name', 'like', '%'.$search.'%');
@@ -89,7 +89,12 @@ class HomeController extends Controller
             'id' => $channel->id,
             'name' => $channel->name,
             'streamer' => $channel->playlist?->name ?? 'RIFI Media',
-            'category' => $channel->group_title ?: 'General',
+            'category' => $channel->category?->name ?? $channel->group_title ?: 'General',
+            'program' => $channel->currentProgram ? [
+                'title' => $channel->currentProgram->title,
+                'start_time' => $channel->currentProgram->start_time?->format('H:i'),
+                'end_time' => $channel->currentProgram->end_time?->format('H:i'),
+            ] : null,
             'thumbnail' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'avatar' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'viewers' => $viewerCount,
