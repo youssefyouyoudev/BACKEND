@@ -6,8 +6,10 @@ use App\Http\Controllers\Api\Admin\SettingsController;
 use App\Http\Controllers\Api\Admin\StatsController;
 use App\Http\Controllers\Api\Admin\UserManagementController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ChannelController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\EpgController;
 use App\Http\Controllers\Api\HistoryController;
 use App\Http\Controllers\Api\PlaylistController;
 use App\Http\Controllers\Api\PublicChannelController;
@@ -23,8 +25,10 @@ Route::prefix('auth')->middleware('throttle:auth')->group(function (): void {
 });
 
 Route::middleware('throttle:api')->group(function (): void {
+    Route::get('/categories', CategoryController::class);
     Route::get('/channels', [PublicChannelController::class, 'index']);
     Route::get('/channels/{channel}', [PublicChannelController::class, 'show'])->whereNumber('channel');
+    Route::get('/epg', EpgController::class);
 });
 
 Route::middleware(['auth:sanctum', 'active.user', 'throttle:api'])->group(function (): void {

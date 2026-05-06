@@ -27,7 +27,7 @@ class PublicChannelController extends Controller
 
         $payload = Cache::remember($cacheKey, now()->addMinutes(3), function () use ($search, $category, $perPage): array {
             $channels = $this->baseQuery()
-                ->with(['playlist', 'streams' => fn ($query) => $query->where('is_active', true)->orderBy('priority')])
+                ->with(['category', 'playlist', 'currentProgram', 'streams' => fn ($query) => $query->where('is_active', true)->orderBy('priority')])
                 ->when($category !== '', fn (Builder $query) => $query->where('group_title', $category))
                 ->when($search !== '', fn (Builder $query) => $query->where('name', 'like', '%'.$search.'%'))
                 ->orderByDesc('is_featured')
@@ -61,7 +61,9 @@ class PublicChannelController extends Controller
 
         $payload = Cache::remember("public-api-channel:{$channel->id}", now()->addMinutes(3), function () use ($channel): array {
             $channel->load([
+                'category',
                 'playlist',
+                'currentProgram',
                 'streams' => fn ($query) => $query->where('is_active', true)->orderBy('priority'),
             ]);
 
@@ -87,10 +89,16 @@ class PublicChannelController extends Controller
         return [
             'id' => $channel->id,
             'name' => $channel->name,
+            'slug' => $channel->slug,
             'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'stream_url' => $source['url'] ?? StreamUrl::proxied($channel->stream_url),
             'stream_type' => $source['type'] ?? $channel->stream_type ?? 'hls',
-            'category' => $channel->group_title ?: 'General',
+            'category' => $channel->category?->name ?? $channel->group_title ?: 'General',
+            'program' => $channel->currentProgram ? [
+                'title' => $channel->currentProgram->title,
+                'start_time' => $channel->currentProgram->start_time?->toIso8601String(),
+                'end_time' => $channel->currentProgram->end_time?->toIso8601String(),
+            ] : null,
             'description' => ($channel->group_title ?: 'Live TV').' stream from '.($channel->playlist?->name ?? 'approved playlist').'.',
         ];
     }

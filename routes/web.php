@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\Web\Admin\AuthController as AdminAuthController;
+use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Web\Admin\ChannelManagementController as AdminChannelController;
 use App\Http\Controllers\Web\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Web\Admin\PlaylistController as AdminPlaylistController;
+use App\Http\Controllers\Web\Admin\ProgramController as AdminProgramController;
 use App\Http\Controllers\Web\ChannelController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\LiveTvController;
@@ -25,6 +28,15 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
     Route::get('/', AdminDashboardController::class)->name('admin.dashboard');
     Route::post('/logout', [AdminAuthController::class, 'destroy'])->name('admin.logout');
+    Route::resource('categories', AdminCategoryController::class)
+        ->except(['create', 'show'])
+        ->names('admin.categories');
+    Route::resource('channels', AdminChannelController::class)
+        ->except(['create', 'show'])
+        ->names('admin.channels');
+    Route::resource('programs', AdminProgramController::class)
+        ->except(['create', 'show'])
+        ->names('admin.programs');
     Route::post('/playlists', [AdminPlaylistController::class, 'store'])
         ->middleware('throttle:playlists')
         ->name('admin.playlists.store');

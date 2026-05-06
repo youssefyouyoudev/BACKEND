@@ -19,10 +19,13 @@ class Channel extends Model
         'playlist_id',
         'tvg_id',
         'name',
+        'slug',
         'logo',
         'group_title',
+        'category_id',
         'stream_url',
         'stream_type',
+        'is_live',
         'stream_hash',
         'channel_identity_hash',
         'is_active',
@@ -36,6 +39,7 @@ class Channel extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_live' => 'boolean',
             'is_featured' => 'boolean',
             'metadata' => 'array',
         ];
@@ -44,6 +48,11 @@ class Channel extends Model
     public function playlist(): BelongsTo
     {
         return $this->belongsTo(Playlist::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
     }
 
     public function favoredByUsers(): BelongsToMany
@@ -55,6 +64,19 @@ class Channel extends Model
     public function watchHistories(): HasMany
     {
         return $this->hasMany(WatchHistory::class);
+    }
+
+    public function programs(): HasMany
+    {
+        return $this->hasMany(Program::class);
+    }
+
+    public function currentProgram()
+    {
+        return $this->hasOne(Program::class)
+            ->where('start_time', '<=', now())
+            ->where('end_time', '>', now())
+            ->latestOfMany('start_time');
     }
 
     /**
