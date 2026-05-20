@@ -12,6 +12,7 @@
                 $id = data_get($channel, 'id');
                 $logo = data_get($channel, 'logo') ?: data_get($channel, 'thumbnail') ?: asset('brand/rifi-logo.png');
                 $category = data_get($channel, 'category') ?: data_get($channel, 'group_title') ?: 'General';
+                $tags = collect(data_get($channel, 'display_tags', []))->take(2);
             @endphp
             <a
                 href="{{ route('channels.show', $id) }}"
@@ -21,7 +22,7 @@
                 <img src="{{ $logo }}" alt="" loading="lazy" onerror="this.src='{{ asset('brand/rifi-logo.png') }}'">
                 <span>
                     <strong>{{ data_get($channel, 'name') }}</strong>
-                    <small>{{ $category }}</small>
+                    <small>{{ $category }}@if($tags->isNotEmpty()) - {{ $tags->join(' / ') }}@endif</small>
                 </span>
                 <i></i>
             </a>

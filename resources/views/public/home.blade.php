@@ -18,7 +18,9 @@
 
     <x-hero :channel="$heroChannel ? [
         'id' => $heroChannel->id,
-        'name' => $heroChannel->name,
+        'name' => $heroChannel->clean_display_name,
+        'original_name' => $heroChannel->name,
+        'quality_label' => $heroChannel->quality_label,
         'logo' => $heroChannel->logo ?: asset('brand/rifi-logo.png'),
         'category' => $heroChannel->category?->name ?? $heroChannel->group_title ?? 'Featured',
         'program' => ['title' => $heroChannel->currentProgram?->title ?? 'Live broadcast'],

@@ -4,6 +4,9 @@
     $recommendedChannels = collect($initialChannels)->take(8)->map(fn ($channel) => [
         'id' => $channel['id'],
         'name' => $channel['name'],
+        'original_name' => $channel['original_name'] ?? $channel['name'],
+        'display_tags' => $channel['display_tags'] ?? [],
+        'quality_label' => $channel['quality_label'] ?? 'HD',
         'avatar' => $channel['logo'],
         'category' => $channel['group_title'],
         'viewers_label' => $channel['viewers_label'],
@@ -232,9 +235,12 @@ document.addEventListener('alpine:init', () => {
                     type: 'mpegts',
                     isLive: true,
                     url: source.url,
+                    cors: true,
+                    withCredentials: false,
                 }, {
                     enableWorker: true,
                     lazyLoad: false,
+                    stashInitialSize: 128,
                     liveBufferLatencyChasing: true,
                 });
                 this.mpegts.attachMediaElement(video);

@@ -46,6 +46,53 @@ class Channel extends Model
         ];
     }
 
+    public function getCleanDisplayNameAttribute(): string
+    {
+        $name = (string) $this->name;
+        $name = (string) preg_replace('/^\s*(?:\|([A-Z]{2,4})\|\s*)+/iu', '', $name);
+        $name = (string) preg_replace('/\b(?:UHD|FHD|HD|SD|4K|VIP)\b/iu', '', $name);
+        $name = (string) preg_replace('/\s+/u', ' ', trim($name));
+
+        return $name !== '' ? $name : $this->name;
+    }
+
+    /**
+     * Lightweight presentation tags extracted from raw IPTV names.
+     *
+     * The original channel name stays untouched for admin/editing and exact
+     * duplicate grouping; these tags are only for public UI polish.
+     *
+     * @return array<int, string>
+     */
+    public function getDisplayTagsAttribute(): array
+    {
+        $name = (string) $this->name;
+        $tags = [];
+
+        if (preg_match_all('/\|([A-Z]{2,4})\|/iu', $name, $languageMatches)) {
+            $tags = array_merge($tags, array_map('strtoupper', $languageMatches[1]));
+        }
+
+        if (preg_match_all('/\b(UHD|FHD|HD|SD|4K|VIP)\b/iu', $name, $qualityMatches)) {
+            $tags = array_merge($tags, array_map('strtoupper', $qualityMatches[1]));
+        }
+
+        return array_values(array_unique($tags));
+    }
+
+    public function getQualityLabelAttribute(): string
+    {
+        $tags = $this->display_tags;
+
+        foreach (['4K', 'UHD', 'FHD', 'HD', 'SD'] as $quality) {
+            if (in_array($quality, $tags, true)) {
+                return $quality;
+            }
+        }
+
+        return 'HD';
+    }
+
     public function playlist(): BelongsTo
     {
         return $this->belongsTo(Playlist::class);

@@ -9,11 +9,8 @@
     <meta property="og:description" content="{{ $description ?? 'Watch live channels, featured broadcasts, and curated sports streams on RiFi Media TV.' }}">
     <meta property="og:type" content="website">
     <link rel="icon" type="image/png" href="{{ asset('brand/rifi-logo.png') }}">
-    <link rel="preconnect" href="https://vjs.zencdn.net">
-    <link href="https://vjs.zencdn.net/8.23.4/video-js.css" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
-    <script defer src="https://vjs.zencdn.net/8.23.4/video.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 </head>
 <body class="app-body rm-body">

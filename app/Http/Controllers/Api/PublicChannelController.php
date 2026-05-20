@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
+use App\Services\StreamService;
 use App\Support\StreamUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -12,6 +13,10 @@ use Illuminate\Support\Facades\Cache;
 
 class PublicChannelController extends Controller
 {
+    public function __construct(private readonly StreamService $streamService)
+    {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $search = $request->string('search')->toString();
@@ -89,12 +94,15 @@ class PublicChannelController extends Controller
 
         return [
             'id' => $channel->id,
-            'name' => $channel->name,
+            'name' => $channel->clean_display_name,
+            'original_name' => $channel->name,
+            'display_tags' => $channel->display_tags,
+            'quality_label' => $channel->quality_label,
             'slug' => $channel->slug,
             'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'stream_url' => $source['url'] ?? StreamUrl::proxied($channel->stream_url),
             'stream_type' => $source['type'] ?? $channel->stream_type ?? 'stream',
-            'sources' => $channel->active_stream_sources->toArray(),
+            'sources' => $this->streamService->sourcesFor($channel),
             'category' => $channel->category?->name ?? $channel->group_title ?: 'General',
             'program' => $channel->currentProgram ? [
                 'title' => $channel->currentProgram->title,

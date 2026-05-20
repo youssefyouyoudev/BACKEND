@@ -88,7 +88,10 @@ class HomeController extends Controller
 
         return [
             'id' => $channel->id,
-            'name' => $channel->name,
+            'name' => $channel->clean_display_name,
+            'original_name' => $channel->name,
+            'display_tags' => $channel->display_tags,
+            'quality_label' => $channel->quality_label,
             'streamer' => $channel->playlist?->name ?? 'RIFI Media',
             'category' => $channel->category?->name ?? $channel->group_title ?: 'General',
             'program' => $channel->currentProgram ? [

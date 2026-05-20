@@ -62,7 +62,10 @@ class ChannelController extends Controller
 
         return [
             'id' => $channel->id,
-            'name' => $channel->name,
+            'name' => $channel->clean_display_name,
+            'original_name' => $channel->name,
+            'display_tags' => $channel->display_tags,
+            'quality_label' => $channel->quality_label,
             'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'stream_url' => $source['url'] ?? StreamUrl::proxied($channel->stream_url),
             'stream_type' => $source['type'] ?? $channel->stream_type ?? 'stream',

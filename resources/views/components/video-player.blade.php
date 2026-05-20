@@ -18,28 +18,30 @@
     ];
 @endphp
 
-<div class="sat-player rm-player-frame" data-rifi-video-player data-config='@json($payload)' data-player-id="{{ $playerId }}">
+<div class="sat-player rm-player-frame rifi-player-stage" data-rifi-video-player data-config='@json($payload)' data-player-id="{{ $playerId }}">
     <video
         id="{{ $playerId }}"
-        class="sat-player__video rm-player-video"
+        class="sat-player__video rm-player-video rifi-video-element"
         controls
         playsinline
         preload="auto"
         @if($poster) poster="{{ $poster }}" @endif
     ></video>
 
-    <div class="sat-player__loading rm-player-loading" data-player-loading hidden>
-        <span></span>
-        <strong>Connecting to broadcast</strong>
+    <div class="sat-player__loading rm-player-loading rifi-player-overlay" data-player-loading hidden>
+        <span class="rifi-player-spinner"></span>
+        <strong class="rifi-player-status-title" data-player-status-title>Connecting to broadcast</strong>
+        <p class="rifi-player-status-subtitle" data-player-status-subtitle>Preparing the live signal.</p>
     </div>
 
-    <div class="sat-player__error rm-player-error" data-player-error hidden>
+    <div class="sat-player__error rm-player-error rifi-player-overlay rifi-player-overlay--error" data-player-error hidden>
         <span>Stream unavailable</span>
         <h3 data-player-error-title>Channel unavailable</h3>
         <p data-player-error-message>This broadcast did not respond in time. Try another channel or retry the stream.</p>
-        <div class="sat-player__error-actions rm-player-error__actions">
+        <div class="sat-player__error-actions rm-player-error__actions rifi-player-error-actions">
             <button type="button" class="rm-btn rm-btn-primary" data-player-retry>Retry</button>
             <button type="button" class="rm-btn rm-btn-secondary" data-player-next>Next channel</button>
+            <a href="{{ route('home') }}" class="rm-btn rm-btn-secondary">Back to channels</a>
         </div>
     </div>
 
@@ -51,6 +53,7 @@
         </select>
     </div>
 
+    <div class="rifi-server-badge" data-player-active-server hidden></div>
     <div class="rm-server-selector" data-player-servers aria-label="Stream servers"></div>
 </div>
 
@@ -60,6 +63,7 @@
         (() => {
             const STARTUP_TIMEOUT = 30000;
             const MAX_RETRIES = 1;
+            const BUFFERING_DELAY = 2400;
 
             const waitForLibraries = () => new Promise((resolve, reject) => {
                 const started = Date.now();
@@ -130,6 +134,9 @@
                     this.loading = root.querySelector('[data-player-loading]');
                     this.error = root.querySelector('[data-player-error]');
                     this.errorMessage = root.querySelector('[data-player-error-message]');
+                    this.statusTitle = root.querySelector('[data-player-status-title]');
+                    this.statusSubtitle = root.querySelector('[data-player-status-subtitle]');
+                    this.activeServerBadge = root.querySelector('[data-player-active-server]');
                     this.retryButton = root.querySelector('[data-player-retry]');
                     this.nextButton = root.querySelector('[data-player-next]');
                     this.quality = root.querySelector('[data-player-quality]');
@@ -139,10 +146,14 @@
                     this.activeIndex = 0;
                     this.retries = 0;
                     this.timeout = null;
+                    this.retryTimeout = null;
+                    this.bufferingTimeout = null;
+                    this.state = 'idle';
                     this.hls = null;
                     this.mpegts = null;
                     this.player = null;
                     this.failedIndexes = new Set();
+                    this.bufferingIndexes = new Set();
 
                     this.bindNativeVideoEvents();
                     this.retryButton?.addEventListener('click', () => this.retry(true));
@@ -162,6 +173,7 @@
                 async load(index = 0) {
                     this.activeIndex = Math.max(0, Math.min(index, this.sources.length - 1));
                     this.retries = 0;
+                    this.clearRetryTimeout();
                     this.renderServers();
                     await this.loadServer();
                 }
@@ -188,7 +200,11 @@
                     }
 
                     this.cleanupPlayer();
-                    this.showLoading();
+                    this.setPlayerState('connecting', {
+                        title: 'Connecting to broadcast',
+                        subtitle: `${label} - ${streamType.toUpperCase()}`,
+                        soft: false,
+                    });
                     this.startTimeout();
 
                     try {
@@ -221,7 +237,7 @@
                     const id = this.root.dataset.playerId || `rifi-player-${Date.now()}`;
                     const video = document.createElement('video');
                     video.id = id;
-                    video.className = 'sat-player__video rm-player-video';
+                    video.className = 'sat-player__video rm-player-video rifi-video-element';
                     video.controls = true;
                     video.playsInline = true;
                     video.preload = 'auto';
@@ -252,7 +268,8 @@
                     this.video.addEventListener('canplay', markReady, { once: true });
                     this.video.addEventListener('playing', markReady, { once: true });
                     this.video.addEventListener('timeupdate', markReady, { once: true });
-                    this.video.addEventListener('waiting', () => this.showLoading());
+                    this.video.addEventListener('waiting', () => this.scheduleBufferingOverlay());
+                    this.video.addEventListener('stalled', () => this.scheduleBufferingOverlay());
                     this.video.addEventListener('error', () => {
                         const error = this.video.error;
                         console.error('[RiFiPlayer] Native video error', {
@@ -274,6 +291,11 @@
                     }
 
                     console.log('[RiFiPlayer] Using mpegts.js', { server: label });
+                    this.setPlayerState('loading', {
+                        title: 'Tuning stream signal',
+                        subtitle: `${label} - MPEG-TS`,
+                        soft: false,
+                    });
                     this.mpegts = window.mpegts.createPlayer({
                         type: 'mpegts',
                         isLive: true,
@@ -309,6 +331,11 @@
 
                     if (this.video.canPlayType('application/vnd.apple.mpegurl')) {
                         console.log('[RiFiPlayer] Using native HLS', { server: label });
+                        this.setPlayerState('loading', {
+                            title: 'Starting live feed',
+                            subtitle: `${label} - HLS`,
+                            soft: false,
+                        });
                         this.video.src = streamUrl;
                         this.video.load();
                         this.safePlay();
@@ -321,6 +348,11 @@
                     }
 
                     console.log('[RiFiPlayer] Using hls.js', { server: label });
+                    this.setPlayerState('loading', {
+                        title: 'Starting live feed',
+                        subtitle: `${label} - HLS`,
+                        soft: false,
+                    });
                     this.hls = new Hls({
                         enableWorker: true,
                         lowLatencyMode: true,
@@ -357,6 +389,11 @@
                 loadWithNative(streamUrl, streamType, label) {
                     this.createFreshVideoElement();
                     console.log('[RiFiPlayer] Using native video', { server: label, type: streamType });
+                    this.setPlayerState('loading', {
+                        title: 'Starting live feed',
+                        subtitle: `${label} - ${streamType.toUpperCase()}`,
+                        soft: false,
+                    });
                     this.video.src = streamUrl;
                     this.video.type = mimeTypeFor(streamType);
                     this.video.load();
@@ -377,32 +414,45 @@
 
                 handleFailure(message) {
                     this.clearTimeout();
+                    this.clearBufferingTimeout();
                     this.failedIndexes.add(this.activeIndex);
+                    this.bufferingIndexes.delete(this.activeIndex);
                     this.renderServers();
                     const failedLabel = serverLabel(this.currentSource(), this.activeIndex);
 
                     if (this.retries < MAX_RETRIES) {
                         this.retries += 1;
                         console.warn('[RiFiPlayer] Retrying failed server', { server: failedLabel, retry: this.retries, reason: message });
-                        setTimeout(() => this.loadServer(), 900 * this.retries);
+                        this.setPlayerState('reconnecting', {
+                            title: 'Reconnecting broadcast',
+                            subtitle: `${failedLabel} failed. Retrying once...`,
+                            soft: true,
+                        });
+                        this.retryTimeout = setTimeout(() => this.loadServer(), 900 * this.retries);
                         return;
                     }
 
                     const nextIndex = this.nextAvailableIndex();
                     if (nextIndex !== null) {
+                        const nextLabel = serverLabel(this.sources[nextIndex], nextIndex);
                         console.warn('[RiFiPlayer] Server failed, trying fallback', {
                             failed: failedLabel,
-                            next: serverLabel(this.sources[nextIndex], nextIndex),
+                            next: nextLabel,
                             reason: message,
                         });
                         this.activeIndex = nextIndex;
                         this.retries = 0;
+                        this.setPlayerState('switching_server', {
+                            title: `${failedLabel} failed`,
+                            subtitle: `Trying ${nextLabel}...`,
+                            soft: true,
+                        });
                         this.renderServers();
-                        this.loadServer();
+                        this.retryTimeout = setTimeout(() => this.loadServer(), 800);
                         return;
                     }
 
-                    this.showError('Stream unavailable', `${failedLabel} failed. Try another server or come back later. ${message || ''}`.trim());
+                    this.showError('Broadcast unavailable', `We could not start this stream. ${failedLabel} failed. ${message || ''}`.trim());
                 }
 
                 startTimeout() {
@@ -424,6 +474,21 @@
                     }
                 }
 
+                clearRetryTimeout() {
+                    if (this.retryTimeout) {
+                        clearTimeout(this.retryTimeout);
+                        this.retryTimeout = null;
+                    }
+                }
+
+                clearBufferingTimeout() {
+                    if (this.bufferingTimeout) {
+                        clearTimeout(this.bufferingTimeout);
+                        this.bufferingTimeout = null;
+                    }
+                    this.bufferingIndexes.delete(this.activeIndex);
+                }
+
                 populateQuality(levels) {
                     if (!this.quality || !this.hls || !levels.length) return;
 
@@ -437,23 +502,30 @@
                 }
 
                 showLoading() {
-                    this.root.classList.add('is-loading');
-                    this.root.classList.remove('has-error');
-                    if (this.loading) this.loading.hidden = false;
-                    if (this.error) this.error.hidden = true;
+                    this.setPlayerState('loading', {
+                        title: 'Connecting to broadcast',
+                        subtitle: serverLabel(this.currentSource(), this.activeIndex),
+                        soft: false,
+                    });
                 }
 
                 showReady() {
                     this.clearTimeout();
+                    this.clearBufferingTimeout();
+                    this.state = 'playing';
                     this.root.classList.remove('is-loading', 'has-error');
+                    this.root.dataset.playerState = 'playing';
                     if (this.loading) this.loading.hidden = true;
                     if (this.error) this.error.hidden = true;
+                    this.updateActiveServerBadge();
                 }
 
                 showError(title, message) {
                     this.cleanupPlayer();
+                    this.state = 'unavailable';
                     this.root.classList.remove('is-loading');
                     this.root.classList.add('has-error');
+                    this.root.dataset.playerState = 'unavailable';
                     if (this.loading) this.loading.hidden = true;
                     if (this.error) this.error.hidden = false;
                     const errorTitle = this.root.querySelector('[data-player-error-title]');
@@ -463,6 +535,8 @@
 
                 cleanupPlayer() {
                     this.clearTimeout();
+                    this.clearRetryTimeout();
+                    this.clearBufferingTimeout();
                     this.teardownHls();
                     this.teardownMpegts();
                     this.teardownVideoJs();
@@ -523,6 +597,63 @@
                     return null;
                 }
 
+                scheduleBufferingOverlay() {
+                    if (this.state !== 'playing') return;
+
+                    this.clearBufferingTimeout();
+                    this.bufferingTimeout = setTimeout(() => {
+                        this.bufferingIndexes.add(this.activeIndex);
+                        this.renderServers();
+                        this.setPlayerState('buffering', {
+                            title: 'Buffering live signal',
+                            subtitle: `${serverLabel(this.currentSource(), this.activeIndex)} is catching up.`,
+                            soft: true,
+                        });
+                    }, BUFFERING_DELAY);
+                }
+
+                setPlayerState(state, details = {}) {
+                    this.state = state;
+                    this.root.dataset.playerState = state;
+                    this.root.classList.toggle('is-loading', !['idle', 'playing', 'failed', 'unavailable'].includes(state));
+                    this.root.classList.toggle('has-error', ['failed', 'unavailable'].includes(state));
+
+                    if (this.loading) {
+                        this.loading.hidden = ['idle', 'playing', 'failed', 'unavailable'].includes(state);
+                        this.loading.classList.toggle('is-soft', Boolean(details.soft));
+                    }
+
+                    if (this.error) {
+                        this.error.hidden = !['failed', 'unavailable'].includes(state);
+                    }
+
+                    if (this.statusTitle && details.title) {
+                        this.statusTitle.textContent = details.title;
+                    }
+
+                    if (this.statusSubtitle) {
+                        this.statusSubtitle.textContent = details.subtitle || serverLabel(this.currentSource(), this.activeIndex);
+                    }
+
+                    this.updateActiveServerBadge();
+                }
+
+                updateActiveServerBadge() {
+                    if (!this.activeServerBadge) return;
+
+                    const source = this.currentSource();
+                    if (!source) {
+                        this.activeServerBadge.hidden = true;
+                        return;
+                    }
+
+                    const label = serverLabel(source, this.activeIndex);
+                    const type = detectStreamType(source).toUpperCase();
+                    const quality = source.quality || 'Auto';
+                    this.activeServerBadge.innerHTML = `<strong>${escapeHtml(label)}</strong><span>${escapeHtml(quality)} - ${escapeHtml(type)}</span>`;
+                    this.activeServerBadge.hidden = false;
+                }
+
                 engineFor(streamType) {
                     if (streamType === 'hls') return this.video?.canPlayType('application/vnd.apple.mpegurl') ? 'native-hls' : 'hls.js';
                     if (streamType === 'mpegts') return window.mpegts?.isSupported() ? 'mpegts.js' : 'unsupported';
@@ -543,8 +674,11 @@
                         const health = source.health_status || 'unknown';
                         const active = index === this.activeIndex ? ' is-active' : '';
                         const failed = this.failedIndexes.has(index) ? ' is-failed' : '';
+                        const buffering = this.bufferingIndexes.has(index) ? ' is-buffering' : '';
+                        const status = failed ? 'failed' : (buffering ? 'buffering' : (active ? 'active' : health));
 
-                        return `<button type="button" class="rm-server-option${active}${failed}" data-server-index="${index}">
+                        return `<button type="button" class="rm-server-option${active}${failed}${buffering}" data-server-index="${index}" aria-label="Use ${escapeHtml(label)}">
+                            <i class="rifi-status-dot rifi-status-dot--${escapeHtml(status)}"></i>
                             <span>${escapeHtml(label)}</span>
                             <small>${escapeHtml(source.quality || detectStreamType(source).toUpperCase())} - ${escapeHtml(health)}</small>
                         </button>`;

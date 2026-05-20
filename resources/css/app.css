@@ -4862,6 +4862,33 @@ html:has(.rm-body) {
     font-size: clamp(1rem, 2vw, 1.24rem);
 }
 
+.rm-hero__stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    width: min(680px, 100%);
+    margin: 0 0 24px;
+}
+
+.rm-hero__stats span {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    color: var(--rm-muted);
+    background: rgba(255, 255, 255, 0.055);
+    backdrop-filter: blur(14px);
+}
+
+.rm-hero__stats b {
+    color: var(--rm-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .rm-hero__actions {
     gap: 12px;
     flex-wrap: wrap;
@@ -5174,6 +5201,26 @@ html:has(.rm-body) {
     font-size: 1.08rem;
 }
 
+.rm-match-card__tags {
+    display: flex;
+    gap: 6px;
+    margin-top: 2px;
+    flex-wrap: wrap;
+}
+
+.rm-match-card__tags b {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 7px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    color: var(--rm-text-soft);
+    background: rgba(255, 255, 255, 0.055);
+    font-size: 0.68rem;
+    font-weight: 900;
+}
+
 .rm-match-card__footer {
     justify-content: space-between;
     gap: 10px;
@@ -5365,9 +5412,9 @@ html:has(.rm-body) {
     position: relative;
     overflow: hidden;
     border: 1px solid rgba(139, 92, 246, 0.28);
-    border-radius: 0;
+    border-radius: 24px;
     background: #000;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    box-shadow: var(--rm-glow), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .rm-player-frame--spa {
@@ -5383,6 +5430,11 @@ html:has(.rm-body) {
     min-height: 0;
     aspect-ratio: 16 / 9;
     background: #000;
+}
+
+.rifi-video-element {
+    display: block;
+    object-fit: contain;
 }
 
 .rm-player-frame .video-js {
@@ -5404,7 +5456,12 @@ html:has(.rm-body) {
     gap: 14px;
     padding: 28px;
     text-align: center;
-    background: rgba(0, 0, 0, 0.72);
+    background:
+        radial-gradient(circle at center, rgba(139, 92, 246, 0.16), transparent 42%),
+        rgba(0, 0, 0, 0.58);
+    backdrop-filter: blur(8px);
+    opacity: 1;
+    transition: opacity 180ms ease, background 180ms ease;
 }
 
 .rm-player-loading[hidden],
@@ -5412,13 +5469,30 @@ html:has(.rm-body) {
     display: none;
 }
 
-.rm-player-loading span {
+.rm-player-loading.is-soft {
+    background: rgba(0, 0, 0, 0.34);
+    backdrop-filter: blur(3px);
+}
+
+.rm-player-loading span,
+.rifi-player-spinner {
     width: 48px;
     height: 48px;
     border: 3px solid rgba(139, 92, 246, 0.2);
     border-top-color: var(--rm-primary);
     border-radius: 999px;
     animation: watch-spin 0.75s linear infinite;
+}
+
+.rifi-player-status-title {
+    max-width: min(560px, 90%);
+    font-size: clamp(1.15rem, 2vw, 1.55rem);
+}
+
+.rifi-player-status-subtitle {
+    max-width: min(620px, 90%);
+    margin: -6px 0 0;
+    color: var(--rm-text-soft);
 }
 
 .rm-player-error span {
@@ -5497,9 +5571,37 @@ html:has(.rm-body) {
     scrollbar-width: thin;
 }
 
+.rifi-server-badge {
+    position: absolute;
+    left: 18px;
+    bottom: 86px;
+    z-index: 6;
+    display: grid;
+    gap: 2px;
+    min-width: 132px;
+    padding: 10px 13px;
+    border: 1px solid rgba(139, 92, 246, 0.38);
+    border-radius: 16px;
+    color: var(--rm-text);
+    background: rgba(0, 0, 0, 0.58);
+    backdrop-filter: blur(14px);
+    box-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
+    pointer-events: none;
+}
+
+.rifi-server-badge strong {
+    font-size: 0.86rem;
+}
+
+.rifi-server-badge span {
+    color: var(--rm-muted);
+    font-size: 0.72rem;
+}
+
 .rm-server-option {
     flex: 0 0 auto;
     display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 2px;
     min-width: 116px;
     padding: 9px 12px;
@@ -5526,13 +5628,52 @@ html:has(.rm-body) {
     background: rgba(239, 35, 60, 0.16);
 }
 
+.rm-server-option.is-buffering {
+    border-color: rgba(245, 196, 81, 0.72);
+    background: rgba(245, 196, 81, 0.14);
+}
+
+.rifi-status-dot {
+    grid-row: 1 / span 2;
+    align-self: center;
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: rgba(138, 143, 163, 0.9);
+    box-shadow: 0 0 0 4px rgba(138, 143, 163, 0.08);
+}
+
+.rifi-status-dot--active,
+.rifi-status-dot--online,
+.rifi-status-dot--healthy {
+    background: var(--rm-live);
+    box-shadow: 0 0 0 4px rgba(239, 35, 60, 0.12);
+}
+
+.rifi-status-dot--buffering,
+.rifi-status-dot--retrying,
+.rifi-status-dot--unstable {
+    background: var(--rm-gold);
+    box-shadow: 0 0 0 4px rgba(245, 196, 81, 0.12);
+}
+
+.rifi-status-dot--failed,
+.rifi-status-dot--offline {
+    background: var(--rm-live);
+    opacity: 0.7;
+}
+
 .rm-server-option span {
     font-weight: 900;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .rm-server-option small {
     color: var(--rm-muted);
     font-size: 0.72rem;
+    grid-column: 2;
 }
 
 .rm-live-details,
@@ -5963,6 +6104,10 @@ html:has(.rm-body) {
         border-radius: 24px;
     }
 
+    .rm-hero__stats {
+        grid-template-columns: 1fr;
+    }
+
     .rm-hero h1,
     .rm-player-header--hero h1,
     .rm-auth-card h1 {
@@ -6039,6 +6184,13 @@ html:has(.rm-body) {
         left: 8px;
         right: 8px;
         bottom: 8px;
+    }
+
+    .rifi-server-badge {
+        left: 12px;
+        bottom: 76px;
+        min-width: 112px;
+        padding: 8px 10px;
     }
 
     .rm-server-option {

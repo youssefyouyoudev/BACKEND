@@ -4,12 +4,17 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
+use App\Services\StreamService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 
 class LiveTvController extends Controller
 {
+    public function __construct(private readonly StreamService $streamService)
+    {
+    }
+
     public function __invoke(): View
     {
         // Category list with per-category channel counts (two queries, no N+1)
@@ -51,14 +56,17 @@ class LiveTvController extends Controller
 
         return [
             'id' => $channel->id,
-            'name' => $channel->name,
+            'name' => $channel->clean_display_name,
+            'original_name' => $channel->name,
+            'display_tags' => $channel->display_tags,
+            'quality_label' => $channel->quality_label,
             'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'thumbnail' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'group_title' => $channel->group_title ?: 'General',
             'description' => ($channel->group_title ?: 'Live TV').' stream from '.($channel->playlist?->name ?? 'an approved public playlist').'.',
             'viewers' => $viewerCount,
             'viewers_label' => $viewerCount >= 1000 ? round($viewerCount / 1000, 1).'K' : (string) $viewerCount,
-            'sources' => $channel->active_stream_sources->toArray(),
+            'sources' => $this->streamService->sourcesFor($channel),
         ];
     }
 }
