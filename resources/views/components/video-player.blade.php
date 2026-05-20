@@ -62,8 +62,11 @@
         <script>
         (() => {
             const STARTUP_TIMEOUT = 30000;
-            const MAX_RETRIES = 1;
+            const MAX_STARTUP_RETRIES = 1;
+            const MAX_RECONNECT_ATTEMPTS = 3;
+            const RECONNECT_DELAYS = [1000, 3000, 5000];
             const BUFFERING_DELAY = 2400;
+            const BUFFERING_RECOVERY_DELAY = 10000;
 
             const waitForLibraries = () => new Promise((resolve, reject) => {
                 const started = Date.now();
@@ -144,14 +147,27 @@
                     this.config = JSON.parse(root.dataset.config || '{}');
                     this.sources = this.config.sources || [];
                     this.activeIndex = 0;
-                    this.retries = 0;
+                    this.startupRetries = 0;
+                    this.reconnectAttempts = 0;
                     this.timeout = null;
                     this.retryTimeout = null;
                     this.bufferingTimeout = null;
+                    this.bufferingRecoveryTimeout = null;
+                    this.resumeTimeout = null;
+                    this.loadToken = 0;
                     this.state = 'idle';
                     this.hls = null;
                     this.mpegts = null;
                     this.player = null;
+                    this.currentEngine = null;
+                    this.currentServer = null;
+                    this.hasStartedPlayback = false;
+                    this.isLiveStream = true;
+                    this.isSwitchingServer = false;
+                    this.isManualRetry = false;
+                    this.isRecovering = false;
+                    this.lastPlaybackTime = 0;
+                    this.lastProgressAt = Date.now();
                     this.failedIndexes = new Set();
                     this.bufferingIndexes = new Set();
 
@@ -170,23 +186,42 @@
                     return this.sources[this.activeIndex] || this.sources[0] || null;
                 }
 
+                isCurrentToken(token) {
+                    return token === this.loadToken;
+                }
+
                 async load(index = 0) {
                     this.activeIndex = Math.max(0, Math.min(index, this.sources.length - 1));
-                    this.retries = 0;
+                    this.startupRetries = 0;
+                    this.reconnectAttempts = 0;
+                    this.isSwitchingServer = true;
                     this.clearRetryTimeout();
                     this.renderServers();
                     await this.loadServer();
                 }
 
                 async retry(force = false) {
-                    if (force) this.retries = 0;
+                    this.isManualRetry = true;
+                    if (force) {
+                        this.startupRetries = 0;
+                        this.reconnectAttempts = 0;
+                        this.failedIndexes.delete(this.activeIndex);
+                    }
                     await this.loadServer();
                 }
 
                 async loadServer() {
+                    this.loadToken += 1;
+                    const token = this.loadToken;
                     const source = this.currentSource();
                     const streamType = detectStreamType(source);
                     const label = serverLabel(source, this.activeIndex);
+                    this.currentServer = source;
+                    this.hasStartedPlayback = false;
+                    this.isLiveStream = streamType !== 'mp4' && streamType !== 'dash';
+                    this.isRecovering = false;
+                    this.lastPlaybackTime = 0;
+                    this.lastProgressAt = Date.now();
 
                     console.log('[RiFiPlayer] Loading stream', {
                         server: label,
@@ -200,10 +235,10 @@
                     }
 
                     this.cleanupPlayer();
-                    this.setPlayerState('connecting', {
-                        title: 'Connecting to broadcast',
+                    this.setPlayerState(this.isSwitchingServer ? 'reconnecting' : 'connecting', {
+                        title: this.isSwitchingServer ? `Switching to ${label}` : 'Connecting to broadcast',
                         subtitle: `${label} - ${streamType.toUpperCase()}`,
-                        soft: false,
+                        soft: this.isSwitchingServer,
                     });
                     this.startTimeout();
 
@@ -213,23 +248,24 @@
                             : source.url;
 
                         if (streamType === 'hls') {
-                            this.loadWithHls(sourceUrl, label);
+                            this.loadWithHls(sourceUrl, label, token);
                             return;
                         }
 
                         if (streamType === 'mpegts') {
-                            this.loadWithMpegTs(sourceUrl, label);
+                            this.loadWithMpegTs(sourceUrl, label, token);
                             return;
                         }
 
-                        this.loadWithNative(sourceUrl, streamType, label);
+                        this.loadWithNative(sourceUrl, streamType, label, token);
                     } catch (error) {
+                        if (!this.isCurrentToken(token)) return;
                         console.error('[RiFiPlayer] Stream preparation failed', {
                             error,
                             server: label,
                             type: streamType,
                         });
-                        this.handleFailure(error.message || 'Stream preparation failed.');
+                        this.handleStartupFailure(error.message || 'Stream preparation failed.');
                     }
                 }
 
@@ -255,22 +291,52 @@
                     }
 
                     this.video = video;
-                    this.bindNativeVideoEvents();
+                    this.bindNativeVideoEvents(this.loadToken);
 
                     return video;
                 }
 
-                bindNativeVideoEvents() {
+                bindNativeVideoEvents(token = this.loadToken) {
                     if (!this.video) return;
 
-                    const markReady = () => this.showReady();
-                    this.video.addEventListener('loadedmetadata', markReady, { once: true });
-                    this.video.addEventListener('canplay', markReady, { once: true });
-                    this.video.addEventListener('playing', markReady, { once: true });
-                    this.video.addEventListener('timeupdate', markReady, { once: true });
-                    this.video.addEventListener('waiting', () => this.scheduleBufferingOverlay());
-                    this.video.addEventListener('stalled', () => this.scheduleBufferingOverlay());
+                    this.video.addEventListener('loadedmetadata', () => {
+                        if (!this.isCurrentToken(token) || this.hasStartedPlayback) return;
+                        this.setPlayerState('connecting', {
+                            title: 'Starting live feed',
+                            subtitle: serverLabel(this.currentSource(), this.activeIndex),
+                            soft: false,
+                        });
+                    });
+                    this.video.addEventListener('canplay', () => {
+                        if (!this.isCurrentToken(token)) return;
+                        if (!this.hasStartedPlayback && this.config.autoplay) this.safePlay();
+                    });
+                    this.video.addEventListener('playing', () => {
+                        if (this.isCurrentToken(token)) this.markPlaybackStarted('playing');
+                    });
+                    this.video.addEventListener('timeupdate', () => {
+                        if (!this.isCurrentToken(token)) return;
+                        const currentTime = Number(this.video.currentTime || 0);
+                        const moving = Math.abs(currentTime - this.lastPlaybackTime) > 0.05;
+                        if (moving || currentTime > 0 || this.video.readyState >= 2) {
+                            this.lastPlaybackTime = currentTime;
+                            this.markPlaybackStarted('timeupdate');
+                        }
+                    });
+                    this.video.addEventListener('waiting', () => {
+                        if (this.isCurrentToken(token)) this.handleWaiting();
+                    });
+                    this.video.addEventListener('stalled', () => {
+                        if (this.isCurrentToken(token)) this.handleWaiting();
+                    });
+                    this.video.addEventListener('pause', () => {
+                        if (this.isCurrentToken(token)) this.handlePause();
+                    });
+                    this.video.addEventListener('ended', () => {
+                        if (this.isCurrentToken(token)) this.handleLiveEnded();
+                    });
                     this.video.addEventListener('error', () => {
+                        if (!this.isCurrentToken(token)) return;
                         const error = this.video.error;
                         console.error('[RiFiPlayer] Native video error', {
                             code: error?.code,
@@ -278,23 +344,28 @@
                             server: serverLabel(this.currentSource(), this.activeIndex),
                             type: detectStreamType(this.currentSource()),
                         });
-                        this.handleFailure(error?.message || 'Video playback failed.');
+                        if (this.hasStartedPlayback && this.isLiveStream) {
+                            this.handleRecoverableLiveError(error?.message || 'Live stream interruption.');
+                            return;
+                        }
+                        this.handleStartupFailure(error?.message || 'Video playback failed.');
                     });
                 }
 
-                loadWithMpegTs(streamUrl, label) {
+                loadWithMpegTs(streamUrl, label, token) {
                     this.createFreshVideoElement();
 
                     if (!window.mpegts?.isSupported()) {
-                        this.handleFailure('MPEG-TS playback is not supported by this browser.');
+                        this.handleStartupFailure('MPEG-TS playback is not supported by this browser.');
                         return;
                     }
 
                     console.log('[RiFiPlayer] Using mpegts.js', { server: label });
+                    this.currentEngine = 'mpegts.js';
                     this.setPlayerState('loading', {
-                        title: 'Tuning stream signal',
+                        title: this.hasStartedPlayback ? 'Restoring broadcast' : 'Tuning stream signal',
                         subtitle: `${label} - MPEG-TS`,
-                        soft: false,
+                        soft: this.hasStartedPlayback,
                     });
                     this.mpegts = window.mpegts.createPlayer({
                         type: 'mpegts',
@@ -305,13 +376,21 @@
                     }, {
                         enableWorker: true,
                         lazyLoad: false,
-                        stashInitialSize: 128,
+                        stashInitialSize: 384,
                         liveBufferLatencyChasing: true,
+                        autoCleanupSourceBuffer: true,
+                        autoCleanupMaxBackwardDuration: 30,
+                        autoCleanupMinBackwardDuration: 10,
                     });
 
                     this.mpegts.on(window.mpegts.Events.ERROR, (type, detail, info) => {
+                        if (!this.isCurrentToken(token)) return;
                         console.error('[RiFiPlayer] mpegts.js error', { type, detail, info, server: label });
-                        this.handleFailure(detail || type || 'MPEG-TS playback failed.');
+                        if (this.hasStartedPlayback && this.isLiveStream) {
+                            this.handleRecoverableLiveError(detail || type || 'MPEG-TS live interruption.');
+                            return;
+                        }
+                        this.handleStartupFailure(detail || type || 'MPEG-TS playback failed.');
                     });
 
                     this.mpegts.attachMediaElement(this.video);
@@ -322,19 +401,21 @@
                         : this.video.play();
 
                     Promise.resolve(playPromise).catch((error) => {
+                        if (!this.isCurrentToken(token)) return;
                         console.warn('[RiFiPlayer] MPEG-TS autoplay blocked or failed', { error, server: label });
                     });
                 }
 
-                loadWithHls(streamUrl, label) {
+                loadWithHls(streamUrl, label, token) {
                     this.createFreshVideoElement();
 
                     if (this.video.canPlayType('application/vnd.apple.mpegurl')) {
                         console.log('[RiFiPlayer] Using native HLS', { server: label });
+                        this.currentEngine = 'native-hls';
                         this.setPlayerState('loading', {
                             title: 'Starting live feed',
                             subtitle: `${label} - HLS`,
-                            soft: false,
+                            soft: this.hasStartedPlayback,
                         });
                         this.video.src = streamUrl;
                         this.video.load();
@@ -343,15 +424,16 @@
                     }
 
                     if (!window.Hls?.isSupported()) {
-                        this.handleFailure('HLS playback is not supported by this browser.');
+                        this.handleStartupFailure('HLS playback is not supported by this browser.');
                         return;
                     }
 
                     console.log('[RiFiPlayer] Using hls.js', { server: label });
+                    this.currentEngine = 'hls.js';
                     this.setPlayerState('loading', {
                         title: 'Starting live feed',
                         subtitle: `${label} - HLS`,
-                        soft: false,
+                        soft: this.hasStartedPlayback,
                     });
                     this.hls = new Hls({
                         enableWorker: true,
@@ -362,33 +444,47 @@
                     });
 
                     this.hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+                        if (!this.isCurrentToken(token)) return;
                         this.populateQuality(data.levels || []);
                         this.safePlay();
                     });
 
                     this.hls.on(Hls.Events.LEVEL_SWITCHED, () => {
+                        if (!this.isCurrentToken(token)) return;
                         if (this.quality && this.hls) this.quality.value = String(this.hls.currentLevel);
                     });
 
                     this.hls.on(Hls.Events.ERROR, (_, data) => {
+                        if (!this.isCurrentToken(token)) return;
                         console.error('[RiFiPlayer] HLS.js error', { data, server: label });
 
                         if (!data.fatal) return;
                         if (data.type === Hls.ErrorTypes.NETWORK_ERROR && this.hls) {
+                            this.handleRecoverableLiveError(data.details || 'HLS network interruption.', false);
                             this.hls.startLoad();
                             return;
                         }
+                        if (data.type === Hls.ErrorTypes.MEDIA_ERROR && this.hls) {
+                            this.handleRecoverableLiveError(data.details || 'HLS media interruption.', false);
+                            this.hls.recoverMediaError();
+                            return;
+                        }
 
-                        this.handleFailure(data.details || 'Fatal HLS playback error.');
+                        if (this.hasStartedPlayback && this.isLiveStream) {
+                            this.handleRecoverableLiveError(data.details || 'Fatal HLS playback error.');
+                            return;
+                        }
+                        this.handleStartupFailure(data.details || 'Fatal HLS playback error.');
                     });
 
                     this.hls.loadSource(streamUrl);
                     this.hls.attachMedia(this.video);
                 }
 
-                loadWithNative(streamUrl, streamType, label) {
+                loadWithNative(streamUrl, streamType, label, token) {
                     this.createFreshVideoElement();
                     console.log('[RiFiPlayer] Using native video', { server: label, type: streamType });
+                    this.currentEngine = 'native';
                     this.setPlayerState('loading', {
                         title: 'Starting live feed',
                         subtitle: `${label} - ${streamType.toUpperCase()}`,
@@ -401,18 +497,17 @@
                 }
 
                 safePlay() {
+                    if (!this.video) return;
                     if (!this.config.autoplay) {
-                        this.showReady();
                         return;
                     }
 
-                    this.video.play().then(() => this.showReady()).catch((error) => {
+                    this.video.play().catch((error) => {
                         console.warn('[RiFiPlayer] Autoplay blocked or failed', error);
-                        this.showReady();
                     });
                 }
 
-                handleFailure(message) {
+                handleStartupFailure(message) {
                     this.clearTimeout();
                     this.clearBufferingTimeout();
                     this.failedIndexes.add(this.activeIndex);
@@ -420,15 +515,18 @@
                     this.renderServers();
                     const failedLabel = serverLabel(this.currentSource(), this.activeIndex);
 
-                    if (this.retries < MAX_RETRIES) {
-                        this.retries += 1;
-                        console.warn('[RiFiPlayer] Retrying failed server', { server: failedLabel, retry: this.retries, reason: message });
+                    if (this.startupRetries < MAX_STARTUP_RETRIES) {
+                        this.startupRetries += 1;
+                        console.warn('[RiFiPlayer] Retrying failed server startup', { server: failedLabel, retry: this.startupRetries, reason: message });
                         this.setPlayerState('reconnecting', {
                             title: 'Reconnecting broadcast',
                             subtitle: `${failedLabel} failed. Retrying once...`,
                             soft: true,
                         });
-                        this.retryTimeout = setTimeout(() => this.loadServer(), 900 * this.retries);
+                        const token = this.loadToken;
+                        this.retryTimeout = setTimeout(() => {
+                            if (this.isCurrentToken(token)) this.loadServer();
+                        }, 900 * this.startupRetries);
                         return;
                     }
 
@@ -441,14 +539,17 @@
                             reason: message,
                         });
                         this.activeIndex = nextIndex;
-                        this.retries = 0;
+                        this.startupRetries = 0;
                         this.setPlayerState('switching_server', {
                             title: `${failedLabel} failed`,
                             subtitle: `Trying ${nextLabel}...`,
                             soft: true,
                         });
                         this.renderServers();
-                        this.retryTimeout = setTimeout(() => this.loadServer(), 800);
+                        const token = this.loadToken;
+                        this.retryTimeout = setTimeout(() => {
+                            if (this.isCurrentToken(token)) this.loadServer();
+                        }, 800);
                         return;
                     }
 
@@ -463,7 +564,7 @@
                             type: detectStreamType(this.currentSource()),
                             timeout_ms: STARTUP_TIMEOUT,
                         });
-                        this.handleFailure(`The stream did not start within ${Math.round(STARTUP_TIMEOUT / 1000)} seconds.`);
+                        this.handleStartupFailure(`The stream did not start within ${Math.round(STARTUP_TIMEOUT / 1000)} seconds.`);
                     }, STARTUP_TIMEOUT);
                 }
 
@@ -486,7 +587,18 @@
                         clearTimeout(this.bufferingTimeout);
                         this.bufferingTimeout = null;
                     }
+                    if (this.bufferingRecoveryTimeout) {
+                        clearTimeout(this.bufferingRecoveryTimeout);
+                        this.bufferingRecoveryTimeout = null;
+                    }
                     this.bufferingIndexes.delete(this.activeIndex);
+                }
+
+                clearResumeTimeout() {
+                    if (this.resumeTimeout) {
+                        clearTimeout(this.resumeTimeout);
+                        this.resumeTimeout = null;
+                    }
                 }
 
                 populateQuality(levels) {
@@ -510,14 +622,34 @@
                 }
 
                 showReady() {
+                    this.markPlaybackStarted('ready');
+                }
+
+                markPlaybackStarted(reason = 'playing') {
+                    this.hasStartedPlayback = true;
+                    this.isSwitchingServer = false;
+                    this.isManualRetry = false;
+                    this.isRecovering = false;
+                    this.reconnectAttempts = 0;
+                    this.lastProgressAt = Date.now();
                     this.clearTimeout();
                     this.clearBufferingTimeout();
+                    this.clearRetryTimeout();
+                    this.clearResumeTimeout();
                     this.state = 'playing';
+                    this.failedIndexes.delete(this.activeIndex);
+                    this.bufferingIndexes.delete(this.activeIndex);
                     this.root.classList.remove('is-loading', 'has-error');
                     this.root.dataset.playerState = 'playing';
                     if (this.loading) this.loading.hidden = true;
                     if (this.error) this.error.hidden = true;
+                    this.renderServers();
                     this.updateActiveServerBadge();
+                    console.log('[RiFiPlayer] Playback started', {
+                        server: serverLabel(this.currentSource(), this.activeIndex),
+                        engine: this.currentEngine,
+                        reason,
+                    });
                 }
 
                 showError(title, message) {
@@ -537,6 +669,7 @@
                     this.clearTimeout();
                     this.clearRetryTimeout();
                     this.clearBufferingTimeout();
+                    this.clearResumeTimeout();
                     this.teardownHls();
                     this.teardownMpegts();
                     this.teardownVideoJs();
@@ -598,10 +731,13 @@
                 }
 
                 scheduleBufferingOverlay() {
-                    if (this.state !== 'playing') return;
+                    if (!this.hasStartedPlayback || !this.isLiveStream || this.state === 'reconnecting') return;
 
+                    const token = this.loadToken;
+                    const progressAtStart = this.lastProgressAt;
                     this.clearBufferingTimeout();
                     this.bufferingTimeout = setTimeout(() => {
+                        if (!this.isCurrentToken(token)) return;
                         this.bufferingIndexes.add(this.activeIndex);
                         this.renderServers();
                         this.setPlayerState('buffering', {
@@ -610,6 +746,178 @@
                             soft: true,
                         });
                     }, BUFFERING_DELAY);
+
+                    this.bufferingRecoveryTimeout = setTimeout(() => {
+                        if (!this.isCurrentToken(token)) return;
+                        if (this.lastProgressAt <= progressAtStart) {
+                            this.handleRecoverableLiveError('No playback progress while buffering.');
+                        }
+                    }, BUFFERING_RECOVERY_DELAY);
+                }
+
+                handleWaiting() {
+                    if (this.hasStartedPlayback) {
+                        this.scheduleBufferingOverlay();
+                        return;
+                    }
+
+                    this.setPlayerState('connecting', {
+                        title: 'Connecting to broadcast',
+                        subtitle: serverLabel(this.currentSource(), this.activeIndex),
+                        soft: false,
+                    });
+                }
+
+                handlePause() {
+                    if (!this.isLiveStream || !this.hasStartedPlayback || this.isSwitchingServer || this.isRecovering) return;
+                    const token = this.loadToken;
+                    this.clearResumeTimeout();
+                    this.resumeTimeout = setTimeout(() => {
+                        if (!this.isCurrentToken(token) || !this.video?.paused || this.video?.ended) return;
+                        this.video.play().catch((error) => {
+                            console.warn('[RiFiPlayer] Gentle live resume failed', error);
+                        });
+                    }, 650);
+                }
+
+                handleLiveEnded() {
+                    if (!this.isLiveStream) {
+                        this.setPlayerState('idle', {
+                            title: 'Playback ended',
+                            subtitle: serverLabel(this.currentSource(), this.activeIndex),
+                            soft: true,
+                        });
+                        return;
+                    }
+
+                    if (this.isSwitchingServer) return;
+
+                    console.warn('[RiFiPlayer] Live stream ended event treated as recoverable interruption', {
+                        server: serverLabel(this.currentSource(), this.activeIndex),
+                        engine: this.currentEngine,
+                    });
+
+                    this.handleRecoverableLiveError('Live signal ended temporarily.');
+                }
+
+                handleRecoverableLiveError(message, scheduleReconnect = true) {
+                    if (!this.isLiveStream) {
+                        this.handleStartupFailure(message);
+                        return;
+                    }
+
+                    if (this.isRecovering && scheduleReconnect) return;
+
+                    this.clearTimeout();
+                    this.clearBufferingTimeout();
+                    this.isRecovering = true;
+                    this.setPlayerState('reconnecting', {
+                        title: 'Reconnecting live signal',
+                        subtitle: `${serverLabel(this.currentSource(), this.activeIndex)} - ${message}`,
+                        soft: true,
+                    });
+
+                    if (scheduleReconnect) {
+                        this.attemptSoftReconnect();
+                    }
+                }
+
+                attemptSoftReconnect() {
+                    const token = this.loadToken;
+
+                    if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+                        this.isRecovering = false;
+                        this.failedIndexes.add(this.activeIndex);
+                        const nextIndex = this.nextAvailableIndex();
+                        if (nextIndex !== null) {
+                            const nextLabel = serverLabel(this.sources[nextIndex], nextIndex);
+                            this.activeIndex = nextIndex;
+                            this.startupRetries = 0;
+                            this.reconnectAttempts = 0;
+                            this.isSwitchingServer = true;
+                            this.setPlayerState('reconnecting', {
+                                title: `Switching to ${nextLabel}`,
+                                subtitle: 'Current server could not recover.',
+                                soft: true,
+                            });
+                            this.renderServers();
+                            this.retryTimeout = setTimeout(() => {
+                                if (this.isCurrentToken(token)) this.loadServer();
+                            }, 900);
+                            return;
+                        }
+
+                        this.showError('Broadcast unavailable', 'We could not restore this live signal after multiple reconnect attempts.');
+                        return;
+                    }
+
+                    const attempt = this.reconnectAttempts + 1;
+                    const delay = RECONNECT_DELAYS[this.reconnectAttempts] || RECONNECT_DELAYS[RECONNECT_DELAYS.length - 1];
+                    this.reconnectAttempts = attempt;
+
+                    console.warn('[RiFiPlayer] Soft reconnect scheduled', {
+                        server: serverLabel(this.currentSource(), this.activeIndex),
+                        attempt,
+                        delay_ms: delay,
+                    });
+
+                    this.clearRetryTimeout();
+                    this.retryTimeout = setTimeout(() => {
+                        if (!this.isCurrentToken(token)) return;
+                        this.performSoftReconnect(token);
+                    }, delay);
+                }
+
+                performSoftReconnect(token) {
+                    if (!this.isCurrentToken(token)) return;
+                    const progressAtStart = this.lastProgressAt;
+
+                    this.setPlayerState('recovering', {
+                        title: 'Restoring broadcast',
+                        subtitle: `${serverLabel(this.currentSource(), this.activeIndex)} - attempt ${this.reconnectAttempts}`,
+                        soft: true,
+                    });
+
+                    const playPromise = this.video?.play?.();
+                    Promise.resolve(playPromise).then(() => {
+                        if (this.isCurrentToken(token)) this.markPlaybackStarted('soft-reconnect');
+                    }).catch(() => {
+                        if (!this.isCurrentToken(token)) return;
+
+                        if (this.currentEngine === 'hls.js' && this.hls) {
+                            this.hls.startLoad();
+                            this.safePlay();
+                            this.isRecovering = false;
+                            this.scheduleRecoveryCheck(token, progressAtStart);
+                            return;
+                        }
+
+                        if (this.currentEngine === 'mpegts.js' && this.mpegts) {
+                            try {
+                                this.mpegts.unload();
+                                this.mpegts.load();
+                                this.mpegts.play();
+                                this.isRecovering = false;
+                                this.scheduleRecoveryCheck(token, progressAtStart);
+                                return;
+                            } catch (error) {
+                                console.warn('[RiFiPlayer] mpegts soft reload failed', error);
+                            }
+                        }
+
+                        this.isRecovering = false;
+                        this.attemptSoftReconnect();
+                    });
+                }
+
+                scheduleRecoveryCheck(token, progressAtStart) {
+                    this.clearRetryTimeout();
+                    this.retryTimeout = setTimeout(() => {
+                        if (!this.isCurrentToken(token)) return;
+                        if (this.lastProgressAt <= progressAtStart) {
+                            this.attemptSoftReconnect();
+                        }
+                    }, 4200);
                 }
 
                 setPlayerState(state, details = {}) {

@@ -50,7 +50,7 @@ class StreamProxyController extends Controller
         $upstream = (new Client([
             'timeout' => 0,
             'connect_timeout' => 15,
-            'read_timeout' => 30,
+            'read_timeout' => 0,
             'allow_redirects' => [
                 'max' => 5,
                 'strict' => false,
@@ -90,6 +90,7 @@ class StreamProxyController extends Controller
         $responseHeaders = [
             'Content-Type' => StreamUrl::contentTypeFor($url, $contentType),
             'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
             'Access-Control-Allow-Origin' => '*',
             'X-Accel-Buffering' => 'no',
             'Accept-Ranges' => $upstream->getHeaderLine('Accept-Ranges') ?: 'bytes',
@@ -121,6 +122,7 @@ class StreamProxyController extends Controller
     private function disableOutputBuffers(): void
     {
         @set_time_limit(0);
+        @ignore_user_abort(true);
 
         while (ob_get_level() > 0) {
             @ob_end_flush();

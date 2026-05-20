@@ -5464,6 +5464,14 @@ html:has(.rm-body) {
     transition: opacity 180ms ease, background 180ms ease;
 }
 
+.rm-player-loading {
+    pointer-events: none;
+}
+
+.rm-player-error {
+    pointer-events: auto;
+}
+
 .rm-player-loading[hidden],
 .rm-player-error[hidden] {
     display: none;
@@ -5562,7 +5570,7 @@ html:has(.rm-body) {
     left: 14px;
     right: 14px;
     bottom: 14px;
-    z-index: 6;
+    z-index: 8;
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -5575,7 +5583,7 @@ html:has(.rm-body) {
     position: absolute;
     left: 18px;
     bottom: 86px;
-    z-index: 6;
+    z-index: 8;
     display: grid;
     gap: 2px;
     min-width: 132px;

@@ -136,6 +136,7 @@ document.addEventListener('alpine:init', () => {
         fallbackLogo: @js(asset('brand/rifi-logo.png')),
         hls: null,
         mpegts: null,
+        previewReconnects: 0,
 
         init() {
             const requested = initialChannelId
@@ -199,6 +200,7 @@ document.addEventListener('alpine:init', () => {
                 this.loadingPlayer = false;
                 return;
             }
+            this.previewReconnects = 0;
 
             if (this.hls) {
                 this.hls.destroy();
@@ -215,17 +217,65 @@ document.addEventListener('alpine:init', () => {
             const type = String(source.type || '').toLowerCase();
             const isHls = type === 'hls' || String(source.url).toLowerCase().includes('.m3u');
             const isMpegTs = ['mpegts', 'ts', 'stream'].includes(type);
+            const markPlaying = () => {
+                this.loadingPlayer = false;
+                this.previewReconnects = 0;
+            };
+            const softReconnect = () => {
+                if (!isHls && !isMpegTs) return;
+                if (this.previewReconnects >= 3) {
+                    this.loadingPlayer = false;
+                    return;
+                }
+                this.previewReconnects += 1;
+                this.loadingPlayer = true;
+                setTimeout(() => {
+                    video.play().catch(() => {
+                        if (this.hls) this.hls.startLoad();
+                        if (this.mpegts) {
+                            try {
+                                this.mpegts.unload();
+                                this.mpegts.load();
+                                this.mpegts.play();
+                            } catch (error) {
+                                console.error('[RiFiPlayer] live preview reconnect failed', error);
+                            }
+                        }
+                    });
+                }, [1000, 3000, 5000][this.previewReconnects - 1] || 5000);
+            };
+
+            video.onplaying = markPlaying;
+            video.ontimeupdate = markPlaying;
+            video.onended = softReconnect;
+            video.onwaiting = () => {
+                if (this.previewReconnects === 0) setTimeout(() => {
+                    if (video.readyState < 3) this.loadingPlayer = true;
+                }, 2000);
+            };
+            video.onstalled = video.onwaiting;
 
             if (isHls && window.Hls && Hls.isSupported()) {
                 this.hls = new Hls({ lowLatencyMode: true, backBufferLength: 30 });
                 this.hls.loadSource(source.url);
                 this.hls.attachMedia(video);
                 this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                    this.loadingPlayer = false;
+                    markPlaying();
                     video.play().catch(() => {});
                 });
                 this.hls.on(Hls.Events.ERROR, (_, data) => {
-                    if (data.fatal) this.loadingPlayer = false;
+                    if (!data.fatal) return;
+                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                        this.hls.startLoad();
+                        softReconnect();
+                        return;
+                    }
+                    if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                        this.hls.recoverMediaError();
+                        softReconnect();
+                        return;
+                    }
+                    softReconnect();
                 });
                 return;
             }
@@ -240,16 +290,18 @@ document.addEventListener('alpine:init', () => {
                 }, {
                     enableWorker: true,
                     lazyLoad: false,
-                    stashInitialSize: 128,
+                    stashInitialSize: 384,
                     liveBufferLatencyChasing: true,
+                    autoCleanupSourceBuffer: true,
+                    autoCleanupMaxBackwardDuration: 30,
+                    autoCleanupMinBackwardDuration: 10,
                 });
                 this.mpegts.attachMediaElement(video);
                 this.mpegts.on(window.mpegts.Events.ERROR, (errorType, detail) => {
                     console.error('[RiFiPlayer] mpegts.js live page error', { errorType, detail });
-                    this.loadingPlayer = false;
+                    softReconnect();
                 });
                 video.addEventListener('loadedmetadata', () => {
-                    this.loadingPlayer = false;
                     video.play().catch(() => {});
                 }, { once: true });
                 this.mpegts.load();
