@@ -20,18 +20,34 @@ class MergeDuplicateChannelsCommand extends Command
         $mergedChannels = 0;
         $movedStreams = 0;
 
+        $this->backfillNormalizedNames($dryRun);
+
         Channel::query()
             ->with(['streams' => fn ($query) => $query->orderBy('priority')])
-            ->orderBy('playlist_id')
             ->orderBy('created_at')
             ->orderBy('id')
             ->get()
-            ->groupBy(fn (Channel $channel): string => $channel->playlist_id.'|'.$this->normalizeChannelName($channel->name))
+            ->groupBy(fn (Channel $channel): string => $channel->normalized_name ?: $this->normalizeChannelName($channel->name))
+            ->filter(fn (Collection $channels, string $key): bool => $key !== '')
             ->filter(fn (Collection $channels): bool => $channels->count() > 1)
             ->each(function (Collection $duplicates) use ($dryRun, &$mergedChannels, &$movedStreams): void {
                 /** @var Channel $keeper */
-                $keeper = $duplicates->first();
-                $toMerge = $duplicates->slice(1);
+                $ordered = $duplicates
+                    ->sort(function (Channel $left, Channel $right): int {
+                        return [
+                            $left->is_active ? 0 : 1,
+                            $left->created_at?->getTimestamp() ?? 0,
+                            $left->id,
+                        ] <=> [
+                            $right->is_active ? 0 : 1,
+                            $right->created_at?->getTimestamp() ?? 0,
+                            $right->id,
+                        ];
+                    })
+                    ->values();
+
+                $keeper = $ordered->first();
+                $toMerge = $ordered->slice(1);
 
                 $this->line(sprintf(
                     '%s "%s" keeps channel #%d and merges %d duplicate(s).',
@@ -55,6 +71,7 @@ class MergeDuplicateChannelsCommand extends Command
                         $movedStreams += $this->moveStreams($keeper, $duplicate);
 
                         $keeper->forceFill([
+                            'normalized_name' => $keeper->normalized_name ?: $this->normalizeChannelName($keeper->name),
                             'logo' => $keeper->logo ?: $duplicate->logo,
                             'group_title' => $keeper->group_title ?: $duplicate->group_title,
                             'tvg_id' => $keeper->tvg_id ?: $duplicate->tvg_id,
@@ -69,6 +86,35 @@ class MergeDuplicateChannelsCommand extends Command
         $this->info("Merged {$mergedChannels} duplicate channel rows and moved {$movedStreams} stream source(s).");
 
         return self::SUCCESS;
+    }
+
+    private function backfillNormalizedNames(bool $dryRun): void
+    {
+        $channels = Channel::query()
+            ->where(function ($query): void {
+                $query->whereNull('normalized_name')->orWhere('normalized_name', '');
+            })
+            ->get(['id', 'name', 'normalized_name']);
+
+        if ($channels->isEmpty()) {
+            return;
+        }
+
+        $this->line(sprintf(
+            '%s Backfilling normalized_name for %d channel row(s).',
+            $dryRun ? '[dry-run]' : '[backfill]',
+            $channels->count()
+        ));
+
+        if ($dryRun) {
+            return;
+        }
+
+        $channels->each(function (Channel $channel): void {
+            $channel->forceFill([
+                'normalized_name' => $this->normalizeChannelName($channel->name),
+            ])->save();
+        });
     }
 
     private function moveStreams(Channel $keeper, Channel $duplicate): int
@@ -154,9 +200,7 @@ class MergeDuplicateChannelsCommand extends Command
 
     private function normalizeChannelName(?string $name): string
     {
-        $normalized = (string) preg_replace('/\s+/u', ' ', trim((string) $name));
-
-        return mb_strtolower($normalized);
+        return Channel::normalizeName($name);
     }
 
     private function normalizeUrlForHash(string $url): string

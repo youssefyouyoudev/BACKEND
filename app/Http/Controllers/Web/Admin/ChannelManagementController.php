@@ -32,8 +32,9 @@ class ChannelManagementController extends Controller
     {
         $data = $request->validated();
         $data['group_title'] = Category::query()->find($data['category_id'] ?? null)?->name;
+        $data['normalized_name'] = Channel::normalizeName($data['name']);
         $data['stream_hash'] = sha1(strtolower($data['stream_url']));
-        $data['channel_identity_hash'] = sha1($data['playlist_id'].'|'.mb_strtolower($data['name']).'|'.mb_strtolower((string) $data['group_title']));
+        $data['channel_identity_hash'] = sha1($data['playlist_id'].'|'.$data['normalized_name']);
 
         DB::transaction(function () use ($data): void {
             $channel = Channel::query()->create($data);
@@ -43,7 +44,7 @@ class ChannelManagementController extends Controller
                 'stream_type' => $data['stream_type'],
                 'priority' => 1,
                 'is_active' => true,
-                'label' => 'Primary',
+                'label' => 'Server 1',
             ]);
         });
 
@@ -63,8 +64,9 @@ class ChannelManagementController extends Controller
     {
         $data = $request->validated();
         $data['group_title'] = Category::query()->find($data['category_id'] ?? null)?->name;
+        $data['normalized_name'] = Channel::normalizeName($data['name']);
         $data['stream_hash'] = sha1(strtolower($data['stream_url']));
-        $data['channel_identity_hash'] = sha1($data['playlist_id'].'|'.mb_strtolower($data['name']).'|'.mb_strtolower((string) $data['group_title']));
+        $data['channel_identity_hash'] = sha1($data['playlist_id'].'|'.$data['normalized_name']);
         $data['slug'] = $data['slug'] ?: Str::slug($data['name']).'-'.$channel->id;
 
         DB::transaction(function () use ($channel, $data): void {
@@ -76,7 +78,7 @@ class ChannelManagementController extends Controller
                     'stream_hash' => $data['stream_hash'],
                     'stream_type' => $data['stream_type'],
                     'is_active' => true,
-                    'label' => 'Primary',
+                    'label' => 'Server 1',
                 ]
             );
         });

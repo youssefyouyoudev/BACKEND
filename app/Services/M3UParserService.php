@@ -338,7 +338,8 @@ class M3UParserService
             str_ends_with($urlPath, '.mp4'),
             str_ends_with($urlPath, '.mkv'),
             str_ends_with($urlPath, '.avi') => 'mp4',
-            str_ends_with($urlPath, '.ts')  => 'mpegts',
+            str_ends_with($urlPath, '.ts'),
+            str_ends_with($urlPath, '/ts')  => 'mpegts',
             default                          => 'stream',
         };
     }

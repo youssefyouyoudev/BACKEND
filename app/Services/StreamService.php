@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Channel;
+use App\Models\ChannelStream;
+use App\Support\StreamUrl;
 
 class StreamService
 {
@@ -11,18 +13,39 @@ class StreamService
      */
     public function sourcesFor(Channel $channel): array
     {
-        $channel->loadMissing(['streams' => fn ($query) => $query->where('is_active', true)->orderBy('priority')]);
-
-        return $channel->active_stream_sources
-            ->map(fn (array $source) => [
-                'url' => $source['url'],
-                'type' => $source['type'] ?? 'hls',
-                'label' => $source['label'] ?? 'Primary',
-                'quality' => $source['quality'] ?? null,
-                'health_status' => $source['health_status'] ?? 'unknown',
+        $channels = Channel::query()
+            ->where('is_active', true)
+            ->whereRaw("COALESCE(NULLIF(normalized_name, ''), LOWER(TRIM(name))) = ?", [
+                $channel->normalized_name ?: Channel::normalizeName($channel->name),
             ])
-            ->values()
-            ->all();
+            ->with(['streams' => fn ($query) => $query->where('is_active', true)->orderBy('priority')])
+            ->orderBy('id')
+            ->get();
+
+        if ($channels->isEmpty()) {
+            $channels = collect([$channel->loadMissing(['streams' => fn ($query) => $query->where('is_active', true)->orderBy('priority')])]);
+        }
+
+        $seen = [];
+        $sources = [];
+
+        foreach ($channels as $sibling) {
+            $sibling->loadMissing(['streams' => fn ($query) => $query->where('is_active', true)->orderBy('priority')]);
+
+            if ($sibling->streams->isNotEmpty()) {
+                foreach ($sibling->streams as $stream) {
+                    $this->appendSource($sources, $seen, $stream, $sibling);
+                }
+
+                continue;
+            }
+
+            if ($sibling->stream_url) {
+                $this->appendLegacySource($sources, $seen, $sibling);
+            }
+        }
+
+        return array_values($sources);
     }
 
     public function isPlayable(Channel $channel): bool
@@ -30,5 +53,59 @@ class StreamService
         return $channel->is_active
             && $channel->is_live
             && $this->sourcesFor($channel) !== [];
+    }
+
+    private function appendSource(array &$sources, array &$seen, ChannelStream $stream, Channel $channel): void
+    {
+        $hash = strtolower($stream->stream_hash ?: sha1($this->normalizeUrlForHash($stream->stream_url)));
+
+        if (isset($seen[$hash])) {
+            return;
+        }
+
+        $seen[$hash] = true;
+        $serverNumber = count($sources) + 1;
+
+        $sources[] = [
+            'url' => StreamUrl::proxied($stream->stream_url),
+            'type' => $stream->stream_type ?? $channel->stream_type ?? 'stream',
+            'label' => $this->displayLabel($stream->label, $serverNumber),
+            'quality' => $stream->quality ?? null,
+            'health_status' => $stream->health_status ?? 'unknown',
+        ];
+    }
+
+    private function appendLegacySource(array &$sources, array &$seen, Channel $channel): void
+    {
+        $hash = strtolower($channel->stream_hash ?: sha1($this->normalizeUrlForHash($channel->stream_url)));
+
+        if (isset($seen[$hash])) {
+            return;
+        }
+
+        $seen[$hash] = true;
+        $serverNumber = count($sources) + 1;
+
+        $sources[] = [
+            'url' => StreamUrl::proxied($channel->stream_url),
+            'type' => $channel->stream_type ?? 'stream',
+            'label' => 'Server '.$serverNumber,
+            'quality' => null,
+            'health_status' => 'unknown',
+        ];
+    }
+
+    private function normalizeUrlForHash(string $url): string
+    {
+        return strtolower(trim($url));
+    }
+
+    private function displayLabel(?string $label, int $serverNumber): string
+    {
+        if ($label && preg_match('/^server\s+\d+$/i', trim($label)) !== 1) {
+            return $label;
+        }
+
+        return 'Server '.$serverNumber;
     }
 }

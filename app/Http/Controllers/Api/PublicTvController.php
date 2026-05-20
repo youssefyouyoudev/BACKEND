@@ -21,6 +21,7 @@ class PublicTvController extends Controller
     {
         return Channel::query()
             ->where('is_active', true)
+            ->canonical()
             ->whereHas('playlist', fn (Builder $q) => $q
                 ->where('is_public', true)
                 ->whereNotNull('approved_at'));

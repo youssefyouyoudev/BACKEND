@@ -19,6 +19,7 @@ class HomeController extends Controller
         $publicPlaylistScope = fn (Builder $query) => $query->where('is_public', true)->whereNotNull('approved_at');
         $baseQuery = fn () => Channel::query()
             ->where('is_active', true)
+            ->canonical()
             ->whereHas('playlist', $publicPlaylistScope);
 
         $categories = Cache::remember('public-dashboard:categories', now()->addMinutes(10), fn () => $baseQuery()

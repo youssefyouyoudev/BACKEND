@@ -19,6 +19,7 @@ class LiveTvController extends Controller
 
         $baseQuery = fn () => Channel::query()
             ->where('is_active', true)
+            ->canonical()
             ->whereHas('playlist', $publicPlaylistScope);
 
         $totalCount = Cache::remember('public-live:total-count', now()->addMinutes(10), fn () => $baseQuery()->count());

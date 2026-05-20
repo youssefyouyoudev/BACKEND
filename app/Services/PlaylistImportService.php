@@ -94,6 +94,7 @@ class PlaylistImportService
                             'playlist_id'           => $playlist->id,
                             'tvg_id'                => $primary['tvg_id'],
                             'name'                  => $primary['name'],
+                            'normalized_name'       => Channel::normalizeName($primary['name']),
                             'logo'                  => $primary['logo'],
                             'group_title'           => $primary['group_title'],
                             // Keep stream_url pointing to the primary URL for backward compatibility
@@ -255,9 +256,7 @@ class PlaylistImportService
 
     private function normalizeChannelName(?string $name): string
     {
-        $normalized = (string) preg_replace('/\s+/u', ' ', trim((string) $name));
-
-        return mb_strtolower($normalized);
+        return Channel::normalizeName($name);
     }
 
     private function markImportFailed(Playlist $playlist, User $user, Throwable $exception, string $action): void

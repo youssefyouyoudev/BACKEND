@@ -19,6 +19,7 @@ class Channel extends Model
         'playlist_id',
         'tvg_id',
         'name',
+        'normalized_name',
         'slug',
         'logo',
         'group_title',
@@ -121,8 +122,8 @@ class Channel extends Model
         if ($this->stream_url) {
             return collect([[
                 'url'   => StreamUrl::proxied($this->stream_url),
-                'type'  => $this->stream_type ?? 'hls',
-                'label' => 'Primary',
+                'type'  => $this->stream_type ?? 'stream',
+                'label' => 'Server 1',
             ]]);
         }
 
@@ -137,5 +138,23 @@ class Channel extends Model
     public function scopeVisibleTo(Builder $query, User $user): Builder
     {
         return $query->whereHas('playlist', fn (Builder $playlistQuery) => $playlistQuery->visibleTo($user));
+    }
+
+    public function scopeCanonical(Builder $query): Builder
+    {
+        return $query->whereNotExists(function ($subQuery): void {
+            $subQuery->selectRaw('1')
+                ->from('channels as canonical_channels')
+                ->where('canonical_channels.is_active', true)
+                ->whereRaw("COALESCE(NULLIF(canonical_channels.normalized_name, ''), LOWER(TRIM(canonical_channels.name))) = COALESCE(NULLIF(channels.normalized_name, ''), LOWER(TRIM(channels.name)))")
+                ->whereColumn('canonical_channels.id', '<', 'channels.id');
+        });
+    }
+
+    public static function normalizeName(?string $name): string
+    {
+        $normalized = (string) preg_replace('/\s+/u', ' ', trim((string) $name));
+
+        return mb_strtolower($normalized);
     }
 }

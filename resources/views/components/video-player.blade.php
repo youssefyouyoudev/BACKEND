@@ -21,7 +21,7 @@
 <div class="sat-player rm-player-frame" data-rifi-video-player data-config='@json($payload)' data-player-id="{{ $playerId }}">
     <video
         id="{{ $playerId }}"
-        class="video-js vjs-big-play-centered sat-player__video rm-player-video"
+        class="sat-player__video rm-player-video"
         controls
         playsinline
         preload="auto"
@@ -58,13 +58,13 @@
     @push('scripts')
         <script>
         (() => {
-            const STARTUP_TIMEOUT = 25000;
+            const STARTUP_TIMEOUT = 30000;
             const MAX_RETRIES = 1;
 
             const waitForLibraries = () => new Promise((resolve, reject) => {
                 const started = Date.now();
                 const timer = setInterval(() => {
-                    if (window.videojs && window.Hls) {
+                    if (window.Hls || window.mpegts || Date.now() - started > 1200) {
                         clearInterval(timer);
                         resolve();
                         return;
@@ -72,7 +72,7 @@
 
                     if (Date.now() - started > 8000) {
                         clearInterval(timer);
-                        reject(new Error('Video.js or HLS.js did not load.'));
+                        reject(new Error('Player libraries did not load.'));
                     }
                 }, 80);
             });
@@ -86,16 +86,17 @@
                 "'": '&#039;',
             }[char]));
 
-            const streamTypeFor = (source) => {
+            const detectStreamType = (source) => {
                 const type = String(source?.type || '').toLowerCase();
                 const url = String(source?.url || '').toLowerCase();
 
-                if (type === 'mpegts' || type === 'ts' || url.includes('.ts')) return 'mpegts';
+                if (['mpegts', 'ts', 'stream'].includes(type)) return 'mpegts';
+                if (url.endsWith('.ts') || url.includes('.ts?') || url.endsWith('/ts') || url.includes('/ts?')) return 'mpegts';
+                if (type === 'hls' || url.includes('.m3u8') || url.includes('.m3u')) return 'hls';
                 if (type === 'mp4' || url.includes('.mp4')) return 'mp4';
                 if (type === 'dash' || url.includes('.mpd')) return 'dash';
-                if (type === 'hls' || url.includes('.m3u8') || url.includes('.m3u')) return 'hls';
 
-                return 'stream';
+                return 'mpegts';
             };
 
             const mimeTypeFor = (type) => {
@@ -103,7 +104,7 @@
                 if (type === 'dash') return 'application/dash+xml';
                 if (type === 'mpegts') return 'video/mp2t';
 
-                return 'application/x-mpegURL';
+                return 'application/octet-stream';
             };
 
             const firstPlayableFromM3u = async (url) => {
@@ -143,40 +144,13 @@
                     this.player = null;
                     this.failedIndexes = new Set();
 
+                    this.bindNativeVideoEvents();
                     this.retryButton?.addEventListener('click', () => this.retry(true));
                     this.nextButton?.addEventListener('click', () => window.dispatchEvent(new CustomEvent('rifi:player-next')));
                 }
 
                 async init() {
                     await waitForLibraries();
-
-                    this.player = videojs(this.video, {
-                        autoplay: false,
-                        controls: true,
-                        fluid: true,
-                        responsive: true,
-                        liveui: true,
-                        inactivityTimeout: 1800,
-                        controlBar: {
-                            pictureInPictureToggle: true,
-                            fullscreenToggle: true,
-                            volumePanel: { inline: false },
-                        },
-                    });
-
-                    this.player.on('waiting', () => this.showLoading());
-                    this.player.on('playing', () => this.showReady());
-                    this.player.on('canplay', () => this.showReady());
-                    this.player.on('error', () => {
-                        const error = this.player.error();
-                        console.error('[RiFiPlayer] Video.js error', {
-                            error,
-                            server: serverLabel(this.currentSource(), this.activeIndex),
-                            type: streamTypeFor(this.currentSource()),
-                        });
-                        this.handleFailure(error?.message || 'Video playback failed.');
-                    });
-
                     this.renderServers();
                     await this.load(this.activeIndex);
                 }
@@ -189,23 +163,23 @@
                     this.activeIndex = Math.max(0, Math.min(index, this.sources.length - 1));
                     this.retries = 0;
                     this.renderServers();
-                    await this.playCurrent();
+                    await this.loadServer();
                 }
 
                 async retry(force = false) {
                     if (force) this.retries = 0;
-                    await this.playCurrent();
+                    await this.loadServer();
                 }
 
-                async playCurrent() {
+                async loadServer() {
                     const source = this.currentSource();
-                    const streamType = streamTypeFor(source);
+                    const streamType = detectStreamType(source);
                     const label = serverLabel(source, this.activeIndex);
+
                     console.log('[RiFiPlayer] Loading stream', {
                         server: label,
                         type: streamType,
                         engine: this.engineFor(streamType),
-                        url: source?.url,
                     });
 
                     if (!source?.url) {
@@ -213,9 +187,7 @@
                         return;
                     }
 
-                    this.teardownHls();
-                    this.teardownMpegts();
-                    this.resetNativeSource();
+                    this.cleanupPlayer();
                     this.showLoading();
                     this.startTimeout();
 
@@ -224,73 +196,17 @@
                             ? await firstPlayableFromM3u(source.url)
                             : source.url;
 
-                        if (streamType === 'hls' && this.video.canPlayType('application/vnd.apple.mpegurl')) {
-                            console.log('[RiFiPlayer] Using native HLS', { server: label });
-                            this.player.src({ src: sourceUrl, type: 'application/vnd.apple.mpegurl' });
-                            this.player.ready(() => this.safePlay());
+                        if (streamType === 'hls') {
+                            this.loadWithHls(sourceUrl, label);
                             return;
                         }
 
-                        if (streamType === 'hls' && window.Hls?.isSupported()) {
-                            console.log('[RiFiPlayer] Using hls.js', { server: label });
-                            this.hls = new Hls({
-                                enableWorker: true,
-                                lowLatencyMode: true,
-                                backBufferLength: 30,
-                                manifestLoadingTimeOut: STARTUP_TIMEOUT,
-                                fragLoadingTimeOut: STARTUP_TIMEOUT,
-                            });
-
-                            this.hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-                                this.populateQuality(data.levels || []);
-                                this.safePlay();
-                            });
-
-                            this.hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
-                                if (this.quality && this.hls) this.quality.value = String(this.hls.currentLevel);
-                            });
-
-                            this.hls.on(Hls.Events.ERROR, (_, data) => {
-                                console.error('[RiFiPlayer] HLS.js error', data, source);
-
-                                if (!data.fatal) return;
-                                if (data.type === Hls.ErrorTypes.NETWORK_ERROR && this.hls) {
-                                    this.hls.startLoad();
-                                    return;
-                                }
-
-                                this.handleFailure(data.details || 'Fatal HLS playback error.');
-                            });
-
-                            this.hls.loadSource(sourceUrl);
-                            this.hls.attachMedia(this.video);
+                        if (streamType === 'mpegts') {
+                            this.loadWithMpegTs(sourceUrl, label);
                             return;
                         }
 
-                        if ((streamType === 'mpegts' || streamType === 'stream') && window.mpegts?.isSupported()) {
-                            console.log('[RiFiPlayer] Using mpegts.js', { server: label });
-                            this.mpegts = window.mpegts.createPlayer({
-                                type: 'mpegts',
-                                isLive: true,
-                                url: sourceUrl,
-                            }, {
-                                enableWorker: true,
-                                lazyLoad: false,
-                                liveBufferLatencyChasing: true,
-                            });
-                            this.mpegts.attachMediaElement(this.video);
-                            this.mpegts.on(window.mpegts.Events.ERROR, (type, detail, info) => {
-                                console.error('[RiFiPlayer] mpegts.js error', { type, detail, info, server: label });
-                                this.handleFailure(detail || type || 'MPEG-TS playback failed.');
-                            });
-                            this.video.addEventListener('loadedmetadata', () => this.safePlay(), { once: true });
-                            this.mpegts.load();
-                            return;
-                        }
-
-                        console.log('[RiFiPlayer] Using native video', { server: label, type: streamType });
-                        this.player.src({ src: sourceUrl, type: mimeTypeFor(streamType) });
-                        this.player.ready(() => this.safePlay());
+                        this.loadWithNative(sourceUrl, streamType, label);
                     } catch (error) {
                         console.error('[RiFiPlayer] Stream preparation failed', {
                             error,
@@ -301,9 +217,159 @@
                     }
                 }
 
+                createFreshVideoElement() {
+                    const id = this.root.dataset.playerId || `rifi-player-${Date.now()}`;
+                    const video = document.createElement('video');
+                    video.id = id;
+                    video.className = 'sat-player__video rm-player-video';
+                    video.controls = true;
+                    video.playsInline = true;
+                    video.preload = 'auto';
+                    video.setAttribute('playsinline', '');
+
+                    if (this.config.poster) {
+                        video.poster = this.config.poster;
+                    }
+
+                    const oldVideo = this.root.querySelector('video');
+                    if (oldVideo) {
+                        oldVideo.replaceWith(video);
+                    } else {
+                        this.root.insertBefore(video, this.root.firstElementChild);
+                    }
+
+                    this.video = video;
+                    this.bindNativeVideoEvents();
+
+                    return video;
+                }
+
+                bindNativeVideoEvents() {
+                    if (!this.video) return;
+
+                    const markReady = () => this.showReady();
+                    this.video.addEventListener('loadedmetadata', markReady, { once: true });
+                    this.video.addEventListener('canplay', markReady, { once: true });
+                    this.video.addEventListener('playing', markReady, { once: true });
+                    this.video.addEventListener('timeupdate', markReady, { once: true });
+                    this.video.addEventListener('waiting', () => this.showLoading());
+                    this.video.addEventListener('error', () => {
+                        const error = this.video.error;
+                        console.error('[RiFiPlayer] Native video error', {
+                            code: error?.code,
+                            message: error?.message,
+                            server: serverLabel(this.currentSource(), this.activeIndex),
+                            type: detectStreamType(this.currentSource()),
+                        });
+                        this.handleFailure(error?.message || 'Video playback failed.');
+                    });
+                }
+
+                loadWithMpegTs(streamUrl, label) {
+                    this.createFreshVideoElement();
+
+                    if (!window.mpegts?.isSupported()) {
+                        this.handleFailure('MPEG-TS playback is not supported by this browser.');
+                        return;
+                    }
+
+                    console.log('[RiFiPlayer] Using mpegts.js', { server: label });
+                    this.mpegts = window.mpegts.createPlayer({
+                        type: 'mpegts',
+                        isLive: true,
+                        url: streamUrl,
+                        cors: true,
+                        withCredentials: false,
+                    }, {
+                        enableWorker: true,
+                        lazyLoad: false,
+                        stashInitialSize: 128,
+                        liveBufferLatencyChasing: true,
+                    });
+
+                    this.mpegts.on(window.mpegts.Events.ERROR, (type, detail, info) => {
+                        console.error('[RiFiPlayer] mpegts.js error', { type, detail, info, server: label });
+                        this.handleFailure(detail || type || 'MPEG-TS playback failed.');
+                    });
+
+                    this.mpegts.attachMediaElement(this.video);
+                    this.mpegts.load();
+
+                    const playPromise = typeof this.mpegts.play === 'function'
+                        ? this.mpegts.play()
+                        : this.video.play();
+
+                    Promise.resolve(playPromise).catch((error) => {
+                        console.warn('[RiFiPlayer] MPEG-TS autoplay blocked or failed', { error, server: label });
+                    });
+                }
+
+                loadWithHls(streamUrl, label) {
+                    this.createFreshVideoElement();
+
+                    if (this.video.canPlayType('application/vnd.apple.mpegurl')) {
+                        console.log('[RiFiPlayer] Using native HLS', { server: label });
+                        this.video.src = streamUrl;
+                        this.video.load();
+                        this.safePlay();
+                        return;
+                    }
+
+                    if (!window.Hls?.isSupported()) {
+                        this.handleFailure('HLS playback is not supported by this browser.');
+                        return;
+                    }
+
+                    console.log('[RiFiPlayer] Using hls.js', { server: label });
+                    this.hls = new Hls({
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        backBufferLength: 30,
+                        manifestLoadingTimeOut: STARTUP_TIMEOUT,
+                        fragLoadingTimeOut: STARTUP_TIMEOUT,
+                    });
+
+                    this.hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
+                        this.populateQuality(data.levels || []);
+                        this.safePlay();
+                    });
+
+                    this.hls.on(Hls.Events.LEVEL_SWITCHED, () => {
+                        if (this.quality && this.hls) this.quality.value = String(this.hls.currentLevel);
+                    });
+
+                    this.hls.on(Hls.Events.ERROR, (_, data) => {
+                        console.error('[RiFiPlayer] HLS.js error', { data, server: label });
+
+                        if (!data.fatal) return;
+                        if (data.type === Hls.ErrorTypes.NETWORK_ERROR && this.hls) {
+                            this.hls.startLoad();
+                            return;
+                        }
+
+                        this.handleFailure(data.details || 'Fatal HLS playback error.');
+                    });
+
+                    this.hls.loadSource(streamUrl);
+                    this.hls.attachMedia(this.video);
+                }
+
+                loadWithNative(streamUrl, streamType, label) {
+                    this.createFreshVideoElement();
+                    console.log('[RiFiPlayer] Using native video', { server: label, type: streamType });
+                    this.video.src = streamUrl;
+                    this.video.type = mimeTypeFor(streamType);
+                    this.video.load();
+                    this.safePlay();
+                }
+
                 safePlay() {
-                    this.clearTimeout();
-                    this.player.play().then(() => this.showReady()).catch((error) => {
+                    if (!this.config.autoplay) {
+                        this.showReady();
+                        return;
+                    }
+
+                    this.video.play().then(() => this.showReady()).catch((error) => {
                         console.warn('[RiFiPlayer] Autoplay blocked or failed', error);
                         this.showReady();
                     });
@@ -318,7 +384,7 @@
                     if (this.retries < MAX_RETRIES) {
                         this.retries += 1;
                         console.warn('[RiFiPlayer] Retrying failed server', { server: failedLabel, retry: this.retries, reason: message });
-                        setTimeout(() => this.playCurrent(), 900 * this.retries);
+                        setTimeout(() => this.loadServer(), 900 * this.retries);
                         return;
                     }
 
@@ -332,7 +398,7 @@
                         this.activeIndex = nextIndex;
                         this.retries = 0;
                         this.renderServers();
-                        this.playCurrent();
+                        this.loadServer();
                         return;
                     }
 
@@ -344,7 +410,7 @@
                     this.timeout = setTimeout(() => {
                         console.error('[RiFiPlayer] Startup timeout', {
                             server: serverLabel(this.currentSource(), this.activeIndex),
-                            type: streamTypeFor(this.currentSource()),
+                            type: detectStreamType(this.currentSource()),
                             timeout_ms: STARTUP_TIMEOUT,
                         });
                         this.handleFailure(`The stream did not start within ${Math.round(STARTUP_TIMEOUT / 1000)} seconds.`);
@@ -385,8 +451,7 @@
                 }
 
                 showError(title, message) {
-                    this.teardownHls();
-                    this.teardownMpegts();
+                    this.cleanupPlayer();
                     this.root.classList.remove('is-loading');
                     this.root.classList.add('has-error');
                     if (this.loading) this.loading.hidden = true;
@@ -394,6 +459,27 @@
                     const errorTitle = this.root.querySelector('[data-player-error-title]');
                     if (errorTitle) errorTitle.textContent = title;
                     if (this.errorMessage) this.errorMessage.textContent = message;
+                }
+
+                cleanupPlayer() {
+                    this.clearTimeout();
+                    this.teardownHls();
+                    this.teardownMpegts();
+                    this.teardownVideoJs();
+                    this.resetNativeSource();
+                    if (this.quality) this.quality.hidden = true;
+                }
+
+                teardownVideoJs() {
+                    if (!this.player) return;
+
+                    try {
+                        this.player.dispose();
+                    } catch (error) {
+                        console.warn('[RiFiPlayer] Video.js dispose failed', error);
+                    }
+
+                    this.player = null;
                 }
 
                 teardownHls() {
@@ -404,22 +490,29 @@
                 }
 
                 teardownMpegts() {
-                    if (this.mpegts) {
+                    if (!this.mpegts) return;
+
+                    try {
                         this.mpegts.unload();
                         this.mpegts.detachMediaElement();
                         this.mpegts.destroy();
-                        this.mpegts = null;
+                    } catch (error) {
+                        console.warn('[RiFiPlayer] mpegts.js destroy failed', error);
                     }
+
+                    this.mpegts = null;
                 }
 
                 resetNativeSource() {
-                    if (this.player) {
-                        this.player.pause();
-                        this.player.src({ src: '', type: '' });
+                    if (!this.video) return;
+
+                    try {
+                        this.video.pause();
+                        this.video.removeAttribute('src');
+                        this.video.load();
+                    } catch (error) {
+                        console.warn('[RiFiPlayer] Native video reset failed', error);
                     }
-                    this.video.removeAttribute('src');
-                    this.video.load();
-                    if (this.quality) this.quality.hidden = true;
                 }
 
                 nextAvailableIndex() {
@@ -431,8 +524,8 @@
                 }
 
                 engineFor(streamType) {
-                    if (streamType === 'hls') return this.video.canPlayType('application/vnd.apple.mpegurl') ? 'native-hls' : 'hls.js';
-                    if (streamType === 'mpegts' || streamType === 'stream') return window.mpegts?.isSupported() ? 'mpegts.js' : 'native';
+                    if (streamType === 'hls') return this.video?.canPlayType('application/vnd.apple.mpegurl') ? 'native-hls' : 'hls.js';
+                    if (streamType === 'mpegts') return window.mpegts?.isSupported() ? 'mpegts.js' : 'unsupported';
 
                     return 'native';
                 }
@@ -453,7 +546,7 @@
 
                         return `<button type="button" class="rm-server-option${active}${failed}" data-server-index="${index}">
                             <span>${escapeHtml(label)}</span>
-                            <small>${escapeHtml(source.quality || streamTypeFor(source).toUpperCase())} · ${escapeHtml(health)}</small>
+                            <small>${escapeHtml(source.quality || detectStreamType(source).toUpperCase())} - ${escapeHtml(health)}</small>
                         </button>`;
                     }).join('');
 

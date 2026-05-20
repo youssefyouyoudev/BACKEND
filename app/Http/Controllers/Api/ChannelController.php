@@ -7,6 +7,7 @@ use App\Http\Resources\ChannelResource;
 use App\Models\Channel;
 use App\Services\ActivityLogService;
 use App\Services\AppSettingsService;
+use App\Services\StreamService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,6 +25,7 @@ class ChannelController extends Controller
 
         $channels = Channel::query()
             ->visibleTo($user)
+            ->canonical()
             ->with('playlist')
             ->with(['favoredByUsers' => fn ($query) => $query->where('user_id', $user->id)])
             ->where('is_active', true)
@@ -45,6 +47,7 @@ class ChannelController extends Controller
 
         $channels = Channel::query()
             ->visibleTo($user)
+            ->canonical()
             ->with('playlist')
             ->with(['favoredByUsers' => fn ($query) => $query->where('user_id', $user->id)])
             ->where('is_active', true)
@@ -66,6 +69,7 @@ class ChannelController extends Controller
 
         $channels = Channel::query()
             ->whereHas('favoredByUsers', fn ($query) => $query->where('user_id', $user->id))
+            ->canonical()
             ->with('playlist')
             ->with(['favoredByUsers' => fn ($query) => $query->where('user_id', $user->id)])
             ->orderBy('name')
@@ -88,6 +92,7 @@ class ChannelController extends Controller
 
         $relatedChannels = Channel::query()
             ->visibleTo($user)
+            ->canonical()
             ->with('playlist')
             ->with(['favoredByUsers' => fn ($query) => $query->where('user_id', $user->id)])
             ->where('id', '!=', $channel->id)
@@ -133,7 +138,7 @@ class ChannelController extends Controller
      * Public endpoint: return active stream sources for a channel.
      * Used by the TV player sidebar for channel switching + failover.
      */
-    public function streams(Channel $channel): JsonResponse
+    public function streams(Channel $channel, StreamService $streamService): JsonResponse
     {
         abort_unless(
             $channel->is_active
@@ -141,13 +146,11 @@ class ChannelController extends Controller
             404
         );
 
-        $channel->load(['streams' => fn ($q) => $q->where('is_active', true)->orderBy('priority')]);
-
         return response()->json([
             'id'      => $channel->id,
             'name'    => $channel->name,
             'logo'    => $channel->logo,
-            'sources' => $channel->active_stream_sources,
+            'sources' => $streamService->sourcesFor($channel),
         ]);
     }
 }

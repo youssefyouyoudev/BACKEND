@@ -30,6 +30,7 @@ class ChannelController extends Controller
 
         $channelList = Channel::query()
             ->where('is_active', true)
+            ->canonical()
             ->whereHas('playlist', fn (Builder $query) => $query->where('is_public', true)->whereNotNull('approved_at'))
             ->with([
                 'category',
@@ -64,7 +65,7 @@ class ChannelController extends Controller
             'name' => $channel->name,
             'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'stream_url' => $source['url'] ?? StreamUrl::proxied($channel->stream_url),
-            'stream_type' => $source['type'] ?? $channel->stream_type ?? 'hls',
+            'stream_type' => $source['type'] ?? $channel->stream_type ?? 'stream',
             'sources' => $streamService ? $streamService->sourcesFor($channel) : $channel->active_stream_sources->values()->all(),
             'category' => $channel->category?->name ?? $channel->group_title ?: 'General',
             'program' => $channel->currentProgram ? [
