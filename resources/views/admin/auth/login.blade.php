@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,47 +8,46 @@
     <link rel="icon" type="image/png" href="{{ asset('brand/rifi-logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="app-body auth-body">
-    <main class="auth-shell">
-        <section class="auth-panel">
-            <div class="auth-panel__content">
-                <x-logo />
-                <p class="auth-panel__eyebrow">Admin playlist operations</p>
-                <h1>Secure access to your IPTV control center.</h1>
-                <p class="auth-panel__copy">
-                    Add legal playlist URLs, parse M3U catalogs in the background, and publish a clean viewing experience for your users.
-                </p>
+<body class="app-body rm-body rm-auth-body">
+    <main class="rm-auth-shell">
+        <section class="rm-auth-card">
+            <x-logo />
+            <span class="rm-live-badge rm-live-badge--gold">Control center</span>
+            <h1>Secure access for RiFi Media operations.</h1>
+            <p>Manage legal playlist imports, publish approved streams, and keep the live experience clean for viewers.</p>
 
-                <x-flash />
+            <x-flash />
 
-                <form method="POST" action="{{ route('admin.login.store') }}" class="form-card">
-                    @csrf
+            <form method="POST" action="{{ route('admin.login.store') }}" class="rm-form">
+                @csrf
 
-                    <div class="field">
-                        <label for="email">Email</label>
-                        <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="email" placeholder="admin@rifimedia.test">
-                    </div>
+                <div class="field rm-field">
+                    <label for="email">Email</label>
+                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="email" placeholder="admin@rifimedia.test">
+                </div>
 
-                    <div class="field">
-                        <label for="password">Password</label>
-                        <input id="password" type="password" name="password" required autocomplete="current-password" placeholder="Enter your password">
-                    </div>
+                <div class="field rm-field">
+                    <label for="password">Password</label>
+                    <input id="password" type="password" name="password" required autocomplete="current-password" placeholder="Enter your password">
+                </div>
 
-                    <label class="checkbox-field">
-                        <input type="checkbox" name="remember" value="1" @checked(old('remember'))>
-                        <span>Keep me signed in on this device</span>
-                    </label>
+                <label class="checkbox-field rm-checkbox-field">
+                    <input type="checkbox" name="remember" value="1" @checked(old('remember'))>
+                    <span>Keep me signed in on this device</span>
+                </label>
 
-                    <button type="submit" class="button button--primary button--full">Open Admin Dashboard</button>
-                </form>
+                <button type="submit" class="rm-btn rm-btn-primary rm-btn-full">Open Admin Dashboard</button>
+            </form>
 
-                <p class="auth-panel__hint">Demo admin: <strong>admin@rifimedia.test</strong> / <strong>Password123!</strong></p>
-            </div>
+            <p class="rm-auth-card__hint">Demo admin: <strong>admin@rifimedia.test</strong> / <strong>Password123!</strong></p>
         </section>
 
-        <section class="auth-preview">
-            <div class="auth-preview__glow"></div>
-            <img src="{{ asset('brand/rifi-mockup.png') }}" alt="RiFi Media TV interface preview" class="auth-preview__image">
+        <section class="rm-auth-preview" aria-label="RiFi Media preview">
+            <img src="{{ asset('brand/rifi-mockup.png') }}" alt="RiFi Media TV interface preview">
+            <div class="rm-auth-preview__caption">
+                <span class="rm-live-badge"><i></i> Live ready</span>
+                <strong>Premium streaming management</strong>
+            </div>
         </section>
     </main>
 </body>

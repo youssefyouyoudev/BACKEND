@@ -1,18 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="sat-home" x-data="satHomePage()" x-init="init">
-    <header class="sat-topbar">
-        <x-logo />
-        <form action="{{ route('home') }}" method="GET" class="sat-search">
-            <span></span>
-            <input type="search" name="search" value="{{ $search }}" placeholder="Search live channels, sports, news, movies">
+<div class="rm-page rm-page--home" x-data="satHomePage()" x-init="init">
+    <section class="rm-toolbar rm-glass-card" aria-label="Search live channels">
+        <div>
+            <span class="rm-live-badge"><i></i> Live sports hub</span>
+            <strong>{{ number_format($channels->total()) }} public channels</strong>
+        </div>
+        <form action="{{ route('home') }}" method="GET" class="rm-search">
+            @if($selectedCategory !== '')
+                <input type="hidden" name="category" value="{{ $selectedCategory }}">
+            @endif
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+            <input type="search" name="search" value="{{ $search }}" placeholder="Search live channels, football, news">
         </form>
-        <nav class="sat-topbar__links">
-            <a href="{{ route('live') }}">Live TV</a>
-            <a href="{{ route('admin.login') }}">Admin</a>
-        </nav>
-    </header>
+    </section>
 
     <x-hero :channel="$heroChannel ? [
         'id' => $heroChannel->id,
@@ -23,25 +25,34 @@
         'watch_url' => route('channels.show', $heroChannel),
     ] : null" />
 
-    <section class="sat-category-rail" id="categories">
-        <a href="{{ route('home') }}" class="{{ $selectedCategory === '' ? 'is-active' : '' }}">All</a>
-        @foreach($categories as $category)
-            <a href="{{ route('home', ['category' => $category]) }}" class="{{ $selectedCategory === $category ? 'is-active' : '' }}">
-                {{ $category }}
-            </a>
-        @endforeach
+    <section class="rm-section" id="categories">
+        <div class="rm-section-header">
+            <div>
+                <p class="rm-eyebrow">Browse by sport</p>
+                <h2>Categories</h2>
+            </div>
+        </div>
+
+        <div class="rm-category-chip-row" aria-label="Channel categories">
+            <a href="{{ route('home') }}" class="rm-category-chip {{ $selectedCategory === '' ? 'is-active' : '' }}">All</a>
+            @foreach($categories as $category)
+                <a href="{{ route('home', ['category' => $category]) }}" class="rm-category-chip {{ $selectedCategory === $category ? 'is-active' : '' }}">
+                    {{ $category }}
+                </a>
+            @endforeach
+        </div>
     </section>
 
     @if($recommendedChannels->count())
-        <section class="sat-section">
-            <div class="sat-section__heading">
+        <section class="rm-section">
+            <div class="rm-section-header">
                 <div>
-                    <span>Continue watching</span>
-                    <h2>Featured broadcasts</h2>
+                    <p class="rm-eyebrow">Trending now</p>
+                    <h2>Featured live broadcasts</h2>
                 </div>
-                <a href="{{ route('live') }}">Open TV guide</a>
+                <a href="{{ route('live') }}" class="rm-section-header__link">Open TV guide</a>
             </div>
-            <div class="sat-feature-grid">
+            <div class="rm-match-row">
                 @foreach($recommendedChannels as $channel)
                     <x-channel-card :channel="$channel" />
                 @endforeach
@@ -49,22 +60,50 @@
         </section>
     @endif
 
-    <section class="sat-section" id="channels">
-        <div class="sat-section__heading">
+    @if($sections->count())
+        <section class="rm-section" id="library">
+            <div class="rm-section-header">
+                <div>
+                    <p class="rm-eyebrow">Curated rails</p>
+                    <h2>Featured categories</h2>
+                </div>
+            </div>
+
+            <div class="rm-featured-stack">
+                @foreach($sections as $sectionName => $sectionChannels)
+                    <div class="rm-glass-card rm-featured-rail">
+                        <div class="rm-featured-rail__header">
+                            <h3>{{ $sectionName ?: 'Live TV' }}</h3>
+                            <span>{{ $sectionChannels->count() }} streams</span>
+                        </div>
+                        <div class="rm-match-row rm-match-row--compact">
+                            @foreach($sectionChannels as $channel)
+                                <x-channel-card :channel="$channel" />
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    <section class="rm-section" id="channels">
+        <div class="rm-section-header">
             <div>
-                <span>Now on air</span>
+                <p class="rm-eyebrow">Now on air</p>
                 <h2>Live channel wall</h2>
             </div>
-            <p>{{ number_format($channels->total()) }} channels</p>
+            <span class="rm-section-header__meta">{{ number_format($channels->total()) }} channels</span>
         </div>
 
         @if($channels->count() === 0)
-            <div class="sat-empty">
-                <strong>No channels found</strong>
-                <p>Try a different search or category.</p>
+            <div class="rm-empty-state">
+                <span>No live channels found</span>
+                <strong>Try another search or category.</strong>
+                <a href="{{ route('home') }}" class="rm-btn rm-btn-secondary">Reset filters</a>
             </div>
         @else
-            <div class="sat-channel-grid" data-tv-grid>
+            <div class="rm-match-grid" data-tv-grid>
                 @foreach($liveChannels as $channel)
                     <x-channel-card :channel="$channel" />
                 @endforeach

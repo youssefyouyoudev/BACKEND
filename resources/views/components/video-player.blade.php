@@ -18,33 +18,33 @@
     ];
 @endphp
 
-<div class="sat-player" data-rifi-video-player data-config='@json($payload)' data-player-id="{{ $playerId }}">
+<div class="sat-player rm-player-frame" data-rifi-video-player data-config='@json($payload)' data-player-id="{{ $playerId }}">
     <video
         id="{{ $playerId }}"
-        class="video-js vjs-big-play-centered sat-player__video"
+        class="video-js vjs-big-play-centered sat-player__video rm-player-video"
         controls
         playsinline
         preload="auto"
         @if($poster) poster="{{ $poster }}" @endif
     ></video>
 
-    <div class="sat-player__loading" data-player-loading hidden>
+    <div class="sat-player__loading rm-player-loading" data-player-loading hidden>
         <span></span>
         <strong>Connecting to broadcast</strong>
     </div>
 
-    <div class="sat-player__error" data-player-error hidden>
-        <span>Channel unavailable</span>
+    <div class="sat-player__error rm-player-error" data-player-error hidden>
+        <span>Stream unavailable</span>
         <h3 data-player-error-title>Channel unavailable</h3>
         <p data-player-error-message>This broadcast did not respond in time. Try another channel or retry the stream.</p>
-        <div class="sat-player__error-actions">
-            <button type="button" class="sat-button sat-button--primary" data-player-retry>Retry</button>
-            <button type="button" class="sat-button sat-button--ghost" data-player-next>Next channel</button>
+        <div class="sat-player__error-actions rm-player-error__actions">
+            <button type="button" class="rm-btn rm-btn-primary" data-player-retry>Retry</button>
+            <button type="button" class="rm-btn rm-btn-secondary" data-player-next>Next channel</button>
         </div>
     </div>
 
-    <div class="sat-player__topline">
-        <span class="sat-live-dot"></span>
+    <div class="sat-player__topline rm-player-topline">
+        <span class="sat-live-dot rm-live-dot"></span>
         <strong data-player-title>{{ data_get($channel, 'name', 'Live Channel') }}</strong>
         <select data-player-quality aria-label="Playback quality" hidden>
             <option value="-1">Auto</option>

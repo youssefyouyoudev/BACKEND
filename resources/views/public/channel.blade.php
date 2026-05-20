@@ -2,66 +2,84 @@
 
 @section('content')
 <div
-    class="sat-watch"
+    class="rm-page rm-page--watch"
     x-data="satWatchPage({
         activeId: @js($activeChannel['id'] ?? null),
         channels: @js($channelList),
     })"
     x-init="init"
 >
-    <x-sidebar :channels="$channelList" :active-id="$activeChannel['id'] ?? null" />
-
-    <main class="sat-watch__main">
-        <section class="sat-watch__player" data-sticky-player>
-            <x-video-player
-                :channel="$activeChannel"
-                :sources="$sources"
-                :poster="$activeChannel['logo'] ?? null"
-            />
-        </section>
-
-        <section class="sat-info-panel">
-            <div>
-                <span class="sat-kicker"><i></i> Now watching</span>
-                <h1>{{ $activeChannel['name'] }}</h1>
-                <p>{{ $activeChannel['description'] }}</p>
-                @if(! empty($activeChannel['program']))
-                    <strong>{{ $activeChannel['program']['title'] }} · {{ $activeChannel['program']['start_time'] }} - {{ $activeChannel['program']['end_time'] }}</strong>
-                @else
-                    <strong>Live broadcast · Schedule coming soon</strong>
-                @endif
-            </div>
-            <div class="sat-info-panel__actions">
-                <a class="sat-button sat-button--ghost" href="{{ route('home') }}">Channel wall</a>
-                <a class="sat-button sat-button--primary" href="{{ route('live') }}">TV guide</a>
-            </div>
-        </section>
-
-        <section class="sat-epg">
-            <div class="sat-section__heading">
+    <section class="rm-watch-shell">
+        <main class="rm-watch-main">
+            <header class="rm-player-header rm-player-header--hero">
+                <span class="rm-live-badge"><i></i> Live</span>
                 <div>
-                    <span>Electronic program guide</span>
-                    <h2>Up next</h2>
+                    <p class="rm-eyebrow">{{ $activeChannel['category'] ?? 'Live TV' }}</p>
+                    <h1>{{ $activeChannel['name'] }}</h1>
+                    <p>{{ $activeChannel['description'] }}</p>
                 </div>
-            </div>
-            @if($programs->count())
-                <div class="sat-epg__timeline">
-                    @foreach($programs as $program)
-                        <article class="{{ $program->start_time <= now() && $program->end_time > now() ? 'is-now' : '' }}">
-                            <time>{{ $program->start_time->format('H:i') }} - {{ $program->end_time->format('H:i') }}</time>
-                            <strong>{{ $program->title }}</strong>
-                            <p>{{ $program->description ?: 'Live programming from this channel.' }}</p>
-                        </article>
-                    @endforeach
+                <div class="rm-player-header__actions">
+                    <a class="rm-btn rm-btn-secondary rm-btn-sm" href="{{ route('home') }}">Channel Wall</a>
+                    <a class="rm-btn rm-btn-primary rm-btn-sm" href="{{ route('live') }}">TV Guide</a>
                 </div>
-            @else
-                <div class="sat-empty">
-                    <strong>No EPG data yet</strong>
-                    <p>The channel is live, but no program schedule has been published.</p>
+            </header>
+
+            <section class="rm-player-shell" data-sticky-player>
+                <x-video-player
+                    :channel="$activeChannel"
+                    :sources="$sources"
+                    :poster="$activeChannel['logo'] ?? null"
+                />
+            </section>
+
+            <section class="rm-glass-card rm-match-overview">
+                <div>
+                    <span class="rm-live-badge rm-live-badge--small"><i></i> Now watching</span>
+                    <h2>{{ $activeChannel['name'] }}</h2>
+                    @if(! empty($activeChannel['program']))
+                        <p>{{ $activeChannel['program']['title'] }} - {{ $activeChannel['program']['start_time'] }} to {{ $activeChannel['program']['end_time'] }}</p>
+                    @else
+                        <p>Live broadcast - schedule coming soon.</p>
+                    @endif
                 </div>
-            @endif
-        </section>
-    </main>
+                <div class="rm-server-card">
+                    <span>Stream quality</span>
+                    <strong>Auto HD</strong>
+                    <small>{{ count($sources) }} {{ count($sources) === 1 ? 'server' : 'servers' }} available</small>
+                </div>
+            </section>
+
+            <section class="rm-section rm-section--flush">
+                <div class="rm-section-header">
+                    <div>
+                        <p class="rm-eyebrow">Electronic program guide</p>
+                        <h2>Up next</h2>
+                    </div>
+                </div>
+
+                @if($programs->count())
+                    <div class="rm-schedule-list">
+                        @foreach($programs as $program)
+                            <article class="{{ $program->start_time <= now() && $program->end_time > now() ? 'is-now' : '' }}">
+                                <time>{{ $program->start_time->format('H:i') }} - {{ $program->end_time->format('H:i') }}</time>
+                                <div>
+                                    <strong>{{ $program->title }}</strong>
+                                    <p>{{ $program->description ?: 'Live programming from this channel.' }}</p>
+                                </div>
+                            </article>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="rm-empty-state">
+                        <span>No schedule yet</span>
+                        <strong>This channel is live, but no program guide has been published.</strong>
+                    </div>
+                @endif
+            </section>
+        </main>
+
+        <x-sidebar :channels="$channelList" :active-id="$activeChannel['id'] ?? null" />
+    </section>
 </div>
 
 @push('scripts')

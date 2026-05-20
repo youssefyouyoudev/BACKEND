@@ -1,12 +1,13 @@
 @props(['channels' => [], 'activeId' => null])
 
-<aside class="sat-sidebar" aria-label="Channel rail">
-    <div class="sat-sidebar__brand">
+<aside class="rm-related-panel" aria-label="Related live streams">
+    <div class="rm-related-panel__header">
         <x-logo compact />
-        <span>Live control</span>
+        <span>Related live</span>
     </div>
-    <div class="sat-sidebar__scroll">
-        @foreach($channels as $channel)
+
+    <div class="rm-related-panel__list">
+        @forelse($channels as $channel)
             @php
                 $id = data_get($channel, 'id');
                 $logo = data_get($channel, 'logo') ?: data_get($channel, 'thumbnail') ?: asset('brand/rifi-logo.png');
@@ -14,7 +15,7 @@
             @endphp
             <a
                 href="{{ route('channels.show', $id) }}"
-                class="sat-sidebar-channel {{ (int) $activeId === (int) $id ? 'is-active' : '' }}"
+                class="rm-related-channel {{ (int) $activeId === (int) $id ? 'is-active' : '' }}"
                 data-channel-id="{{ $id }}"
             >
                 <img src="{{ $logo }}" alt="" loading="lazy" onerror="this.src='{{ asset('brand/rifi-logo.png') }}'">
@@ -24,6 +25,11 @@
                 </span>
                 <i></i>
             </a>
-        @endforeach
+        @empty
+            <div class="rm-empty-state rm-empty-state--compact">
+                <span>No related streams</span>
+                <strong>More channels will appear here once available.</strong>
+            </div>
+        @endforelse
     </div>
 </aside>

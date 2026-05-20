@@ -12,7 +12,7 @@
 
 @section('content')
 <div
-    class="streaming-app streaming-app--live"
+    class="rm-page rm-page--live"
     x-data="liveTvPage({
         initialChannels: @js($initialChannels),
         initialChannelId: @js(request()->integer('channel') ?: null),
@@ -20,38 +20,30 @@
     })"
     x-init="init"
 >
-    <x-streaming.sidebar active="live" :recommended-channels="$recommendedChannels" />
-
-    <main class="stream-main">
-        <header class="stream-topbar">
-            <div class="browse-select">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-                <span>Live TV</span>
-                <small>{{ number_format($totalCount) }}</small>
+    <section class="rm-live-stage">
+        <div class="rm-live-stage__header">
+            <div>
+                <span class="rm-live-badge"><i></i> Live TV</span>
+                <h1>Sports channels, instantly switchable.</h1>
+                <p>Browse approved public streams with fast search, category filters, and a premium full-screen player path.</p>
             </div>
 
-            <form class="stream-search" @submit.prevent="loadChannels">
-                <svg viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <form class="rm-search rm-search--wide" @submit.prevent="loadChannels">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
                 <input type="search" x-model.debounce.400ms="search" @input.debounce.450ms="loadChannels" placeholder="Search live channels">
             </form>
+        </div>
 
-            <div class="stream-actions">
-                <button type="button" @click="loadChannels" title="Refresh" aria-label="Refresh">
-                    <svg viewBox="0 0 24 24" fill="none"><path d="M20 6v5h-5"/><path d="M4 18v-5h5"/><path d="M18 9a7 7 0 0 0-11.8-2.4M6 15a7 7 0 0 0 11.8 2.4"/></svg>
-                </button>
-                <button type="button" title="Notifications" aria-label="Notifications">
-                    <svg viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
-                </button>
-                <a href="{{ route('admin.login') }}" class="profile-pill" aria-label="Profile">
-                    <span></span>
-                    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.6-4 4.2-6 8-6s6.4 2 8 6"/></svg>
-                </a>
-            </div>
-        </header>
+        <div class="rm-live-layout">
+            <aside class="rm-glass-card rm-live-browser" aria-label="Live channel browser">
+                <div class="rm-live-browser__top">
+                    <strong>Channels</strong>
+                    <button type="button" class="rm-icon-btn" @click="loadChannels" aria-label="Refresh channels">
+                        <svg viewBox="0 0 24 24" fill="none"><path d="M20 6v5h-5"></path><path d="M4 18v-5h5"></path><path d="M18 9a7 7 0 0 0-11.8-2.4M6 15a7 7 0 0 0 11.8 2.4"></path></svg>
+                    </button>
+                </div>
 
-        <div class="live-shell">
-            <aside class="live-left-panel">
-                <div class="live-filter-row">
+                <div class="rm-tabs" role="tablist" aria-label="Filter channels">
                     <button type="button" :class="{ 'is-active': activeCategory === '__ALL__' }" @click="setCategory('__ALL__')">
                         All <span>{{ number_format($totalCount) }}</span>
                     </button>
@@ -62,10 +54,10 @@
                     @endforeach
                 </div>
 
-                <div class="live-channel-scroll">
+                <div class="rm-live-list">
                     <template x-for="channel in channels" :key="channel.id">
-                        <button type="button" class="live-channel-row" :class="{ 'is-active': activeChannel && activeChannel.id === channel.id }" @click="selectChannel(channel.id)">
-                            <img :src="channel.logo" alt="" loading="lazy">
+                        <button type="button" class="rm-live-row" :class="{ 'is-active': activeChannel && activeChannel.id === channel.id }" @click="selectChannel(channel.id)">
+                            <img :src="channel.logo || fallbackLogo" :alt="channel.name" loading="lazy" x-on:error="$event.target.src = fallbackLogo">
                             <span>
                                 <strong x-text="channel.name"></strong>
                                 <small x-text="channel.group_title"></small>
@@ -74,44 +66,58 @@
                         </button>
                     </template>
 
-                    <div class="live-list-empty" x-show="!loadingList && channels.length === 0">
-                        No channels found.
+                    <div class="rm-empty-state rm-empty-state--compact" x-show="!loadingList && channels.length === 0">
+                        <span>No channels found</span>
+                        <strong>Try a different search or category.</strong>
                     </div>
                 </div>
             </aside>
 
-            <section class="live-player-panel">
-                <div class="live-video-frame">
+            <section class="rm-player-shell">
+                <div class="rm-player-header" x-show="activeChannel">
+                    <span class="rm-live-badge"><i></i> Live</span>
+                    <div>
+                        <h2 x-text="activeChannel?.name || 'Select a channel'"></h2>
+                        <p><span x-text="activeChannel?.group_title"></span> <span aria-hidden="true">-</span> <strong x-text="activeChannel?.viewers_label"></strong> watching</p>
+                    </div>
+                    <a :href="activeChannel ? `/watch/${activeChannel.id}` : '#'" class="rm-btn rm-btn-primary rm-btn-sm">Full Player</a>
+                </div>
+
+                <div class="rm-player-frame rm-player-frame--spa">
                     <video x-ref="video" controls playsinline autoplay muted></video>
-                    <div class="spa-loading" x-show="loadingPlayer" x-transition.opacity>
+                    <div class="rm-player-loading" x-show="loadingPlayer" x-transition.opacity>
                         <span></span>
                         <p>Connecting to selected channel...</p>
                     </div>
                 </div>
 
-                <div class="live-info-row" x-show="activeChannel">
-                    <img :src="activeChannel?.logo" alt="" loading="lazy">
+                <div class="rm-glass-card rm-live-details" x-show="activeChannel">
+                    <img :src="activeChannel?.logo || fallbackLogo" alt="" loading="lazy" x-on:error="$event.target.src = fallbackLogo">
                     <div>
-                        <p class="live-badge">Live</p>
-                        <h1 x-text="activeChannel?.name"></h1>
-                        <span x-text="activeChannel?.description"></span>
-                        <small><strong x-text="activeChannel?.viewers_label"></strong> viewers | <span x-text="activeChannel?.group_title"></span></small>
+                        <p class="rm-eyebrow">Now streaming</p>
+                        <h3 x-text="activeChannel?.name"></h3>
+                        <p x-text="activeChannel?.description"></p>
                     </div>
-                    <a :href="activeChannel ? `/watch/${activeChannel.id}` : '#'" class="watch-button">Full Player</a>
                 </div>
-
-                <aside class="chat-panel chat-panel--live" aria-label="Chat section">
-                    <h3>Chat</h3>
-                    <p><strong>System:</strong> Channel switching is running through JSON endpoints.</p>
-                    <p><strong>Moderator:</strong> No page reloads needed.</p>
-                    <form @submit.prevent>
-                        <input type="text" placeholder="Write a message">
-                        <button type="submit">Send</button>
-                    </form>
-                </aside>
             </section>
         </div>
-    </main>
+    </section>
+
+    @if($recommendedChannels->count())
+        <section class="rm-section" id="following">
+            <div class="rm-section-header">
+                <div>
+                    <p class="rm-eyebrow">Recommended</p>
+                    <h2>More live channels</h2>
+                </div>
+            </div>
+            <div class="rm-match-row">
+                @foreach($recommendedChannels as $channel)
+                    <x-channel-card :channel="$channel" />
+                @endforeach
+            </div>
+        </section>
+    @endif
 </div>
 
 @push('scripts')
@@ -124,6 +130,7 @@ document.addEventListener('alpine:init', () => {
         search: '',
         loadingList: false,
         loadingPlayer: false,
+        fallbackLogo: @js(asset('brand/rifi-logo.png')),
         hls: null,
 
         init() {

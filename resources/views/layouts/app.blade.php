@@ -1,66 +1,88 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $title ?? 'RiFi Media TV' }}</title>
-    <meta name="description" content="{{ $description ?? 'Browse and watch your imported IPTV playlists with a modern RiFi Media TV interface.' }}">
+    <meta name="description" content="{{ $description ?? 'Premium live sports and TV streaming with the RiFi Media experience.' }}">
     <meta property="og:title" content="{{ $title ?? 'RiFi Media TV' }}">
-    <meta property="og:description" content="{{ $description ?? 'Premium live TV channel streaming with a satellite-style interface.' }}">
+    <meta property="og:description" content="{{ $description ?? 'Watch live channels, featured broadcasts, and curated sports streams on RiFi Media TV.' }}">
     <meta property="og:type" content="website">
     <link rel="icon" type="image/png" href="{{ asset('brand/rifi-logo.png') }}">
+    <link rel="preconnect" href="https://vjs.zencdn.net">
     <link href="https://vjs.zencdn.net/8.23.4/video-js.css" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
     <script defer src="https://vjs.zencdn.net/8.23.4/video.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 </head>
-<body class="app-body">
+<body class="app-body rm-body">
     @if (! empty($appSettings['maintenance_banner']))
-        <div class="maintenance-banner">
+        <div class="rm-maintenance" role="status">
             {{ $appSettings['maintenance_banner'] }}
         </div>
     @endif
 
-    <div class="shell shell--public">
-        <aside class="sidebar">
-            <div class="sidebar__brand">
+    <div class="rm-site" x-data="{ mobileNavOpen: false }">
+        <header class="rm-navbar" aria-label="Primary navigation">
+            <div class="rm-navbar__inner">
                 <x-logo />
+
+                <nav class="rm-navbar__links" aria-label="Main menu">
+                    <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'is-active' : '' }}">Home</a>
+                    <a href="{{ route('live') }}" class="{{ request()->routeIs('live') ? 'is-active' : '' }}">
+                        <span class="rm-live-dot" aria-hidden="true"></span>
+                        Live
+                    </a>
+                    <a href="{{ route('home') }}#categories">Sports</a>
+                    <a href="{{ route('home') }}#channels">Channels</a>
+                </nav>
+
+                <div class="rm-navbar__actions">
+                    <a href="{{ route('admin.login') }}" class="rm-btn rm-btn-secondary rm-btn-sm">Admin</a>
+                    <a href="{{ route('live') }}" class="rm-btn rm-btn-primary rm-btn-sm">Watch Now</a>
+                    <button
+                        type="button"
+                        class="rm-mobile-nav"
+                        aria-label="Open navigation"
+                        :aria-expanded="mobileNavOpen.toString()"
+                        @click="mobileNavOpen = ! mobileNavOpen"
+                    >
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                </div>
             </div>
 
-            <nav class="sidebar__nav" aria-label="Main navigation">
-                <a href="{{ route('home') }}" class="sidebar__link {{ request()->routeIs('home') ? 'is-active' : '' }}">
-                    <span class="sidebar__icon">●</span>
-                    <span>Home</span>
-                </a>
-                <a href="{{ route('home', ['category' => request('category')]) }}#live-tv" class="sidebar__link">
-                    <span class="sidebar__icon">▶</span>
-                    <span>Live TV</span>
-                </a>
-                <a href="#categories" class="sidebar__link">
-                    <span class="sidebar__icon">▣</span>
-                    <span>Categories</span>
-                </a>
-                <a href="#library" class="sidebar__link">
-                    <span class="sidebar__icon">♥</span>
-                    <span>Library</span>
-                </a>
-                <a href="{{ route('admin.login') }}" class="sidebar__link">
-                    <span class="sidebar__icon">⚙</span>
-                    <span>Admin</span>
-                </a>
+            <nav class="rm-navbar__drawer" x-show="mobileNavOpen" x-transition.opacity.origin.top @click.outside="mobileNavOpen = false" aria-label="Mobile menu">
+                <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'is-active' : '' }}">Home</a>
+                <a href="{{ route('live') }}" class="{{ request()->routeIs('live') ? 'is-active' : '' }}">Live TV</a>
+                <a href="{{ route('home') }}#categories">Sports and Categories</a>
+                <a href="{{ route('home') }}#channels">Channel Wall</a>
+                <a href="{{ route('admin.login') }}">Admin</a>
             </nav>
+        </header>
 
-            <div class="sidebar__footer">
-                <p class="sidebar__eyebrow">Legal streaming manager</p>
-                <p class="sidebar__copy">{{ $appSettings['brand_tagline'] }}</p>
-            </div>
-        </aside>
-
-        <main class="main-content">
+        <main class="rm-main">
             <x-flash />
             @yield('content')
         </main>
+
+        <footer class="rm-footer">
+            <div class="rm-footer__inner">
+                <div>
+                    <x-logo />
+                    <p>{{ $appSettings['brand_tagline'] }}</p>
+                </div>
+                <nav aria-label="Footer links">
+                    <a href="{{ route('home') }}">Home</a>
+                    <a href="{{ route('live') }}">Live TV</a>
+                    <a href="{{ route('admin.login') }}">Admin</a>
+                </nav>
+                <p class="rm-footer__legal">{{ $appSettings['legal_notice'] }}</p>
+            </div>
+        </footer>
     </div>
 
     @stack('scripts')
