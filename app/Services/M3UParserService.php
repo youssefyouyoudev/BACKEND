@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Playlist;
-use App\Support\StreamUrl;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -90,7 +89,6 @@ class M3UParserService
         $lines   = preg_split('/\r\n|\r|\n/', $content) ?: [];
 
         $entries        = [];
-        $seenHashes     = [];
         $groups         = [];
         $currentExtInf  = null;
         $fallbackGroup  = null;
@@ -136,16 +134,8 @@ class M3UParserService
                 continue;
             }
 
-            $streamUrl  = StreamUrl::browserSafe($this->resolveUrl($line, $baseUrl));
-            $streamHash = sha1(strtolower($streamUrl));
-
-            // Deduplicate
-            if (isset($seenHashes[$streamHash])) {
-                $currentExtInf = null;
-                continue;
-            }
-
-            $seenHashes[$streamHash] = true;
+            $streamUrl  = trim($this->resolveUrl($line, $baseUrl));
+            $streamHash = sha1($this->normalizeUrlForHash($streamUrl));
             $groupTitle = $this->sanitizeString($currentExtInf['group_title'] ?? null);
 
             if ($groupTitle) {
@@ -332,7 +322,7 @@ class M3UParserService
             str_contains($urlPath, '/live/')
             || preg_match('#/live/[^/]+/[^/]+/#', $urlPath)
         ) {
-            return 'hls';
+            return str_ends_with($urlPath, '.m3u8') ? 'hls' : 'mpegts';
         }
 
         if (str_contains($urlPath, '/movie/')) {
@@ -373,5 +363,10 @@ class M3UParserService
         $sanitized = (string) preg_replace('/\s+/u', ' ', trim($sanitized));
 
         return $sanitized === '' ? null : $sanitized;
+    }
+
+    private function normalizeUrlForHash(string $url): string
+    {
+        return strtolower(trim($url));
     }
 }

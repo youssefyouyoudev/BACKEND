@@ -46,7 +46,7 @@ class PlaylistController extends Controller
 
         return response()->json([
             'message' => 'Playlist imported successfully.',
-            'playlist' => new PlaylistResource($playlist->load('channels')),
+            'playlist' => new PlaylistResource($this->loadPlaylistChannels($playlist)),
         ], JsonResponse::HTTP_CREATED);
     }
 
@@ -62,7 +62,7 @@ class PlaylistController extends Controller
 
         return response()->json([
             'message' => 'Playlist uploaded successfully.',
-            'playlist' => new PlaylistResource($playlist->load('channels')),
+            'playlist' => new PlaylistResource($this->loadPlaylistChannels($playlist)),
         ], JsonResponse::HTTP_CREATED);
     }
 
@@ -98,7 +98,7 @@ class PlaylistController extends Controller
 
         return response()->json([
             'message' => 'Playlist refreshed successfully.',
-            'playlist' => new PlaylistResource($refreshed->load('channels')),
+            'playlist' => new PlaylistResource($this->loadPlaylistChannels($refreshed)),
         ]);
     }
 
@@ -113,6 +113,14 @@ class PlaylistController extends Controller
 
         return response()->json([
             'message' => 'Playlist deleted successfully.',
+        ]);
+    }
+
+    private function loadPlaylistChannels(Playlist $playlist): Playlist
+    {
+        return $playlist->load([
+            'channels' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
+            'channels.streams' => fn ($query) => $query->where('is_active', true)->orderBy('priority'),
         ]);
     }
 }

@@ -74,6 +74,42 @@ M3U),
     expect($playlist->last_synced_at)->not->toBeNull();
 });
 
+it('groups duplicate channel names into one channel with multiple server sources', function () {
+    Storage::fake('playlists');
+
+    $user = User::factory()->create();
+    $playlistContent = <<<'M3U'
+#EXTM3U playlist-name="Duplicate Demo"
+#EXTINF:-1 tvg-logo="https://img.example.com/bein.png" group-title="Sports",beIN Sports 1
+http://server-a.example.com/live/bein1.ts
+#EXTINF:-1 tvg-logo="https://img.example.com/bein-alt.png" group-title="Other Sports",  beIN   Sports 1
+http://server-b.example.com/live/bein1.ts
+#EXTINF:-1 group-title="Sports",beIN Sports 1
+http://server-b.example.com/live/bein1.ts
+M3U;
+
+    $file = UploadedFile::fake()->createWithContent('duplicates.m3u', $playlistContent);
+
+    $response = $this->actingAs($user)->postJson('/api/playlists/upload', [
+        'name' => 'Duplicate Playlist',
+        'playlist_file' => $file,
+        'is_public' => false,
+    ]);
+
+    $response
+        ->assertCreated()
+        ->assertJsonPath('playlist.channels.0.name', 'beIN Sports 1')
+        ->assertJsonCount(1, 'playlist.channels')
+        ->assertJsonCount(2, 'playlist.channels.0.sources')
+        ->assertJsonPath('playlist.channels.0.sources.0.label', 'Server 1')
+        ->assertJsonPath('playlist.channels.0.sources.1.label', 'Server 2');
+
+    $playlist = Playlist::query()->with('channels.streams')->firstOrFail();
+
+    expect($playlist->channels)->toHaveCount(1);
+    expect($playlist->channels->first()->streams)->toHaveCount(2);
+});
+
 it('does not allow a user to view another users private playlist', function () {
     $owner = User::factory()->create();
     $viewer = User::factory()->create();

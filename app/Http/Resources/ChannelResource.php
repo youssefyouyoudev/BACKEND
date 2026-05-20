@@ -40,6 +40,7 @@ class ChannelResource extends JsonResource
 
                 return $history?->watched_at?->toIso8601String();
             }),
+            'sources' => $this->active_stream_sources->values(),
         ];
     }
 }

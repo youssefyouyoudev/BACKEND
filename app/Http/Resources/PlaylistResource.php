@@ -26,6 +26,7 @@ class PlaylistResource extends JsonResource
             // Groups come from import_summary (always available, no extra query needed)
             'categories'        => $this->import_summary['groups'] ?? [],
             'owner'             => $this->whenLoaded('user', fn () => new UserResource($this->user)),
+            'channels'          => ChannelResource::collection($this->whenLoaded('channels')),
         ];
     }
 }

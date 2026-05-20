@@ -5483,6 +5483,58 @@ html:has(.rm-body) {
     pointer-events: auto;
 }
 
+.rm-server-selector {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 14px;
+    z-index: 6;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px;
+    pointer-events: auto;
+    scrollbar-width: thin;
+}
+
+.rm-server-option {
+    flex: 0 0 auto;
+    display: grid;
+    gap: 2px;
+    min-width: 116px;
+    padding: 9px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    color: var(--rm-text);
+    cursor: pointer;
+    text-align: left;
+    background: rgba(0, 0, 0, 0.54);
+    backdrop-filter: blur(12px);
+    transition: border-color 180ms ease, background 180ms ease, transform 180ms ease;
+}
+
+.rm-server-option:hover,
+.rm-server-option:focus-visible,
+.rm-server-option.is-active {
+    border-color: rgba(139, 92, 246, 0.72);
+    background: rgba(139, 92, 246, 0.24);
+    transform: translateY(-1px);
+}
+
+.rm-server-option.is-failed {
+    border-color: rgba(239, 35, 60, 0.72);
+    background: rgba(239, 35, 60, 0.16);
+}
+
+.rm-server-option span {
+    font-weight: 900;
+}
+
+.rm-server-option small {
+    color: var(--rm-muted);
+    font-size: 0.72rem;
+}
+
 .rm-live-details,
 .rm-match-overview {
     display: flex;
@@ -5981,6 +6033,17 @@ html:has(.rm-body) {
 
     .rm-player-frame--spa {
         border-radius: 0 0 22px 22px;
+    }
+
+    .rm-server-selector {
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+    }
+
+    .rm-server-option {
+        min-width: 98px;
+        padding: 8px 10px;
     }
 
     .rm-player-shell,

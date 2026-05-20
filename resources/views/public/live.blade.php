@@ -132,6 +132,7 @@ document.addEventListener('alpine:init', () => {
         loadingPlayer: false,
         fallbackLogo: @js(asset('brand/rifi-logo.png')),
         hls: null,
+        mpegts: null,
 
         init() {
             const requested = initialChannelId
@@ -201,7 +202,18 @@ document.addEventListener('alpine:init', () => {
                 this.hls = null;
             }
 
-            if (window.Hls && Hls.isSupported() && String(source.url).includes('.m3u')) {
+            if (this.mpegts) {
+                this.mpegts.unload();
+                this.mpegts.detachMediaElement();
+                this.mpegts.destroy();
+                this.mpegts = null;
+            }
+
+            const type = String(source.type || '').toLowerCase();
+            const isHls = type === 'hls' || String(source.url).toLowerCase().includes('.m3u');
+            const isMpegTs = ['mpegts', 'ts', 'stream'].includes(type);
+
+            if (isHls && window.Hls && Hls.isSupported()) {
                 this.hls = new Hls({ lowLatencyMode: true, backBufferLength: 30 });
                 this.hls.loadSource(source.url);
                 this.hls.attachMedia(video);
@@ -212,6 +224,29 @@ document.addEventListener('alpine:init', () => {
                 this.hls.on(Hls.Events.ERROR, (_, data) => {
                     if (data.fatal) this.loadingPlayer = false;
                 });
+                return;
+            }
+
+            if (isMpegTs && window.mpegts?.isSupported()) {
+                this.mpegts = window.mpegts.createPlayer({
+                    type: 'mpegts',
+                    isLive: true,
+                    url: source.url,
+                }, {
+                    enableWorker: true,
+                    lazyLoad: false,
+                    liveBufferLatencyChasing: true,
+                });
+                this.mpegts.attachMediaElement(video);
+                this.mpegts.on(window.mpegts.Events.ERROR, (errorType, detail) => {
+                    console.error('[RiFiPlayer] mpegts.js live page error', { errorType, detail });
+                    this.loadingPlayer = false;
+                });
+                video.addEventListener('loadedmetadata', () => {
+                    this.loadingPlayer = false;
+                    video.play().catch(() => {});
+                }, { once: true });
+                this.mpegts.load();
                 return;
             }
 

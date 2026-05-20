@@ -50,14 +50,16 @@
             <option value="-1">Auto</option>
         </select>
     </div>
+
+    <div class="rm-server-selector" data-player-servers aria-label="Stream servers"></div>
 </div>
 
 @once
     @push('scripts')
         <script>
         (() => {
-            const STARTUP_TIMEOUT = 8000;
-            const MAX_RETRIES = 2;
+            const STARTUP_TIMEOUT = 25000;
+            const MAX_RETRIES = 1;
 
             const waitForLibraries = () => new Promise((resolve, reject) => {
                 const started = Date.now();
@@ -75,22 +77,33 @@
                 }, 80);
             });
 
-            const mimeTypeFor = (source) => {
+            const serverLabel = (source, index) => source?.label || `Server ${index + 1}`;
+            const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;',
+            }[char]));
+
+            const streamTypeFor = (source) => {
                 const type = String(source?.type || '').toLowerCase();
                 const url = String(source?.url || '').toLowerCase();
 
-                if (type === 'mp4' || url.includes('.mp4')) return 'video/mp4';
-                if (type === 'dash' || url.includes('.mpd')) return 'application/dash+xml';
-                return 'application/x-mpegURL';
+                if (type === 'mpegts' || type === 'ts' || url.includes('.ts')) return 'mpegts';
+                if (type === 'mp4' || url.includes('.mp4')) return 'mp4';
+                if (type === 'dash' || url.includes('.mpd')) return 'dash';
+                if (type === 'hls' || url.includes('.m3u8') || url.includes('.m3u')) return 'hls';
+
+                return 'stream';
             };
 
-            const canUseHls = (source) => {
-                const type = String(source?.type || '').toLowerCase();
-                const url = String(source?.url || '').toLowerCase();
+            const mimeTypeFor = (type) => {
+                if (type === 'mp4') return 'video/mp4';
+                if (type === 'dash') return 'application/dash+xml';
+                if (type === 'mpegts') return 'video/mp2t';
 
-                return ['hls', 'stream', 'mpegts'].includes(type)
-                    || url.includes('.m3u')
-                    || url.includes('/stream/');
+                return 'application/x-mpegURL';
             };
 
             const firstPlayableFromM3u = async (url) => {
@@ -119,13 +132,16 @@
                     this.retryButton = root.querySelector('[data-player-retry]');
                     this.nextButton = root.querySelector('[data-player-next]');
                     this.quality = root.querySelector('[data-player-quality]');
+                    this.serverSelector = root.querySelector('[data-player-servers]');
                     this.config = JSON.parse(root.dataset.config || '{}');
                     this.sources = this.config.sources || [];
                     this.activeIndex = 0;
                     this.retries = 0;
                     this.timeout = null;
                     this.hls = null;
+                    this.mpegts = null;
                     this.player = null;
+                    this.failedIndexes = new Set();
 
                     this.retryButton?.addEventListener('click', () => this.retry(true));
                     this.nextButton?.addEventListener('click', () => window.dispatchEvent(new CustomEvent('rifi:player-next')));
@@ -153,10 +169,15 @@
                     this.player.on('canplay', () => this.showReady());
                     this.player.on('error', () => {
                         const error = this.player.error();
-                        console.error('[RiFiPlayer] Video.js error', error, this.currentSource());
+                        console.error('[RiFiPlayer] Video.js error', {
+                            error,
+                            server: serverLabel(this.currentSource(), this.activeIndex),
+                            type: streamTypeFor(this.currentSource()),
+                        });
                         this.handleFailure(error?.message || 'Video playback failed.');
                     });
 
+                    this.renderServers();
                     await this.load(this.activeIndex);
                 }
 
@@ -167,6 +188,7 @@
                 async load(index = 0) {
                     this.activeIndex = Math.max(0, Math.min(index, this.sources.length - 1));
                     this.retries = 0;
+                    this.renderServers();
                     await this.playCurrent();
                 }
 
@@ -177,7 +199,14 @@
 
                 async playCurrent() {
                     const source = this.currentSource();
-                    console.log('[RiFiPlayer] Loading stream URL', source?.url, source);
+                    const streamType = streamTypeFor(source);
+                    const label = serverLabel(source, this.activeIndex);
+                    console.log('[RiFiPlayer] Loading stream', {
+                        server: label,
+                        type: streamType,
+                        engine: this.engineFor(streamType),
+                        url: source?.url,
+                    });
 
                     if (!source?.url) {
                         this.showError('Channel unavailable', 'No stream URL is configured for this channel.');
@@ -185,6 +214,8 @@
                     }
 
                     this.teardownHls();
+                    this.teardownMpegts();
+                    this.resetNativeSource();
                     this.showLoading();
                     this.startTimeout();
 
@@ -193,7 +224,15 @@
                             ? await firstPlayableFromM3u(source.url)
                             : source.url;
 
-                        if (window.Hls.isSupported() && canUseHls(source)) {
+                        if (streamType === 'hls' && this.video.canPlayType('application/vnd.apple.mpegurl')) {
+                            console.log('[RiFiPlayer] Using native HLS', { server: label });
+                            this.player.src({ src: sourceUrl, type: 'application/vnd.apple.mpegurl' });
+                            this.player.ready(() => this.safePlay());
+                            return;
+                        }
+
+                        if (streamType === 'hls' && window.Hls?.isSupported()) {
+                            console.log('[RiFiPlayer] Using hls.js', { server: label });
                             this.hls = new Hls({
                                 enableWorker: true,
                                 lowLatencyMode: true,
@@ -228,10 +267,36 @@
                             return;
                         }
 
-                        this.player.src({ src: sourceUrl, type: mimeTypeFor(source) });
+                        if ((streamType === 'mpegts' || streamType === 'stream') && window.mpegts?.isSupported()) {
+                            console.log('[RiFiPlayer] Using mpegts.js', { server: label });
+                            this.mpegts = window.mpegts.createPlayer({
+                                type: 'mpegts',
+                                isLive: true,
+                                url: sourceUrl,
+                            }, {
+                                enableWorker: true,
+                                lazyLoad: false,
+                                liveBufferLatencyChasing: true,
+                            });
+                            this.mpegts.attachMediaElement(this.video);
+                            this.mpegts.on(window.mpegts.Events.ERROR, (type, detail, info) => {
+                                console.error('[RiFiPlayer] mpegts.js error', { type, detail, info, server: label });
+                                this.handleFailure(detail || type || 'MPEG-TS playback failed.');
+                            });
+                            this.video.addEventListener('loadedmetadata', () => this.safePlay(), { once: true });
+                            this.mpegts.load();
+                            return;
+                        }
+
+                        console.log('[RiFiPlayer] Using native video', { server: label, type: streamType });
+                        this.player.src({ src: sourceUrl, type: mimeTypeFor(streamType) });
                         this.player.ready(() => this.safePlay());
                     } catch (error) {
-                        console.error('[RiFiPlayer] Stream preparation failed', error, source);
+                        console.error('[RiFiPlayer] Stream preparation failed', {
+                            error,
+                            server: label,
+                            type: streamType,
+                        });
                         this.handleFailure(error.message || 'Stream preparation failed.');
                     }
                 }
@@ -246,28 +311,43 @@
 
                 handleFailure(message) {
                     this.clearTimeout();
+                    this.failedIndexes.add(this.activeIndex);
+                    this.renderServers();
+                    const failedLabel = serverLabel(this.currentSource(), this.activeIndex);
 
                     if (this.retries < MAX_RETRIES) {
                         this.retries += 1;
+                        console.warn('[RiFiPlayer] Retrying failed server', { server: failedLabel, retry: this.retries, reason: message });
                         setTimeout(() => this.playCurrent(), 900 * this.retries);
                         return;
                     }
 
-                    if (this.activeIndex + 1 < this.sources.length) {
-                        this.activeIndex += 1;
+                    const nextIndex = this.nextAvailableIndex();
+                    if (nextIndex !== null) {
+                        console.warn('[RiFiPlayer] Server failed, trying fallback', {
+                            failed: failedLabel,
+                            next: serverLabel(this.sources[nextIndex], nextIndex),
+                            reason: message,
+                        });
+                        this.activeIndex = nextIndex;
                         this.retries = 0;
+                        this.renderServers();
                         this.playCurrent();
                         return;
                     }
 
-                    this.showError('Channel unavailable', message || 'This stream is offline or blocked upstream.');
+                    this.showError('Stream unavailable', `${failedLabel} failed. Try another server or come back later. ${message || ''}`.trim());
                 }
 
                 startTimeout() {
                     this.clearTimeout();
                     this.timeout = setTimeout(() => {
-                        console.error('[RiFiPlayer] Startup timeout', this.currentSource());
-                        this.handleFailure('The stream did not start within 8 seconds.');
+                        console.error('[RiFiPlayer] Startup timeout', {
+                            server: serverLabel(this.currentSource(), this.activeIndex),
+                            type: streamTypeFor(this.currentSource()),
+                            timeout_ms: STARTUP_TIMEOUT,
+                        });
+                        this.handleFailure(`The stream did not start within ${Math.round(STARTUP_TIMEOUT / 1000)} seconds.`);
                     }, STARTUP_TIMEOUT);
                 }
 
@@ -306,10 +386,13 @@
 
                 showError(title, message) {
                     this.teardownHls();
+                    this.teardownMpegts();
                     this.root.classList.remove('is-loading');
                     this.root.classList.add('has-error');
                     if (this.loading) this.loading.hidden = true;
                     if (this.error) this.error.hidden = false;
+                    const errorTitle = this.root.querySelector('[data-player-error-title]');
+                    if (errorTitle) errorTitle.textContent = title;
                     if (this.errorMessage) this.errorMessage.textContent = message;
                 }
 
@@ -318,6 +401,69 @@
                         this.hls.destroy();
                         this.hls = null;
                     }
+                }
+
+                teardownMpegts() {
+                    if (this.mpegts) {
+                        this.mpegts.unload();
+                        this.mpegts.detachMediaElement();
+                        this.mpegts.destroy();
+                        this.mpegts = null;
+                    }
+                }
+
+                resetNativeSource() {
+                    if (this.player) {
+                        this.player.pause();
+                        this.player.src({ src: '', type: '' });
+                    }
+                    this.video.removeAttribute('src');
+                    this.video.load();
+                    if (this.quality) this.quality.hidden = true;
+                }
+
+                nextAvailableIndex() {
+                    for (let index = this.activeIndex + 1; index < this.sources.length; index++) {
+                        if (!this.failedIndexes.has(index)) return index;
+                    }
+
+                    return null;
+                }
+
+                engineFor(streamType) {
+                    if (streamType === 'hls') return this.video.canPlayType('application/vnd.apple.mpegurl') ? 'native-hls' : 'hls.js';
+                    if (streamType === 'mpegts' || streamType === 'stream') return window.mpegts?.isSupported() ? 'mpegts.js' : 'native';
+
+                    return 'native';
+                }
+
+                renderServers() {
+                    if (!this.serverSelector) return;
+
+                    if (this.sources.length === 0) {
+                        this.serverSelector.innerHTML = '';
+                        return;
+                    }
+
+                    this.serverSelector.innerHTML = this.sources.map((source, index) => {
+                        const label = serverLabel(source, index);
+                        const health = source.health_status || 'unknown';
+                        const active = index === this.activeIndex ? ' is-active' : '';
+                        const failed = this.failedIndexes.has(index) ? ' is-failed' : '';
+
+                        return `<button type="button" class="rm-server-option${active}${failed}" data-server-index="${index}">
+                            <span>${escapeHtml(label)}</span>
+                            <small>${escapeHtml(source.quality || streamTypeFor(source).toUpperCase())} · ${escapeHtml(health)}</small>
+                        </button>`;
+                    }).join('');
+
+                    this.serverSelector.querySelectorAll('[data-server-index]').forEach((button) => {
+                        button.addEventListener('click', () => {
+                            const index = Number(button.dataset.serverIndex);
+                            this.failedIndexes.delete(index);
+                            this.load(index);
+                        });
+                    });
                 }
             }
 

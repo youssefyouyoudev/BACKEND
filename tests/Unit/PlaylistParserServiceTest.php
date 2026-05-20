@@ -2,7 +2,7 @@
 
 use App\Services\PlaylistParserService;
 
-it('parses channels, resolves relative assets, and skips duplicate streams', function () {
+it('parses channels, resolves relative assets, and preserves duplicate stream entries for import grouping', function () {
     $service = app(PlaylistParserService::class);
 
     $parsed = $service->parseContent(
@@ -21,10 +21,10 @@ M3U,
     );
 
     expect($parsed['title'])->toBe('Legal Demo');
-    expect($parsed['entries'])->toHaveCount(3);
+    expect($parsed['entries'])->toHaveCount(4);
     expect($parsed['entries'][0]['logo'])->toBe('https://streams.example.com/logo/news.png');
     expect($parsed['entries'][0]['stream_url'])->toBe('https://streams.example.com/playlists/channel/news.m3u8');
     expect($parsed['entries'][0]['name'])->toBe('RiFi News');
-    expect($parsed['entries'][2]['stream_url'])->toBe('https://cdn.example.com/movies.m3u8');
+    expect($parsed['entries'][3]['stream_url'])->toBe('http://cdn.example.com/movies.m3u8');
     expect($parsed['groups'])->toBe(['News', 'Kids', 'Movies']);
 });

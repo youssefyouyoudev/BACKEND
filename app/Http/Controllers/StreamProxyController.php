@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\UrlSafetyService;
 use App\Support\StreamUrl;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
-use Illuminate\Support\Facades\Http;
-use Symfony\Component\HttpFoundation\Response as HttpResponse;
+use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StreamProxyController extends Controller
 {
     public function __construct(
-        private readonly \App\Services\UrlSafetyService $urlSafetyService,
+        private readonly UrlSafetyService $urlSafetyService,
     ) {
     }
 
@@ -21,56 +23,107 @@ class StreamProxyController extends Controller
 
         abort_if(
             $url === null || ! StreamUrl::hasValidProxySignature($url, (string) $request->query('sig')),
-            HttpResponse::HTTP_FORBIDDEN
+            Response::HTTP_FORBIDDEN
         );
 
-        $url = StreamUrl::browserSafe($url) ?? $url;
         $this->urlSafetyService->assertSafeForImport($url);
 
         $headers = [
-            'Accept' => 'application/x-mpegURL, application/vnd.apple.mpegurl, video/mp2t, video/*, */*',
-            'User-Agent' => $request->userAgent() ?: 'RiFiMediaTV/1.0',
+            'Accept' => 'application/vnd.apple.mpegurl, application/x-mpegURL, video/mp2t, video/mp4, video/*, */*',
+            'User-Agent' => 'VLC/3.0.20 LibVLC/3.0.20 RiFiMediaTV/1.0',
+            'Connection' => 'keep-alive',
         ];
 
         if ($request->headers->has('Range')) {
             $headers['Range'] = (string) $request->headers->get('Range');
         }
 
-        $upstream = Http::timeout(60)
-            ->connectTimeout(15)
-            ->withHeaders($headers)
-            ->withOptions([
-                'allow_redirects' => [
-                    'max' => 5,
-                    'strict' => false,
-                    'referer' => true,
-                ],
-            ])
-            ->get($url);
+        if ($request->headers->has('Referer')) {
+            $headers['Referer'] = (string) $request->headers->get('Referer');
+        }
 
-        abort_unless($upstream->successful(), $upstream->status());
+        Log::debug('[RiFiProxy] Opening upstream stream', [
+            'url' => StreamUrl::masked($url),
+            'range' => $headers['Range'] ?? null,
+        ]);
 
-        $contentType = $upstream->header('Content-Type', 'application/octet-stream');
-        $body = (string) $upstream->body();
-        $isPlaylist = StreamUrl::isPlaylist($url, $contentType, $body);
+        $upstream = (new Client([
+            'timeout' => 0,
+            'connect_timeout' => 15,
+            'read_timeout' => 30,
+            'allow_redirects' => [
+                'max' => 5,
+                'strict' => false,
+                'referer' => true,
+            ],
+            'stream' => true,
+            'http_errors' => false,
+            'headers' => $headers,
+        ]))->request('GET', $url);
+
+        $status = $upstream->getStatusCode();
+
+        abort_if($status < 200 || $status >= 400, $status);
+
+        $contentType = $upstream->getHeaderLine('Content-Type');
+        $body = $upstream->getBody();
+        $prefix = '';
+        $isPlaylist = StreamUrl::isLikelyPlaylistUrl($url) || str_contains(strtolower($contentType), 'mpegurl');
+
+        if (! $isPlaylist && ! StreamUrl::isLikelyMpegTsUrl($url, $contentType) && ! str_starts_with(strtolower($contentType), 'video/')) {
+            $prefix = $body->read(4096);
+            $isPlaylist = str_starts_with(ltrim($prefix), '#EXTM3U');
+        }
 
         if ($isPlaylist) {
-            $body = StreamUrl::rewritePlaylist($body, $url);
-            $contentType = 'application/vnd.apple.mpegurl; charset=utf-8';
+            $playlist = $prefix.(string) $body->getContents();
+            $playlist = StreamUrl::rewritePlaylist($playlist, $url);
+
+            return response($playlist, $status, [
+                'Content-Type' => 'application/vnd.apple.mpegurl; charset=utf-8',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Access-Control-Allow-Origin' => '*',
+                'X-Accel-Buffering' => 'no',
+            ]);
         }
 
         $responseHeaders = [
-            'Content-Type' => $contentType,
-            'Cache-Control' => $isPlaylist ? 'public, max-age=15' : 'public, max-age=3600',
+            'Content-Type' => StreamUrl::contentTypeFor($url, $contentType),
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
             'Access-Control-Allow-Origin' => '*',
+            'X-Accel-Buffering' => 'no',
+            'Accept-Ranges' => $upstream->getHeaderLine('Accept-Ranges') ?: 'bytes',
         ];
 
-        foreach (['Accept-Ranges', 'Content-Range'] as $header) {
-            if ($upstream->header($header)) {
-                $responseHeaders[$header] = $upstream->header($header);
+        foreach (['Content-Length', 'Content-Range'] as $header) {
+            $value = $upstream->getHeaderLine($header);
+
+            if ($value !== '') {
+                $responseHeaders[$header] = $value;
             }
         }
 
-        return response($body, $upstream->status(), $responseHeaders);
+        return new StreamedResponse(function () use ($body, $prefix): void {
+            $this->disableOutputBuffers();
+
+            if ($prefix !== '') {
+                echo $prefix;
+                flush();
+            }
+
+            while (! $body->eof()) {
+                echo $body->read(1024 * 64);
+                flush();
+            }
+        }, $status, $responseHeaders);
+    }
+
+    private function disableOutputBuffers(): void
+    {
+        @set_time_limit(0);
+
+        while (ob_get_level() > 0) {
+            @ob_end_flush();
+        }
     }
 }

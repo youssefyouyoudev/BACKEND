@@ -70,7 +70,7 @@ class PlaylistImportService
             $now = now()->toDateTimeString();
 
             // ── Step 1: Group entries by channel identity (name + group_title) ──
-            // Entries with the same identity are the same channel on multiple servers.
+            // Entries with the same normalized channel name are the same channel on multiple servers.
             $groupedByIdentity = $this->groupEntriesByIdentity($parsed['entries'], $playlist->id);
 
             $totalChannels  = 0;
@@ -129,23 +129,23 @@ class PlaylistImportService
                             continue;
                         }
 
-                        foreach ($entries as $priority => $entry) {
-                            $sourceCode = 'Source '.chr(65 + min($priority, 25));
-                            $serverName = $priority === 0 ? 'Nador' : ($priority === 1 ? 'Tangier' : 'Casablanca');
+                        foreach (array_values($entries) as $priority => $entry) {
+                            $serverNumber = $priority + 1;
+                            $serverLabel = 'Server '.$serverNumber;
 
                             $streamRows[] = [
                                 'channel_id'  => $channelId,
                                 'stream_url'  => $entry['stream_url'],
                                 'stream_hash' => $entry['stream_hash'],
                                 'stream_type' => $entry['stream_type'],
-                                'priority'    => $priority + 1, // 1-indexed
+                                'priority'    => $serverNumber,
                                 'is_active'   => true,
-                                'label'       => $priority === 0 ? 'Primary' : 'Backup '.($priority),
-                                'source_code' => $sourceCode,
-                                'server_name' => $serverName,
-                                'server_region' => $serverName,
+                                'label'       => $serverLabel,
+                                'source_code' => 'S'.$serverNumber,
+                                'server_name' => $serverLabel,
+                                'server_region' => null,
                                 'quality' => '1080p',
-                                'health_status' => $priority === 0 ? 'active' : 'standby',
+                                'health_status' => 'unknown',
                                 'created_at'  => $now,
                                 'updated_at'  => $now,
                             ];
@@ -154,7 +154,7 @@ class PlaylistImportService
                     }
 
                     if ($streamRows !== []) {
-                        // Ignore duplicates via INSERT IGNORE (stream_hash is unique)
+                        // Ignore duplicate URLs for the same channel.
                         ChannelStream::query()->insertOrIgnore($streamRows);
                     }
                 }
@@ -188,7 +188,7 @@ class PlaylistImportService
                 ]
             );
 
-            return $playlist->loadCount('channels');
+            return $playlist->load(['channels.streams'])->loadCount('channels');
         } catch (Throwable $exception) {
             $this->markImportFailed($playlist, $playlist->user, $exception, 'playlist.import.failed');
 
@@ -214,7 +214,7 @@ class PlaylistImportService
     /**
      * Group parsed M3U entries by a deterministic channel identity hash.
      *
-     * The identity is sha1( playlist_id | normalized_name | normalized_group ).
+     * The identity is sha1( playlist_id | normalized_name ).
      * Entries that share an identity are the same channel on multiple servers
      * and will be stored as separate ChannelStream rows under one Channel row.
      *
@@ -223,20 +223,19 @@ class PlaylistImportService
      */
     private function groupEntriesByIdentity(array $entries, int $playlistId): array
     {
-        $grouped         = [];
-        $seenStreamHashes = [];
+        $grouped = [];
+        $seenStreamHashesByIdentity = [];
 
         foreach ($entries as $entry) {
-            $streamHash = $entry['stream_hash'];
+            $identityHash = $this->buildIdentityHash($playlistId, $entry['name']);
+            $streamHash = strtolower((string) $entry['stream_hash']);
 
             // Skip truly duplicate stream URLs (identical URL on same channel)
-            if (isset($seenStreamHashes[$streamHash])) {
+            if (isset($seenStreamHashesByIdentity[$identityHash][$streamHash])) {
                 continue;
             }
 
-            $seenStreamHashes[$streamHash] = true;
-
-            $identityHash = $this->buildIdentityHash($playlistId, $entry['name'], $entry['group_title']);
+            $seenStreamHashesByIdentity[$identityHash][$streamHash] = true;
 
             $grouped[$identityHash][] = $entry;
         }
@@ -247,12 +246,18 @@ class PlaylistImportService
     /**
      * Build a deterministic hash that identifies a channel regardless of URL.
      */
-    private function buildIdentityHash(int $playlistId, ?string $name, ?string $groupTitle): string
+    private function buildIdentityHash(int $playlistId, ?string $name): string
     {
-        $normalizedName  = mb_strtolower(trim((string) $name));
-        $normalizedGroup = mb_strtolower(trim((string) $groupTitle));
+        $normalizedName = $this->normalizeChannelName($name);
 
-        return sha1("{$playlistId}|{$normalizedName}|{$normalizedGroup}");
+        return sha1("{$playlistId}|{$normalizedName}");
+    }
+
+    private function normalizeChannelName(?string $name): string
+    {
+        $normalized = (string) preg_replace('/\s+/u', ' ', trim((string) $name));
+
+        return mb_strtolower($normalized);
     }
 
     private function markImportFailed(Playlist $playlist, User $user, Throwable $exception, string $action): void
