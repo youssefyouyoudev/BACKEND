@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@section('title', ($activeChannel['name'] ?? 'Channel').' Information | RifiMedia Sports')
+@section('description', 'Channel information, program guide, related media, and permitted live player access on RifiMedia Sports.')
+@section('robots', 'noindex,follow')
+
 @section('content')
 <div
     class="rm-page rm-page--watch"

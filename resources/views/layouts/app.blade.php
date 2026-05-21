@@ -3,11 +3,53 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $title ?? 'RiFi Media TV' }}</title>
-    <meta name="description" content="{{ $description ?? 'Premium live sports and TV streaming with the RiFi Media experience.' }}">
-    <meta property="og:title" content="{{ $title ?? 'RiFi Media TV' }}">
-    <meta property="og:description" content="{{ $description ?? 'Watch live channels, featured broadcasts, and curated sports streams on RiFi Media TV.' }}">
-    <meta property="og:type" content="website">
+    <script>
+        (() => {
+            const stored = localStorage.getItem('rifi-theme');
+            const theme = stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+            document.documentElement.classList.add(`theme-${theme}`);
+        })();
+    </script>
+    @php
+        $seoTitle = trim($__env->yieldContent('title')) ?: ($title ?? 'RifiMedia Sports - Football News, Live Scores, Fixtures & Match Updates');
+        $seoDescription = trim($__env->yieldContent('description')) ?: ($description ?? 'Follow football news, live scores, fixtures, standings, match previews, and sports updates on RifiMedia Sports.');
+        $seoRobots = trim($__env->yieldContent('robots')) ?: ($robots ?? 'index,follow');
+        $seoCanonical = $canonical ?? url()->current();
+        $seoImage = $image ?? asset('brand/rifi-logo.png');
+        $baseSchema = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'Organization',
+                    '@id' => url('/').'#organization',
+                    'name' => 'RifiMedia Sports',
+                    'url' => url('/'),
+                    'logo' => asset('brand/rifi-logo.png'),
+                ],
+                [
+                    '@type' => 'WebSite',
+                    '@id' => url('/').'#website',
+                    'url' => url('/'),
+                    'name' => 'RifiMedia Sports',
+                    'description' => 'Sports news, live scores, fixtures, standings, and match updates.',
+                    'publisher' => ['@id' => url('/').'#organization'],
+                    'potentialAction' => [
+                        '@type' => 'SearchAction',
+                        'target' => route('search').'?q={search_term_string}',
+                        'query-input' => 'required name=search_term_string',
+                    ],
+                ],
+            ],
+        ];
+    @endphp
+    <x-seo
+        :title="$seoTitle"
+        :description="$seoDescription"
+        :canonical="$seoCanonical"
+        :image="$seoImage"
+        :robots="$seoRobots"
+        :schema="$schema ?? $baseSchema"
+    />
     <link rel="icon" type="image/png" href="{{ asset('brand/rifi-logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
@@ -27,17 +69,28 @@
 
                 <nav class="rm-navbar__links" aria-label="Main menu">
                     <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'is-active' : '' }}">Home</a>
-                    <a href="{{ route('live') }}" class="{{ request()->routeIs('live') ? 'is-active' : '' }}">
-                        <span class="rm-live-dot" aria-hidden="true"></span>
-                        Live
+                    <a href="{{ route('scores') }}" class="{{ request()->routeIs('scores', 'live-scores') ? 'is-active' : '' }}">
+                        Scores
                     </a>
-                    <a href="{{ route('home') }}#categories">Sports</a>
-                    <a href="{{ route('home') }}#channels">Channels</a>
+                    <a href="{{ route('fixtures') }}" class="{{ request()->routeIs('fixtures') ? 'is-active' : '' }}">Fixtures</a>
+                    <a href="{{ route('news.index') }}" class="{{ request()->routeIs('news.*') ? 'is-active' : '' }}">News</a>
+                    <a href="{{ route('leagues.index') }}" class="{{ request()->routeIs('leagues.*') ? 'is-active' : '' }}">Leagues</a>
+                    <a href="{{ route('teams.index') }}" class="{{ request()->routeIs('teams.*') ? 'is-active' : '' }}">Teams</a>
+                    <a href="{{ route('live') }}" class="{{ request()->routeIs('live', 'channels.show') ? 'is-active' : '' }}">
+                        <span class="rm-live-dot" aria-hidden="true"></span>
+                        Channels
+                    </a>
                 </nav>
 
                 <div class="rm-navbar__actions">
-                    <a href="{{ route('admin.login') }}" class="rm-btn rm-btn-secondary rm-btn-sm">Admin</a>
-                    <a href="{{ route('live') }}" class="rm-btn rm-btn-primary rm-btn-sm">Watch Now</a>
+                    <a href="{{ route('search') }}" class="rm-btn rm-btn-secondary rm-btn-sm">Search</a>
+                    <button type="button" class="rm-theme-toggle" data-theme-toggle aria-label="Toggle light and dark mode">
+                        <span data-theme-icon>Theme</span>
+                    </button>
+                    @auth
+                        <a href="{{ route('admin.dashboard') }}" class="rm-btn rm-btn-secondary rm-btn-sm">Admin</a>
+                    @endauth
+                    <a href="{{ route('scores') }}" class="rm-btn rm-btn-primary rm-btn-sm">Live Scores</a>
                     <button
                         type="button"
                         class="rm-mobile-nav"
@@ -54,10 +107,15 @@
 
             <nav class="rm-navbar__drawer" x-show="mobileNavOpen" x-transition.opacity.origin.top @click.outside="mobileNavOpen = false" aria-label="Mobile menu">
                 <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'is-active' : '' }}">Home</a>
-                <a href="{{ route('live') }}" class="{{ request()->routeIs('live') ? 'is-active' : '' }}">Live TV</a>
-                <a href="{{ route('home') }}#categories">Sports and Categories</a>
-                <a href="{{ route('home') }}#channels">Channel Wall</a>
-                <a href="{{ route('admin.login') }}">Admin</a>
+                <a href="{{ route('scores') }}">Scores</a>
+                <a href="{{ route('fixtures') }}">Fixtures</a>
+                <a href="{{ route('news.index') }}">News</a>
+                <a href="{{ route('leagues.index') }}">Leagues</a>
+                <a href="{{ route('teams.index') }}">Teams</a>
+                <a href="{{ route('live') }}">Channels</a>
+                @auth
+                    <a href="{{ route('admin.dashboard') }}">Admin</a>
+                @endauth
             </nav>
         </header>
 
@@ -70,14 +128,21 @@
             <div class="rm-footer__inner">
                 <div>
                     <x-logo />
-                    <p>{{ $appSettings['brand_tagline'] }}</p>
+                    <p>Sports news, fixtures, scores, match information, and permitted media experiences.</p>
                 </div>
                 <nav aria-label="Footer links">
                     <a href="{{ route('home') }}">Home</a>
-                    <a href="{{ route('live') }}">Live TV</a>
-                    <a href="{{ route('admin.login') }}">Admin</a>
+                    <a href="{{ route('scores') }}">Scores</a>
+                    <a href="{{ route('fixtures') }}">Fixtures</a>
+                    <a href="{{ route('news.index') }}">News</a>
+                    <a href="{{ route('about') }}">About</a>
+                    <a href="{{ route('contact') }}">Contact</a>
+                    <a href="{{ route('privacy') }}">Privacy</a>
+                    <a href="{{ route('terms') }}">Terms</a>
+                    <a href="{{ route('copyright') }}">Copyright</a>
+                    <a href="{{ route('advertise') }}">Advertise</a>
                 </nav>
-                <p class="rm-footer__legal">{{ $appSettings['legal_notice'] }}</p>
+                <p class="rm-footer__legal">RifiMedia Sports provides sports news, fixtures, scores, and match information. Users are responsible for ensuring they have rights to any submitted playlist or stream sources.</p>
             </div>
         </footer>
     </div>

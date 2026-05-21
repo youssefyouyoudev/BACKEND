@@ -10,4 +10,4 @@ Disallow: /watch/
 Disallow: /*?sig=
 Disallow: /*?search=
 
-Sitemap: https://live.rifimedia.com/sitemap.xml
+Sitemap: {{ route('sitemap') }}
