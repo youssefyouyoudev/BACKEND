@@ -1,229 +1,227 @@
 @extends('layouts.app')
 
-@section('title', 'Football News, Live Scores, Fixtures & Match Updates | RifiMedia Sports')
-@section('description', 'Follow football news, live scores, fixtures, standings, match previews, and sports coverage on RifiMedia Sports.')
+@section('title', 'Football Live Scores, News & Match Updates | RifiMedia Sports')
+@section('description', 'Follow live scores, fixtures, league standings, transfer news and verified sports coverage in one premium football experience.')
 
 @section('content')
-<div class="rm-page rm-page--home rm-sports-home">
+@php
+    $liveMatches = collect([
+        ['league' => 'Premier League', 'home' => 'Arsenal', 'away' => 'Manchester City', 'score' => '2-1', 'minute' => "73'", 'time' => 'Live', 'form' => 'Title race'],
+        ['league' => 'Botola Pro', 'home' => 'Raja CA', 'away' => 'Wydad AC', 'score' => '0-0', 'minute' => "28'", 'time' => 'Live', 'form' => 'Casablanca derby'],
+        ['league' => 'Champions League', 'home' => 'Real Madrid', 'away' => 'Bayern Munich', 'score' => '20:00', 'minute' => 'Preview', 'time' => 'Tonight', 'form' => 'Semi-final'],
+        ['league' => 'La Liga', 'home' => 'Barcelona', 'away' => 'Atletico Madrid', 'score' => '21:00', 'minute' => 'Lineups soon', 'time' => 'Today', 'form' => 'Top four'],
+    ]);
+    $fallbackArticles = collect([
+        ['tag' => 'Transfers', 'title' => 'Summer transfer market: elite clubs line up midfield priorities', 'meta' => 'RifiMedia Sports Desk', 'url' => route('search', ['q' => 'Transfers'])],
+        ['tag' => 'Morocco', 'title' => 'Morocco national team watch: form guide before the next international window', 'meta' => 'National team focus', 'url' => route('search', ['q' => 'Morocco National Team'])],
+        ['tag' => 'Champions League', 'title' => 'Tactical preview: where the next European tie can be decided', 'meta' => 'Match analysis', 'url' => route('search', ['q' => 'Champions League'])],
+        ['tag' => 'Premier League', 'title' => 'Weekend briefing: pressure fixtures, injury notes, and table stakes', 'meta' => 'League briefing', 'url' => route('search', ['q' => 'Premier League'])],
+    ]);
+    $leagues = collect([
+        ['name' => 'Premier League', 'region' => 'England', 'code' => 'PL', 'slug' => 'premier-league'],
+        ['name' => 'La Liga', 'region' => 'Spain', 'code' => 'LL', 'slug' => 'la-liga'],
+        ['name' => 'Champions League', 'region' => 'Europe', 'code' => 'UCL', 'slug' => 'champions-league'],
+        ['name' => 'Botola Pro', 'region' => 'Morocco', 'code' => 'BOT', 'slug' => 'botola-pro'],
+        ['name' => 'Serie A', 'region' => 'Italy', 'code' => 'SA', 'slug' => 'serie-a'],
+        ['name' => 'Bundesliga', 'region' => 'Germany', 'code' => 'BL', 'slug' => 'bundesliga'],
+    ]);
+    $fixtures = collect([
+        ['day' => 'Today', 'league' => 'Premier League', 'match' => 'Liverpool vs Chelsea', 'time' => '18:30', 'note' => 'Lineups expected 60 minutes before kickoff'],
+        ['day' => 'Today', 'league' => 'Botola Pro', 'match' => 'FAR Rabat vs RS Berkane', 'time' => '20:00', 'note' => 'Top-table pressure fixture'],
+        ['day' => 'Tomorrow', 'league' => 'Champions League', 'match' => 'Inter vs PSG', 'time' => '21:00', 'note' => 'European match center'],
+        ['day' => 'This week', 'league' => 'La Liga', 'match' => 'Real Betis vs Sevilla', 'time' => 'Sunday', 'note' => 'Derby watch'],
+    ]);
+    $topics = ['Transfers', 'AFCON', 'Morocco National Team', 'Champions League', 'Premier League', 'La Liga'];
+    $channelTabs = ['Sports', 'Arabic', 'International', 'Kids', 'Movies'];
+@endphp
 
-    {{-- ── Hero ──────────────────────────────────────────────────────── --}}
-    <section class="rm-sports-hero" aria-labelledby="rm-home-hero-title">
-        <div class="rm-sports-hero__content">
-            <span class="rm-kicker" aria-label="Site label">⚽ RifiMedia Sports</span>
-            <h1 id="rm-home-hero-title">Football News, Live Scores &amp; Match Updates</h1>
-            <p>A clean home for match days: scores, fixtures, standings, team stories, and responsible sports media in one place.</p>
+<div class="rm-page rm-page--home rm-sports-home rm-premium-home">
+    <section class="rm-premium-hero" aria-labelledby="rm-home-hero-title">
+        <div class="rm-premium-hero__content">
+            <span class="rm-kicker">RifiMedia Sports</span>
+            <h1 id="rm-home-hero-title">Football Live Scores, News &amp; Match Updates</h1>
+            <p>Follow live scores, fixtures, league standings, transfer news and verified sports coverage in one premium football experience.</p>
             <div class="rm-hero-actions">
-                <a href="{{ route('scores') }}" class="rm-btn rm-btn-primary" aria-label="View live football scores">View Live Scores</a>
-                <a href="{{ route('home') }}#channels" class="rm-btn rm-btn-secondary" aria-label="Browse sports channels">Browse Channels</a>
+                <a href="{{ route('scores') }}" class="rm-btn rm-btn-primary">Live Scores</a>
+                <a href="{{ route('live') }}" class="rm-btn rm-btn-secondary">Watch Channels</a>
             </div>
         </div>
 
-        {{-- Right: score ticker cards --}}
-        <div class="rm-score-ticker" aria-label="Quick links">
-            <div class="rm-score-ticker__item">
-                <small><span class="rm-score-dot" aria-hidden="true"></span> Today</small>
-                <strong>Match feed ready</strong>
-                <p>Verified live scores will appear here as soon as data is connected.</p>
-                <a href="{{ route('scores') }}" aria-label="Open live scores">Open scores</a>
+        <div class="rm-dashboard-mockup" aria-label="Football dashboard preview">
+            <div class="rm-dashboard-mockup__header">
+                <span>Match Center</span>
+                <strong>Live</strong>
             </div>
-            <div class="rm-score-ticker__item">
-                <small><span class="rm-score-dot rm-score-dot--gold" aria-hidden="true"></span> Fixtures</small>
-                <strong>Calendar view prepared</strong>
-                <p>Upcoming games, kickoff times, and league filters are ready.</p>
-                <a href="{{ route('fixtures') }}" aria-label="View fixtures calendar">View fixtures</a>
+            <div class="rm-live-score-panel">
+                <span>Premier League</span>
+                <div><strong>ARS</strong><b>2 - 1</b><strong>MCI</strong></div>
+                <small>73' - Arsenal pressure, 58% possession</small>
             </div>
-            <div class="rm-score-ticker__item">
-                <small><span class="rm-score-dot rm-score-dot--purple" aria-hidden="true"></span> Updates</small>
-                <strong>Sports hub online</strong>
-                <p>News, teams, leagues, and channel discovery in one clean experience.</p>
-                <a href="{{ route('news.index') }}" aria-label="Read sports news">Read news</a>
+            <div class="rm-dashboard-grid">
+                <article>
+                    <span>Top Table</span>
+                    <p><b>1</b> Arsenal <em>74 pts</em></p>
+                    <p><b>2</b> Man City <em>72 pts</em></p>
+                    <p><b>3</b> Liverpool <em>70 pts</em></p>
+                </article>
+                <article>
+                    <span>Next Up</span>
+                    <p><b>20:00</b> Real Madrid vs Bayern</p>
+                    <p><b>21:00</b> Barcelona vs Atletico</p>
+                </article>
+            </div>
+            <div class="rm-stat-strip">
+                <span><b>18</b> Live games</span>
+                <span><b>42</b> Fixtures</span>
+                <span><b>120K</b> Viewers</span>
             </div>
         </div>
     </section>
 
-    {{-- ── Leaderboard ad ────────────────────────────────────────────── --}}
-    <x-ad-slot name="homepage_leaderboard" size="leaderboard" />
-
-    {{-- ── Top sports coverage ───────────────────────────────────────── --}}
-    <section class="rm-section rm-media-grid" aria-labelledby="rm-coverage-title">
-        <div class="rm-section-header" style="grid-column: 1 / -1">
+    <section class="rm-section rm-live-matches-section" aria-labelledby="rm-live-matches-title">
+        <div class="rm-section-header">
             <div>
-                <p class="rm-eyebrow">Editorial hub</p>
-                <h2 id="rm-coverage-title">Top sports coverage</h2>
+                <p class="rm-eyebrow">Live now</p>
+                <h2 id="rm-live-matches-title">Featured live matches</h2>
             </div>
-            <a href="{{ route('news.index') }}" class="rm-section-header__link">Newsroom</a>
+            <a href="{{ route('scores') }}" class="rm-section-header__link">All scores</a>
         </div>
-
-        {{-- Featured editorial card --}}
-        <article class="rm-story-card rm-story-card--featured">
-            <span class="rm-story-card__media" aria-hidden="true">MC</span>
-            <span class="rm-story-card__label">Match center</span>
-            <h3>Previews, reports, standings, and live score context in one calm match-day hub.</h3>
-            <p>Build original coverage around the games people care about: team form, kickoff context, tactical notes, and post-match reports.</p>
-            <small>Editorial-ready · No fake scores</small>
-            <a href="{{ route('fixtures') }}" aria-label="Explore fixtures">Explore fixtures</a>
-        </article>
-
-        {{-- Stacked small cards --}}
-        <div class="rm-story-stack">
-            @foreach([
-                ['icon' => 'N', 'label' => 'News desk',  'title' => 'Football news desk',  'text' => 'Publish original stories with author, date, category, image, and SEO metadata.'],
-                ['icon' => 'T', 'label' => 'Trending',   'title' => 'Transfer updates',     'text' => 'Keep topic hubs friendly, scannable, and ready for verified reporting.'],
-                ['icon' => 'L', 'label' => 'Tables',     'title' => 'League standings',     'text' => 'A polished route for league tables, form, fixtures, and team pages.'],
-            ] as $story)
-                <article class="rm-story-card">
-                    <span class="rm-story-card__media" aria-hidden="true">{{ $story['icon'] }}</span>
-                    <span class="rm-story-card__label">{{ $story['label'] }}</span>
-                    <h3>{{ $story['title'] }}</h3>
-                    <p>{{ $story['text'] }}</p>
-                    <small>Coming soon</small>
+        <div class="rm-live-match-slider" role="list">
+            @foreach($liveMatches as $match)
+                <article class="rm-live-match-card" role="listitem">
+                    <div class="rm-live-match-card__top">
+                        <span>{{ $match['league'] }}</span>
+                        <b>{{ $match['time'] }}</b>
+                    </div>
+                    <div class="rm-live-match-card__teams">
+                        <span class="rm-team-crest">{{ Str::substr($match['home'], 0, 2) }}</span>
+                        <strong>{{ $match['home'] }}</strong>
+                        <em>{{ $match['score'] }}</em>
+                        <strong>{{ $match['away'] }}</strong>
+                        <span class="rm-team-crest">{{ Str::substr($match['away'], 0, 2) }}</span>
+                    </div>
+                    <small><i aria-hidden="true"></i>{{ $match['minute'] }} - {{ $match['form'] }}</small>
                 </article>
             @endforeach
         </div>
     </section>
 
-    {{-- ── Fixtures + sidebar ────────────────────────────────────────── --}}
-    <section class="rm-section rm-layout-with-rail" aria-labelledby="rm-fixtures-title">
-        <div>
-            <div class="rm-section-header">
-                <div>
-                    <p class="rm-eyebrow">Fixtures</p>
-                    <h2 id="rm-fixtures-title">Upcoming matches</h2>
-                </div>
-                <a href="{{ route('fixtures') }}" class="rm-section-header__link">Full calendar</a>
+    <section class="rm-section rm-editorial-grid" aria-labelledby="rm-news-title">
+        <div class="rm-section-header">
+            <div>
+                <p class="rm-eyebrow">Trending football news</p>
+                <h2 id="rm-news-title">Stories shaping the game</h2>
             </div>
-            <div class="rm-fixture-preview-list" role="list">
-                @foreach([
-                    ['league' => 'Premier League',    'home' => 'Home Team', 'away' => 'Away Team', 'time' => 'Kickoff TBA'],
-                    ['league' => 'Botola Pro',         'home' => 'Club A',    'away' => 'Club B',    'time' => 'Schedule pending'],
-                    ['league' => 'Champions League',  'home' => 'Team One',  'away' => 'Team Two',  'time' => 'Fixture feed ready'],
-                ] as $fixture)
-                    <article class="rm-fixture-card" role="listitem">
-                        <span>{{ $fixture['league'] }}</span>
-                        <strong>{{ $fixture['home'] }} <em>vs</em> {{ $fixture['away'] }}</strong>
-                        <small>{{ $fixture['time'] }}</small>
-                        <a href="{{ route('matches.index') }}" aria-label="Open match center for {{ $fixture['home'] }} vs {{ $fixture['away'] }}">Match center</a>
-                    </article>
-                @endforeach
-            </div>
+            <a href="{{ route('news.index') }}" class="rm-section-header__link">Newsroom</a>
         </div>
-
-        <aside class="rm-side-rail" aria-label="Sidebar">
-            <x-ad-slot name="homepage_sidebar_rectangle" size="rectangle" />
-            <div class="rm-standings-preview">
-                <span class="rm-kicker">Standings</span>
-                <h3>League tables</h3>
-                <div class="rm-mini-table" aria-label="Standings preview">
-                    @foreach([['1', 'Team A', '68 pts'], ['2', 'Team B', '65 pts'], ['3', 'Team C', '60 pts'], ['4', 'Team D', '58 pts']] as $row)
-                        <span>{{ $row[0] }}</span>
-                        <strong>{{ $row[1] }}</strong>
-                        <em>{{ $row[2] }}</em>
-                    @endforeach
-                </div>
-                <p>Connect a verified standings feed to replace this preview with real league tables.</p>
-                <a href="{{ route('standings') }}" aria-label="Open full standings">Open standings</a>
-            </div>
-        </aside>
+        <article class="rm-editorial-card rm-editorial-card--lead">
+            <span>{{ $fallbackArticles[0]['tag'] }}</span>
+            <h3>{{ $fallbackArticles[0]['title'] }}</h3>
+            <p>Daily football context with a sharper signal: transfer priorities, credible reporting, tactical notes, and league implications.</p>
+            <a href="{{ $fallbackArticles[0]['url'] }}">Read briefing</a>
+        </article>
+        <div class="rm-editorial-stack">
+            @foreach($fallbackArticles->slice(1) as $article)
+                <article class="rm-editorial-card">
+                    <span>{{ $article['tag'] }}</span>
+                    <h3>{{ $article['title'] }}</h3>
+                    <small>{{ $article['meta'] }}</small>
+                    <a href="{{ $article['url'] }}">Explore</a>
+                </article>
+            @endforeach
+        </div>
     </section>
 
-    {{-- ── In-feed ad ────────────────────────────────────────────────── --}}
-    <x-ad-slot name="homepage_in_feed" size="in-feed" />
+    <section class="rm-section" aria-labelledby="rm-leagues-title">
+        <div class="rm-section-header">
+            <div>
+                <p class="rm-eyebrow">Leagues</p>
+                <h2 id="rm-leagues-title">Follow top competitions</h2>
+            </div>
+            <a href="{{ route('leagues.index') }}" class="rm-section-header__link">League directory</a>
+        </div>
+        <div class="rm-league-grid">
+            @foreach($leagues as $league)
+                <article class="rm-league-card">
+                    <span>{{ $league['code'] }}</span>
+                    <h3>{{ $league['name'] }}</h3>
+                    <p>{{ $league['region'] }}</p>
+                    <div>
+                        <a href="{{ route('standings') }}">Standings</a>
+                        <a href="{{ route('fixtures') }}">Fixtures</a>
+                    </div>
+                </article>
+            @endforeach
+        </div>
+    </section>
 
-    {{-- ── Trending topics ───────────────────────────────────────────── --}}
+    <section class="rm-section" id="channels" aria-labelledby="rm-channels-title">
+        <div class="rm-section-header">
+            <div>
+                <p class="rm-eyebrow">Channels</p>
+                <h2 id="rm-channels-title">Watch premium sports media</h2>
+            </div>
+            <a href="{{ route('live') }}" class="rm-section-header__link">All channels</a>
+        </div>
+        <div class="rm-channel-tabs" role="tablist" aria-label="Channel filters">
+            @foreach($channelTabs as $index => $tab)
+                <a href="{{ $index === 0 ? route('home').'#channels' : route('home', ['category' => $tab]).'#channels' }}" class="{{ ($index === 0 && $selectedCategory === '') || $selectedCategory === $tab ? 'is-active' : '' }}" role="tab">{{ $tab }}</a>
+            @endforeach
+        </div>
+
+        @if($recommendedChannels->count())
+            <div class="rm-match-grid rm-premium-channel-grid">
+                @foreach($recommendedChannels->take(8) as $channel)
+                    <x-channel-card :channel="$channel" />
+                @endforeach
+            </div>
+        @else
+            <div class="rm-skeleton-grid" aria-label="Loading channel recommendations">
+                @for($i = 0; $i < 4; $i++)
+                    <span class="rm-skeleton-card"></span>
+                @endfor
+            </div>
+        @endif
+    </section>
+
+    <section class="rm-section rm-match-center" aria-labelledby="rm-match-center-title">
+        <div class="rm-section-header">
+            <div>
+                <p class="rm-eyebrow">Match center</p>
+                <h2 id="rm-match-center-title">Fixtures to explore</h2>
+            </div>
+            <a href="{{ route('fixtures') }}" class="rm-section-header__link">Full calendar</a>
+        </div>
+        <div class="rm-fixture-tabs" role="tablist" aria-label="Fixture ranges">
+            <button class="is-active" type="button">Today</button>
+            <button type="button">Tomorrow</button>
+            <button type="button">This week</button>
+        </div>
+        <div class="rm-fixture-board">
+            @foreach($fixtures as $fixture)
+                <article class="rm-fixture-row">
+                    <span>{{ $fixture['day'] }}</span>
+                    <strong>{{ $fixture['match'] }}</strong>
+                    <em>{{ $fixture['league'] }}</em>
+                    <b>{{ $fixture['time'] }}</b>
+                    <small>{{ $fixture['note'] }}</small>
+                </article>
+            @endforeach
+        </div>
+    </section>
+
     <section class="rm-section" aria-labelledby="rm-topics-title">
         <div class="rm-section-header">
             <div>
-                <p class="rm-eyebrow">Trending topics</p>
-                <h2 id="rm-topics-title">Football coverage areas</h2>
+                <p class="rm-eyebrow">Football topics</p>
+                <h2 id="rm-topics-title">Trending categories</h2>
             </div>
         </div>
-        <div class="rm-topic-cloud" role="list" aria-label="Trending football topics">
-            @foreach(['Football', 'Transfers', 'Champions League', 'La Liga', 'Premier League', 'Botola', 'AFCON', 'Morocco National Team'] as $topic)
+        <div class="rm-topic-cloud" role="list">
+            @foreach($topics as $topic)
                 <a href="{{ route('search', ['q' => $topic]) }}" role="listitem">{{ $topic }}</a>
             @endforeach
         </div>
     </section>
-
-    {{-- ── Featured channels ─────────────────────────────────────────── --}}
-    @if($recommendedChannels->count())
-        <section class="rm-section" aria-labelledby="rm-featured-channels-title">
-            <div class="rm-section-header">
-                <div>
-                    <p class="rm-eyebrow">Media guide</p>
-                    <h2 id="rm-featured-channels-title">Featured sports channels</h2>
-                </div>
-                <a href="{{ route('live') }}" class="rm-section-header__link">All channels</a>
-            </div>
-            <div class="rm-match-row">
-                @foreach($recommendedChannels as $channel)
-                    <x-channel-card :channel="$channel" />
-                @endforeach
-            </div>
-        </section>
-    @endif
-
-    {{-- ── Full channel directory ────────────────────────────────────── --}}
-    <section class="rm-section" id="channels" aria-labelledby="rm-directory-title">
-        <div class="rm-section-header">
-            <div>
-                <p class="rm-eyebrow">Channel directory</p>
-                <h2 id="rm-directory-title">Browse sports media</h2>
-                <p class="rm-section-header__meta">Categories and clean filters for approved public media sources.</p>
-            </div>
-            <span class="rm-section-header__meta" aria-live="polite">
-                {{ number_format($channels->total()) }} channels
-            </span>
-        </div>
-
-        {{-- Search --}}
-        <form action="{{ route('home') }}" method="GET" class="rm-search rm-search--wide" role="search" aria-label="Search channels">
-            @if($selectedCategory !== '')
-                <input type="hidden" name="category" value="{{ $selectedCategory }}">
-            @endif
-            <input
-                type="search"
-                id="rm-channel-search"
-                name="search"
-                value="{{ $search }}"
-                placeholder="Search channels, leagues, teams…"
-                aria-label="Search channels"
-            >
-            <button class="rm-btn rm-btn-primary rm-btn-sm" type="submit" aria-label="Submit search">Search</button>
-        </form>
-
-        {{-- Category chips --}}
-        <div class="rm-category-chip-row" aria-label="Filter by category" role="tablist">
-            <a
-                href="{{ route('home') }}#channels"
-                class="rm-category-chip {{ $selectedCategory === '' ? 'is-active' : '' }}"
-                role="tab"
-                aria-selected="{{ $selectedCategory === '' ? 'true' : 'false' }}"
-            >All</a>
-            @foreach($categories as $category)
-                <a
-                    href="{{ route('home', ['category' => $category]) }}#channels"
-                    class="rm-category-chip {{ $selectedCategory === $category ? 'is-active' : '' }}"
-                    role="tab"
-                    aria-selected="{{ $selectedCategory === $category ? 'true' : 'false' }}"
-                >{{ $category }}</a>
-            @endforeach
-        </div>
-
-        @if($channels->count() === 0)
-            <div class="rm-empty-state" role="status">
-                <span>No channels found</span>
-                <strong>Try another search or category.</strong>
-                <a href="{{ route('home') }}" class="rm-btn rm-btn-secondary">Reset filters</a>
-            </div>
-        @else
-            <div class="rm-match-grid" data-tv-grid>
-                @foreach($liveChannels as $channel)
-                    <x-channel-card :channel="$channel" />
-                @endforeach
-            </div>
-            {{ $channels->links() }}
-        @endif
-    </section>
-
 </div>
 @endsection

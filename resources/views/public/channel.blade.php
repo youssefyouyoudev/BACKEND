@@ -43,7 +43,7 @@
                     @if(! empty($activeChannel['program']))
                         <p>{{ $activeChannel['program']['title'] }} - {{ $activeChannel['program']['start_time'] }} to {{ $activeChannel['program']['end_time'] }}</p>
                     @else
-                        <p>Live broadcast - schedule coming soon.</p>
+                        <p>Live broadcast - program guide updates will appear here when published.</p>
                     @endif
                 </div>
                 <div class="rm-server-card">
