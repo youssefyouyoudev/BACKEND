@@ -256,7 +256,15 @@ document.addEventListener('alpine:init', () => {
             video.onstalled = video.onwaiting;
 
             if (isHls && window.Hls && Hls.isSupported()) {
-                this.hls = new Hls({ lowLatencyMode: true, backBufferLength: 30 });
+                this.hls = new Hls({
+                    liveSyncDurationCount: 6,
+                    liveMaxLatencyDurationCount: 12,
+                    maxBufferLength: 60,
+                    maxMaxBufferLength: 120,
+                    backBufferLength: 60,
+                    enableWorker: true,
+                    lowLatencyMode: false,
+                });
                 this.hls.loadSource(source.url);
                 this.hls.attachMedia(video);
                 this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -290,11 +298,13 @@ document.addEventListener('alpine:init', () => {
                 }, {
                     enableWorker: true,
                     lazyLoad: false,
-                    stashInitialSize: 384,
-                    liveBufferLatencyChasing: true,
+                    stashInitialSize: 1024,
+                    liveBufferLatencyChasing: false,
                     autoCleanupSourceBuffer: true,
-                    autoCleanupMaxBackwardDuration: 30,
-                    autoCleanupMinBackwardDuration: 10,
+                    autoCleanupMaxBackwardDuration: 60,
+                    autoCleanupMinBackwardDuration: 30,
+                    fixAudioTimestampGap: true,
+                    accurateSeek: false,
                 });
                 this.mpegts.attachMediaElement(video);
                 this.mpegts.on(window.mpegts.Events.ERROR, (errorType, detail) => {

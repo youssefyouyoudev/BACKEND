@@ -29,8 +29,8 @@ class StreamProxyController extends Controller
         $this->urlSafetyService->assertSafeForImport($url);
 
         $headers = [
-            'Accept' => 'application/vnd.apple.mpegurl, application/x-mpegURL, video/mp2t, video/mp4, video/*, */*',
-            'User-Agent' => 'VLC/3.0.20 LibVLC/3.0.20 RiFiMediaTV/1.0',
+            'Accept' => '*/*',
+            'User-Agent' => 'VLC/3.0.20 LibVLC/3.0.20',
             'Connection' => 'keep-alive',
         ];
 
