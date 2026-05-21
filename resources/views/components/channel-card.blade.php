@@ -21,27 +21,53 @@
 @endphp
 
 <article class="rm-match-card rm-channel-card" data-channel-card>
-    <a href="{{ $url }}" class="rm-match-card__link" aria-label="Open {{ $originalName }} channel information">
+    <a href="{{ $url }}" class="rm-match-card__link" aria-label="Open {{ $displayName }} — {{ $category }}">
+
+        {{-- Poster / logo area --}}
         <span class="rm-match-card__poster">
-            <img src="{{ $logo }}" alt="{{ $displayName }}" loading="lazy" onerror="this.src='{{ asset('brand/rifi-logo.png') }}'">
-            <span class="rm-live-badge rm-live-badge--small"><i></i> On air</span>
-            <span class="rm-match-card__quality">{{ $quality }}</span>
+            <img
+                src="{{ $logo }}"
+                alt="{{ $displayName }} logo"
+                loading="lazy"
+                decoding="async"
+                onerror="this.src='{{ asset('brand/rifi-logo.png') }}'"
+            >
+            {{-- Live badge --}}
+            <span class="rm-live-badge rm-live-badge--small" aria-label="On air">
+                <i aria-hidden="true"></i> On air
+            </span>
+            {{-- Quality badge --}}
+            <span class="rm-match-card__quality" aria-label="Quality: {{ $quality }}">{{ $quality }}</span>
         </span>
+
+        {{-- Card body --}}
         <span class="rm-match-card__body">
+            {{-- Category label --}}
             <span class="rm-match-card__league">{{ $category }}</span>
-            <strong>{{ $displayName }}</strong>
+
+            {{-- Channel name --}}
+            <strong title="{{ $displayName }}">{{ $displayName }}</strong>
+
+            {{-- Quality / language tags --}}
             @if($tags->isNotEmpty())
-                <span class="rm-match-card__tags">
+                <span class="rm-match-card__tags" aria-label="Stream tags">
                     @foreach($tags as $tag)
                         <b>{{ $tag }}</b>
                     @endforeach
                 </span>
+            @else
+                <span class="rm-match-card__tags"></span>
             @endif
-            <small>{{ $program }}</small>
+
+            {{-- Program guide --}}
+            <small title="{{ $program }}">{{ $program }}</small>
+
+            {{-- Footer: viewers + open button --}}
             <span class="rm-match-card__footer">
-                <span>{{ $viewers ? $viewers.' viewers' : 'Media channel' }}</span>
-                <em>Open</em>
+                <span>{{ $viewers ? $viewers . ' viewers' : 'Media channel' }}</span>
+                <em aria-hidden="true">Open →</em>
             </span>
         </span>
+
     </a>
 </article>

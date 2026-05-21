@@ -3,6 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
         (() => {
             const stored = localStorage.getItem('rifi-theme');
@@ -96,7 +99,7 @@
                         <a href="{{ route('admin.dashboard') }}" class="rm-btn rm-btn-secondary rm-btn-sm">Admin</a>
                         @endif
                     @endauth
-                    <a href="{{ route('scores') }}" class="rm-btn rm-btn-primary rm-btn-sm">Live Scores</a>
+                    <a href="{{ route('scores') }}" class="rm-btn rm-btn-primary rm-btn-sm" aria-label="View live scores">Live Scores</a>
                     <button
                         type="button"
                         class="rm-mobile-nav"
@@ -134,22 +137,22 @@
             @yield('content')
         </main>
 
-        <footer class="rm-footer">
+        <footer class="rm-footer" aria-label="Site footer">
             <div class="rm-footer__inner">
-                <div>
+                <div class="rm-footer__brand">
                     <x-logo />
-                    <p>Sports news, fixtures, scores, match information, and permitted media experiences.</p>
+                    <p>Sports news, fixtures, scores, and match coverage — your clean sports media hub.</p>
                 </div>
-                <nav aria-label="Footer links" class="rm-footer__groups">
+                <nav aria-label="Footer navigation" class="rm-footer__groups">
                     <span>
                         <strong>Coverage</strong>
-                        <a href="{{ route('scores') }}">Scores</a>
+                        <a href="{{ route('scores') }}">Live Scores</a>
                         <a href="{{ route('fixtures') }}">Fixtures</a>
                         <a href="{{ route('matches.index') }}">Matches</a>
                         <a href="{{ route('standings') }}">Standings</a>
                     </span>
                     <span>
-                        <strong>RifiMedia</strong>
+                        <strong>Explore</strong>
                         <a href="{{ route('news.index') }}">News</a>
                         <a href="{{ route('leagues.index') }}">Leagues</a>
                         <a href="{{ route('teams.index') }}">Teams</a>
@@ -168,7 +171,7 @@
                         <a href="{{ route('copyright') }}">Copyright</a>
                     </span>
                 </nav>
-                <p class="rm-footer__legal">RifiMedia Sports provides sports news, fixtures, scores, and match information. Users are responsible for ensuring they have rights to any submitted playlist or stream sources.</p>
+                <p class="rm-footer__legal">&copy; {{ date('Y') }} RifiMedia Sports. Sports news, fixtures, scores, and match information. Users are responsible for ensuring they have rights to any submitted playlist or stream sources.</p>
             </div>
         </footer>
     </div>

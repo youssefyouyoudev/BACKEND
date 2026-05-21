@@ -12,9 +12,10 @@
     class="rm-ad-slot rm-ad-slot--{{ $size }} ad-slot ad-slot-{{ $size }}"
     data-ad-slot="{{ $name }}"
     aria-label="{{ $label }}"
+    role="complementary"
 >
-    <span>{{ $label }}</span>
     @if($isEnabled && config('ads.provider') === 'adsense' && config('ads.adsense_client'))
+        <span aria-hidden="true">{{ $label }}</span>
         <ins
             class="adsbygoogle"
             style="display:block"
@@ -24,7 +25,8 @@
             data-full-width-responsive="true"
         ></ins>
     @else
-        <strong>Reserved media placement</strong>
-        <small>{{ ucfirst(str_replace('_', ' ', $size)) }} slot</small>
+        <p class="rm-ad-label" aria-hidden="true">{{ $label }}</p>
+        <strong>Reserved Media Placement</strong>
+        <small>{{ ucwords(str_replace(['_', '-'], ' ', $size)) }} · Premium inventory</small>
     @endif
 </aside>
