@@ -62,7 +62,7 @@
         </div>
     @endif
 
-    <div class="rm-site" x-data="{ mobileNavOpen: false }">
+    <div class="rm-site site-shell" x-data="{ mobileNavOpen: false }">
         <header class="rm-navbar" aria-label="Primary navigation">
             <div class="rm-navbar__inner">
                 <x-logo />
@@ -77,9 +77,12 @@
                     <a href="{{ route('news.index') }}" class="{{ request()->routeIs('news.*') ? 'is-active' : '' }}">News</a>
                     <a href="{{ route('leagues.index') }}" class="{{ request()->routeIs('leagues.*') ? 'is-active' : '' }}">Leagues</a>
                     <a href="{{ route('teams.index') }}" class="{{ request()->routeIs('teams.*') ? 'is-active' : '' }}">Teams</a>
+                    <a href="{{ route('home') }}#channels" class="{{ request()->routeIs('home') && request()->has('category') ? 'is-active' : '' }}">
+                        Channels
+                    </a>
                     <a href="{{ route('live') }}" class="{{ request()->routeIs('live', 'channels.show') ? 'is-active' : '' }}">
                         <span class="rm-live-dot" aria-hidden="true"></span>
-                        Channels
+                        Watch
                     </a>
                 </nav>
 
@@ -89,7 +92,9 @@
                         <span data-theme-icon>Theme</span>
                     </button>
                     @auth
+                        @if(auth()->user()?->isAdmin())
                         <a href="{{ route('admin.dashboard') }}" class="rm-btn rm-btn-secondary rm-btn-sm">Admin</a>
+                        @endif
                     @endauth
                     <a href="{{ route('scores') }}" class="rm-btn rm-btn-primary rm-btn-sm">Live Scores</a>
                     <button
@@ -114,14 +119,17 @@
                 <a href="{{ route('news.index') }}">News</a>
                 <a href="{{ route('leagues.index') }}">Leagues</a>
                 <a href="{{ route('teams.index') }}">Teams</a>
-                <a href="{{ route('live') }}">Channels</a>
+                <a href="{{ route('home') }}#channels">Channels</a>
+                <a href="{{ route('live') }}">Watch</a>
                 @auth
+                    @if(auth()->user()?->isAdmin())
                     <a href="{{ route('admin.dashboard') }}">Admin</a>
+                    @endif
                 @endauth
             </nav>
         </header>
 
-        <main class="rm-main">
+        <main class="rm-main site-container">
             <x-flash />
             @yield('content')
         </main>
@@ -132,19 +140,33 @@
                     <x-logo />
                     <p>Sports news, fixtures, scores, match information, and permitted media experiences.</p>
                 </div>
-                <nav aria-label="Footer links">
-                    <a href="{{ route('home') }}">Home</a>
-                    <a href="{{ route('scores') }}">Scores</a>
-                    <a href="{{ route('fixtures') }}">Fixtures</a>
-                    <a href="{{ route('matches.index') }}">Matches</a>
-                    <a href="{{ route('standings') }}">Standings</a>
-                    <a href="{{ route('news.index') }}">News</a>
-                    <a href="{{ route('about') }}">About</a>
-                    <a href="{{ route('contact') }}">Contact</a>
-                    <a href="{{ route('privacy') }}">Privacy</a>
-                    <a href="{{ route('terms') }}">Terms</a>
-                    <a href="{{ route('copyright') }}">Copyright</a>
-                    <a href="{{ route('advertise') }}">Advertise</a>
+                <nav aria-label="Footer links" class="rm-footer__groups">
+                    <span>
+                        <strong>Coverage</strong>
+                        <a href="{{ route('scores') }}">Scores</a>
+                        <a href="{{ route('fixtures') }}">Fixtures</a>
+                        <a href="{{ route('matches.index') }}">Matches</a>
+                        <a href="{{ route('standings') }}">Standings</a>
+                    </span>
+                    <span>
+                        <strong>RifiMedia</strong>
+                        <a href="{{ route('news.index') }}">News</a>
+                        <a href="{{ route('leagues.index') }}">Leagues</a>
+                        <a href="{{ route('teams.index') }}">Teams</a>
+                        <a href="{{ route('live') }}">Channels</a>
+                    </span>
+                    <span>
+                        <strong>Company</strong>
+                        <a href="{{ route('about') }}">About</a>
+                        <a href="{{ route('contact') }}">Contact</a>
+                        <a href="{{ route('advertise') }}">Advertise</a>
+                    </span>
+                    <span>
+                        <strong>Legal</strong>
+                        <a href="{{ route('privacy') }}">Privacy</a>
+                        <a href="{{ route('terms') }}">Terms</a>
+                        <a href="{{ route('copyright') }}">Copyright</a>
+                    </span>
                 </nav>
                 <p class="rm-footer__legal">RifiMedia Sports provides sports news, fixtures, scores, and match information. Users are responsible for ensuring they have rights to any submitted playlist or stream sources.</p>
             </div>

@@ -9,7 +9,7 @@
 @endphp
 
 <aside
-    class="rm-ad-slot rm-ad-slot--{{ $size }}"
+    class="rm-ad-slot rm-ad-slot--{{ $size }} ad-slot ad-slot-{{ $size }}"
     data-ad-slot="{{ $name }}"
     aria-label="{{ $label }}"
 >
@@ -24,7 +24,7 @@
             data-full-width-responsive="true"
         ></ins>
     @else
-        <strong>{{ str_replace('_', ' ', $name) }}</strong>
-        <small>{{ $size }} reserved placement</small>
+        <strong>Reserved media placement</strong>
+        <small>{{ ucfirst(str_replace('_', ' ', $size)) }} slot</small>
     @endif
 </aside>

@@ -9,22 +9,33 @@
         <div class="rm-sports-hero__content">
             <span class="rm-kicker">RifiMedia Sports</span>
             <h1>Football News, Live Scores & Match Updates</h1>
-            <p>Follow fixtures, results, standings, and the latest sports stories from your favorite competitions.</p>
+            <p>A clean home for match days: scores, fixtures, standings, team stories, and responsible sports media in one place.</p>
             <div class="rm-hero-actions">
                 <a href="{{ route('scores') }}" class="rm-btn rm-btn-primary">View Live Scores</a>
-                <a href="{{ route('news.index') }}" class="rm-btn rm-btn-secondary">Read Latest News</a>
+                <a href="{{ route('home') }}#channels" class="rm-btn rm-btn-secondary">Browse Channels</a>
             </div>
         </div>
         <div class="rm-score-ticker" aria-label="Live score ticker">
             <div class="rm-score-ticker__item">
-                <span>Today</span>
-                <strong>Live scores will appear when verified match data is connected.</strong>
+                <span class="rm-score-dot"></span>
+                <small>Today</small>
+                <strong>Match feed ready</strong>
+                <p>Verified live scores will appear here as soon as data is connected.</p>
                 <a href="{{ route('scores') }}">Open scores</a>
             </div>
             <div class="rm-score-ticker__item">
-                <span>Fixtures</span>
-                <strong>Upcoming match cards are ready for league and team feeds.</strong>
+                <span class="rm-score-dot rm-score-dot--gold"></span>
+                <small>Fixtures</small>
+                <strong>Calendar view prepared</strong>
+                <p>Upcoming games, kickoff times, and league filters are ready.</p>
                 <a href="{{ route('fixtures') }}">View fixtures</a>
+            </div>
+            <div class="rm-score-ticker__item">
+                <span class="rm-score-dot rm-score-dot--purple"></span>
+                <small>Updates</small>
+                <strong>Sports hub online</strong>
+                <p>News, teams, leagues, and channel discovery now share one clean experience.</p>
+                <a href="{{ route('news.index') }}">Read news</a>
             </div>
         </div>
     </section>
@@ -41,18 +52,26 @@
         </div>
 
         <article class="rm-story-card rm-story-card--featured">
+            <span class="rm-story-card__media" aria-hidden="true">MC</span>
             <span class="rm-story-card__label">Match center</span>
-            <h3>Previews, reports, standings, and live score context in one sports-first experience.</h3>
-            <p>RifiMedia Sports is now positioned for football coverage, match updates, and responsible media presentation. Published articles will appear here once the editorial system is connected.</p>
+            <h3>Previews, reports, standings, and live score context in one calm match-day hub.</h3>
+            <p>Build original coverage around the games people care about: team form, kickoff context, tactical notes, and post-match reports.</p>
+            <small>Editorial-ready - no fake scores</small>
             <a href="{{ route('fixtures') }}">Explore fixtures</a>
         </article>
 
         <div class="rm-story-stack">
-            @foreach(['Football news desk', 'Transfer updates', 'League standings'] as $story)
+            @foreach([
+                ['icon' => 'N', 'label' => 'News desk', 'title' => 'Football news desk', 'text' => 'Publish original stories with author, date, category, image, and SEO metadata.'],
+                ['icon' => 'T', 'label' => 'Trending', 'title' => 'Transfer updates', 'text' => 'Keep topic hubs friendly, scannable, and ready for verified reporting.'],
+                ['icon' => 'L', 'label' => 'Tables', 'title' => 'League standings', 'text' => 'A polished route for league tables, form, fixtures, and team pages.'],
+            ] as $story)
                 <article class="rm-story-card">
-                    <span class="rm-story-card__label">Coming soon</span>
-                    <h3>{{ $story }}</h3>
-                    <p>Reserved editorial card with category, author, date, image, and related match metadata support.</p>
+                    <span class="rm-story-card__media" aria-hidden="true">{{ $story['icon'] }}</span>
+                    <span class="rm-story-card__label">{{ $story['label'] }}</span>
+                    <h3>{{ $story['title'] }}</h3>
+                    <p>{{ $story['text'] }}</p>
+                    <small>Coming soon</small>
                 </article>
             @endforeach
         </div>
@@ -67,10 +86,19 @@
                 </div>
                 <a href="{{ route('fixtures') }}" class="rm-section-header__link">Full calendar</a>
             </div>
-            <div class="rm-empty-state rm-empty-state--compact">
-                <span>Fixtures ready</span>
-                <strong>Upcoming matches will appear here when a verified fixture feed is connected.</strong>
-                <a href="{{ route('fixtures') }}" class="rm-btn rm-btn-secondary">Open fixtures</a>
+            <div class="rm-fixture-preview-list">
+                @foreach([
+                    ['league' => 'Premier League', 'home' => 'Home Team', 'away' => 'Away Team', 'time' => 'Kickoff TBA'],
+                    ['league' => 'Botola Pro', 'home' => 'Club A', 'away' => 'Club B', 'time' => 'Schedule pending'],
+                    ['league' => 'Champions League', 'home' => 'Team One', 'away' => 'Team Two', 'time' => 'Fixture feed ready'],
+                ] as $fixture)
+                    <article class="rm-fixture-card">
+                        <span>{{ $fixture['league'] }}</span>
+                        <strong>{{ $fixture['home'] }} <em>vs</em> {{ $fixture['away'] }}</strong>
+                        <small>{{ $fixture['time'] }}</small>
+                        <a href="{{ route('matches.index') }}">Match center</a>
+                    </article>
+                @endforeach
             </div>
         </div>
         <aside class="rm-side-rail">
@@ -78,7 +106,14 @@
             <div class="rm-standings-preview">
                 <span class="rm-kicker">Standings preview</span>
                 <h3>League tables</h3>
-                <p>Top-five standings modules are ready for reliable competition data.</p>
+                <div class="rm-mini-table" aria-label="Standings preview placeholder">
+                    @foreach([['1', 'Team', 'Pts'], ['2', 'Team', 'Pts'], ['3', 'Team', 'Pts'], ['4', 'Team', 'Pts']] as $row)
+                        <span>{{ $row[0] }}</span>
+                        <strong>{{ $row[1] }}</strong>
+                        <em>{{ $row[2] }}</em>
+                    @endforeach
+                </div>
+                <p>Connect a verified standings feed to replace this preview with real league tables.</p>
                 <a href="{{ route('standings') }}">Open standings</a>
             </div>
         </aside>
@@ -104,8 +139,8 @@
         <section class="rm-section">
             <div class="rm-section-header">
                 <div>
-                    <p class="rm-eyebrow">Permitted media</p>
-                    <h2>Featured channel information</h2>
+                    <p class="rm-eyebrow">Media guide</p>
+                    <h2>Featured sports channels</h2>
                 </div>
                 <a href="{{ route('live') }}" class="rm-section-header__link">Open channels</a>
             </div>
@@ -121,8 +156,8 @@
         <div class="rm-section-header">
             <div>
                 <p class="rm-eyebrow">Channel directory</p>
-                <h2>Sports and media channels</h2>
-                <p class="rm-section-header__meta">Categories and filters for approved public media sources.</p>
+                <h2>Browse sports media</h2>
+                <p class="rm-section-header__meta">Categories and clean filters for approved public media sources.</p>
             </div>
             <span class="rm-section-header__meta">{{ number_format($channels->total()) }} public channels</span>
         </div>
@@ -161,3 +196,4 @@
     </section>
 </div>
 @endsection
+
