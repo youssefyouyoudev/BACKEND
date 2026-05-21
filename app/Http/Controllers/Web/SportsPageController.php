@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Article;
 use App\Models\Channel;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class SportsPageController extends Controller
@@ -16,13 +18,46 @@ class SportsPageController extends Controller
     {
         return view('public.news', [
             'topics' => $this->trendingTopics(),
-            'articles' => collect(),
+            'articles' => $this->publishedArticles(),
         ]);
     }
 
     public function article(string $slug): View
     {
-        abort(404, 'This article has not been published yet.');
+        abort_unless(Schema::hasTable('articles'), 404);
+
+        $article = Article::query()
+            ->published()
+            ->with(['author', 'category'])
+            ->where('slug', $slug)
+            ->firstOrFail();
+
+        $schema = [
+            '@context' => 'https://schema.org',
+            '@type' => 'NewsArticle',
+            'headline' => $article->title,
+            'description' => $article->meta_description ?: $article->excerpt,
+            'datePublished' => $article->published_at?->toAtomString(),
+            'dateModified' => $article->updated_at?->toAtomString(),
+            'author' => [
+                '@type' => 'Person',
+                'name' => $article->author?->name ?? 'RifiMedia Sports Desk',
+            ],
+            'publisher' => [
+                '@type' => 'Organization',
+                'name' => 'RifiMedia Sports',
+                'logo' => [
+                    '@type' => 'ImageObject',
+                    'url' => asset('brand/rifi-logo.png'),
+                ],
+            ],
+        ];
+
+        return view('public.article', [
+            'article' => $article,
+            'relatedArticles' => $this->publishedArticles(4)->reject(fn (Article $related) => $related->id === $article->id)->take(3),
+            'schema' => $schema,
+        ]);
     }
 
     public function scores(): View
@@ -37,6 +72,21 @@ class SportsPageController extends Controller
     {
         return view('public.fixtures', [
             'fixtures' => collect(),
+            'leagues' => $this->leagueDirectory(),
+        ]);
+    }
+
+    public function matches(): View
+    {
+        return view('public.matches', [
+            'matches' => collect(),
+            'leagues' => $this->leagueDirectory(),
+        ]);
+    }
+
+    public function standings(): View
+    {
+        return view('public.standings', [
             'leagues' => $this->leagueDirectory(),
         ]);
     }
@@ -163,9 +213,11 @@ class SportsPageController extends Controller
             route('home'),
             route('scores'),
             route('fixtures'),
+            route('matches.index'),
             route('news.index'),
             route('leagues.index'),
             route('teams.index'),
+            route('standings'),
             route('highlights'),
             route('search'),
             route('about'),
@@ -176,6 +228,7 @@ class SportsPageController extends Controller
             route('advertise'),
             route('editorial-policy'),
         ])
+            ->merge($this->publishedArticles(100)->map(fn (Article $article) => route('news.show', $article->slug)))
             ->merge($this->leagueDirectory()->map(fn ($league) => route('leagues.show', $league['slug'])))
             ->merge($this->teamDirectory()->map(fn ($team) => route('teams.show', $team['slug'])))
             ->unique()
@@ -209,6 +262,20 @@ class SportsPageController extends Controller
             ->orderByDesc('is_featured')
             ->orderBy('featured_rank')
             ->orderBy('name')
+            ->limit($limit)
+            ->get();
+    }
+
+    private function publishedArticles(int $limit = 12): Collection
+    {
+        if (! Schema::hasTable('articles')) {
+            return collect();
+        }
+
+        return Article::query()
+            ->published()
+            ->with(['author', 'category'])
+            ->latest('published_at')
             ->limit($limit)
             ->get();
     }

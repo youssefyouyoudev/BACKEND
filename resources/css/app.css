@@ -6526,6 +6526,43 @@ html:has(.rm-body) {
     gap: 1rem;
 }
 
+.rm-news-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.rm-news-grid .rm-ad-slot {
+    grid-column: 1 / -1;
+}
+
+.rm-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    color: var(--rm-text-muted);
+    font-size: 0.9rem;
+}
+
+.rm-breadcrumb a:hover {
+    color: var(--rm-text-main);
+}
+
+.rm-article-body {
+    display: grid;
+    gap: 1.1rem;
+    font-size: 1.04rem;
+}
+
+.rm-article-body img {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 18px;
+    object-fit: cover;
+}
+
 .rm-match-center-score {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -19,11 +19,13 @@ Route::get('/news/{slug}', [SportsPageController::class, 'article'])->name('news
 Route::get('/scores', [SportsPageController::class, 'scores'])->name('scores');
 Route::get('/live-scores', [SportsPageController::class, 'scores'])->name('live-scores');
 Route::get('/fixtures', [SportsPageController::class, 'fixtures'])->name('fixtures');
+Route::get('/matches', [SportsPageController::class, 'matches'])->name('matches.index');
 Route::get('/leagues', [SportsPageController::class, 'leagues'])->name('leagues.index');
 Route::get('/leagues/{slug}', [SportsPageController::class, 'league'])->name('leagues.show');
 Route::get('/teams', [SportsPageController::class, 'teams'])->name('teams.index');
 Route::get('/teams/{slug}', [SportsPageController::class, 'team'])->name('teams.show');
 Route::get('/matches/{slug}', [SportsPageController::class, 'match'])->name('matches.show');
+Route::get('/standings', [SportsPageController::class, 'standings'])->name('standings');
 Route::get('/highlights', [SportsPageController::class, 'highlights'])->name('highlights');
 Route::get('/search', [SportsPageController::class, 'search'])->name('search');
 Route::get('/about', [SportsPageController::class, 'staticPage'])->defaults('page', 'about')->name('about');

@@ -79,7 +79,7 @@
                 <span class="rm-kicker">Standings preview</span>
                 <h3>League tables</h3>
                 <p>Top-five standings modules are ready for reliable competition data.</p>
-                <a href="{{ route('leagues.index') }}">Browse leagues</a>
+                <a href="{{ route('standings') }}">Open standings</a>
             </div>
         </aside>
     </section>

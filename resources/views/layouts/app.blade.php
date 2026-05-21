@@ -11,8 +11,8 @@
         })();
     </script>
     @php
-        $seoTitle = trim($__env->yieldContent('title')) ?: ($title ?? 'RifiMedia Sports - Football News, Live Scores, Fixtures & Match Updates');
-        $seoDescription = trim($__env->yieldContent('description')) ?: ($description ?? 'Follow football news, live scores, fixtures, standings, match previews, and sports updates on RifiMedia Sports.');
+        $seoTitle = html_entity_decode(trim($__env->yieldContent('title')), ENT_QUOTES, 'UTF-8') ?: ($title ?? 'RifiMedia Sports - Football News, Live Scores, Fixtures & Match Updates');
+        $seoDescription = html_entity_decode(trim($__env->yieldContent('description')), ENT_QUOTES, 'UTF-8') ?: ($description ?? 'Follow football news, live scores, fixtures, standings, match previews, and sports updates on RifiMedia Sports.');
         $seoRobots = trim($__env->yieldContent('robots')) ?: ($robots ?? 'index,follow');
         $seoCanonical = $canonical ?? url()->current();
         $seoImage = $image ?? asset('brand/rifi-logo.png');
@@ -73,6 +73,7 @@
                         Scores
                     </a>
                     <a href="{{ route('fixtures') }}" class="{{ request()->routeIs('fixtures') ? 'is-active' : '' }}">Fixtures</a>
+                    <a href="{{ route('standings') }}" class="{{ request()->routeIs('standings') ? 'is-active' : '' }}">Standings</a>
                     <a href="{{ route('news.index') }}" class="{{ request()->routeIs('news.*') ? 'is-active' : '' }}">News</a>
                     <a href="{{ route('leagues.index') }}" class="{{ request()->routeIs('leagues.*') ? 'is-active' : '' }}">Leagues</a>
                     <a href="{{ route('teams.index') }}" class="{{ request()->routeIs('teams.*') ? 'is-active' : '' }}">Teams</a>
@@ -109,6 +110,7 @@
                 <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'is-active' : '' }}">Home</a>
                 <a href="{{ route('scores') }}">Scores</a>
                 <a href="{{ route('fixtures') }}">Fixtures</a>
+                <a href="{{ route('standings') }}">Standings</a>
                 <a href="{{ route('news.index') }}">News</a>
                 <a href="{{ route('leagues.index') }}">Leagues</a>
                 <a href="{{ route('teams.index') }}">Teams</a>
@@ -134,6 +136,8 @@
                     <a href="{{ route('home') }}">Home</a>
                     <a href="{{ route('scores') }}">Scores</a>
                     <a href="{{ route('fixtures') }}">Fixtures</a>
+                    <a href="{{ route('matches.index') }}">Matches</a>
+                    <a href="{{ route('standings') }}">Standings</a>
                     <a href="{{ route('news.index') }}">News</a>
                     <a href="{{ route('about') }}">About</a>
                     <a href="{{ route('contact') }}">Contact</a>

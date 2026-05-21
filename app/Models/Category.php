@@ -31,4 +31,9 @@ class Category extends Model
     {
         return $this->hasMany(Channel::class);
     }
+
+    public function articles(): HasMany
+    {
+        return $this->hasMany(Article::class);
+    }
 }

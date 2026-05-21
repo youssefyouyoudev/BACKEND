@@ -28,6 +28,21 @@
                     <strong>Articles will appear here after an editorial publishing workflow is connected.</strong>
                     <p>Use this section for original sports articles only. Avoid scraped stories, misleading headlines, or unauthorized streaming language.</p>
                 </div>
+            @else
+                <div class="rm-news-grid">
+                    @foreach($articles as $article)
+                        <article class="rm-story-card">
+                            <span class="rm-story-card__label">{{ $article->category?->name ?? 'Football' }}</span>
+                            <h3>{{ $article->title }}</h3>
+                            <p>{{ $article->excerpt }}</p>
+                            <small>{{ $article->published_at?->format('M j, Y') }} · {{ $article->author?->name ?? 'RifiMedia Sports Desk' }}</small>
+                            <a href="{{ route('news.show', $article->slug) }}">Read article</a>
+                        </article>
+                        @if($loop->iteration === 6)
+                            <x-ad-slot name="news_in_feed" size="in-feed" />
+                        @endif
+                    @endforeach
+                </div>
             @endif
         </div>
 
