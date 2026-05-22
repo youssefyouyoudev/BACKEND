@@ -29,6 +29,10 @@
         <input id="logo" name="logo" value="{{ old('logo', $channel->logo ?? '') }}" placeholder="https://example.com/logo.png">
     </div>
     <div class="field">
+        <label for="country">Country</label>
+        <input id="country" name="country" value="{{ old('country', $channel->country ?? '') }}" maxlength="120" placeholder="Morocco">
+    </div>
+    <div class="field">
         <label for="stream_type">Stream type</label>
         <select id="stream_type" name="stream_type">
             @foreach(['hls' => 'HLS / m3u8', 'dash' => 'MPEG-DASH', 'mp4' => 'MP4', 'mpegts' => 'MPEG-TS', 'stream' => 'Generic'] as $value => $label)
@@ -39,6 +43,11 @@
     <div class="field form-grid__wide">
         <label for="stream_url">Primary stream URL</label>
         <input id="stream_url" type="url" name="stream_url" value="{{ old('stream_url', $channel->stream_url ?? '') }}" required placeholder="https://cdn.example.com/live/master.m3u8">
+    </div>
+    <div class="field form-grid__wide">
+        <label for="aliases">TheSportsDB aliases</label>
+        <textarea id="aliases" name="aliases" rows="4" placeholder="beIN Sports HD 1&#10;beIN Sports MENA 1">{{ old('aliases', isset($channel) ? implode("\n", $channel->aliases ?? []) : '') }}</textarea>
+        <small class="field__hint">Add one channel alias per line, or separate aliases with commas.</small>
     </div>
     <div class="field">
         <label for="featured_rank">Featured rank</label>

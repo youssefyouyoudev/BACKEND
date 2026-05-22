@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\PlaylistController;
 use App\Http\Controllers\Api\PublicChannelController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PublicTvController;
+use App\Http\Controllers\FootballController as PublicFootballController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->middleware('throttle:auth')->group(function (): void {
@@ -27,7 +28,9 @@ Route::prefix('auth')->middleware('throttle:auth')->group(function (): void {
 Route::middleware('throttle:api')->group(function (): void {
     Route::get('/categories', CategoryController::class);
     Route::get('/channels', [PublicChannelController::class, 'index']);
+    Route::get('/channels/match', [PublicFootballController::class, 'matchChannelDebug']);
     Route::get('/channels/{channel}', [PublicChannelController::class, 'show'])->whereNumber('channel');
+    Route::get('/football/event/{eventId}/tv', [PublicFootballController::class, 'eventTv'])->whereNumber('eventId');
     Route::get('/epg', EpgController::class);
 });
 

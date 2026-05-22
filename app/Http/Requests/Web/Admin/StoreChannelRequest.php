@@ -21,6 +21,8 @@ class StoreChannelRequest extends FormRequest
             'name' => ['required', 'string', 'max:140'],
             'slug' => ['nullable', 'string', 'max:160', Rule::unique('channels', 'slug')],
             'logo' => ['nullable', 'url', 'max:2048'],
+            'country' => ['nullable', 'string', 'max:120'],
+            'aliases' => ['nullable', 'string', 'max:2000'],
             'stream_url' => ['required', 'url', 'max:4096'],
             'stream_type' => ['required', Rule::in(['hls', 'dash', 'mp4', 'mpegts', 'stream'])],
             'is_active' => ['nullable', 'boolean'],
@@ -38,6 +40,12 @@ class StoreChannelRequest extends FormRequest
         $validated['is_active'] = $this->boolean('is_active', true);
         $validated['is_live'] = $this->boolean('is_live', true);
         $validated['is_featured'] = $this->boolean('is_featured');
+        $validated['aliases'] = collect(preg_split('/\r\n|\r|\n|,/', (string) ($validated['aliases'] ?? '')))
+            ->map(fn (string $alias): string => trim($alias))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all() ?: null;
 
         return $validated;
     }

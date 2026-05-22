@@ -12,8 +12,13 @@ use Illuminate\Support\Facades\Schema;
 
 class ChannelController extends Controller
 {
-    public function show(Channel $channel, StreamService $streamService): View
+    public function show(string $channel, StreamService $streamService): View
     {
+        $channel = Channel::query()
+            ->where('slug', $channel)
+            ->orWhere('id', ctype_digit($channel) ? (int) $channel : 0)
+            ->firstOrFail();
+
         abort_unless(
             $channel->is_active
             && $channel->playlist()->where('is_public', true)->whereNotNull('approved_at')->exists(),

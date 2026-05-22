@@ -44,7 +44,14 @@ class StreamUrl
 
     public static function decodeProxyUrl(string $encodedUrl): ?string
     {
-        $decoded = base64_decode(strtr($encodedUrl, '-_', '+/'), true);
+        $normalized = strtr($encodedUrl, '-_', '+/');
+        $padding = strlen($normalized) % 4;
+
+        if ($padding > 0) {
+            $normalized .= str_repeat('=', 4 - $padding);
+        }
+
+        $decoded = base64_decode($normalized, true);
 
         return $decoded === false ? null : $decoded;
     }

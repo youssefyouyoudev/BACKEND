@@ -8,7 +8,9 @@ use App\Http\Requests\Web\Admin\UpdateChannelRequest;
 use App\Models\Category;
 use App\Models\Channel;
 use App\Models\Playlist;
+use App\Services\ChannelMatcherService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -48,6 +50,8 @@ class ChannelManagementController extends Controller
             ]);
         });
 
+        $this->clearChannelCaches();
+
         return back()->with('status', 'Channel created.');
     }
 
@@ -83,13 +87,23 @@ class ChannelManagementController extends Controller
             );
         });
 
+        $this->clearChannelCaches();
+
         return redirect()->route('admin.channels.index')->with('status', 'Channel updated.');
     }
 
     public function destroy(Channel $channel): RedirectResponse
     {
         $channel->delete();
+        $this->clearChannelCaches();
 
         return back()->with('status', 'Channel deleted.');
+    }
+
+    private function clearChannelCaches(): void
+    {
+        ChannelMatcherService::clearCache();
+        Cache::forget('tv:categories');
+        Cache::forget('api-tv:categories');
     }
 }

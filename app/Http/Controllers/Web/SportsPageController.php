@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Article;
 use App\Models\Channel;
+use App\Services\TheSportsDbService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Response;
@@ -135,16 +136,20 @@ class SportsPageController extends Controller
         ]);
     }
 
-    public function match(string $slug): View
+    public function match(string $slug, TheSportsDbService $sportsDb): View
     {
+        $eventId = $this->extractSportsDbEventId($slug);
+
         return view('public.match-center', [
             'mode' => 'match',
             'item' => [
                 'name' => Str::headline(str_replace('-', ' ', $slug)),
                 'slug' => $slug,
+                'event_id' => $eventId,
                 'description' => 'Match center pages are ready for previews, lineups, timelines, stats, and related coverage when reliable match data is connected.',
             ],
             'relatedChannels' => $this->sportsChannels(6),
+            'tvChannels' => $eventId ? collect($sportsDb->tvChannelsForEvent($eventId)) : collect(),
         ]);
     }
 
@@ -264,6 +269,15 @@ class SportsPageController extends Controller
             ->orderBy('name')
             ->limit($limit)
             ->get();
+    }
+
+    private function extractSportsDbEventId(string $slug): ?string
+    {
+        if (preg_match('/\d+/', $slug, $matches) !== 1) {
+            return null;
+        }
+
+        return $matches[0];
     }
 
     private function publishedArticles(int $limit = 12): Collection

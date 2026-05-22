@@ -23,6 +23,7 @@ class Channel extends Model
         'slug',
         'logo',
         'group_title',
+        'country',
         'category_id',
         'stream_url',
         'stream_type',
@@ -34,6 +35,7 @@ class Channel extends Model
         'is_featured',
         'featured_rank',
         'metadata',
+        'aliases',
     ];
 
     protected function casts(): array
@@ -43,6 +45,7 @@ class Channel extends Model
             'is_live' => 'boolean',
             'is_featured' => 'boolean',
             'metadata' => 'array',
+            'aliases' => 'array',
         ];
     }
 

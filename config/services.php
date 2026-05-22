@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'the_sports_db' => [
+        'key' => env('THESPORTSDB_API_KEY', '123'),
+        'base_url' => env('THESPORTSDB_BASE_URL', 'https://www.thesportsdb.com/api/v1/json'),
+    ],
+
 ];
