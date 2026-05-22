@@ -3,15 +3,19 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
+use App\Models\Article;
 use App\Models\Channel;
+use App\Services\TheSportsDbService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 class HomeController extends Controller
 {
-    public function __invoke(Request $request): View
+    public function __invoke(Request $request, TheSportsDbService $sportsDb): View
     {
         $selectedCategory = $request->string('category')->toString();
         $search = $request->string('search')->toString();
@@ -70,6 +74,18 @@ class HomeController extends Controller
             ->map(fn (Channel $channel) => $this->serializeDashboardChannel($channel))
             ->values();
 
+        $footballMatches = collect();
+
+        try {
+            $footballMatches = collect($sportsDb->getTopLeagueMatchesByDate(now()->toDateString()))->take(4);
+        } catch (Throwable) {
+            $footballMatches = collect();
+        }
+
+        $articles = Schema::hasTable('articles')
+            ? Article::query()->published()->with(['category', 'author'])->latest('published_at')->limit(4)->get()
+            : collect();
+
         return view('public.home', [
             'categories' => $categories,
             'selectedCategory' => $selectedCategory,
@@ -79,6 +95,8 @@ class HomeController extends Controller
             'channels' => $channels,
             'liveChannels' => $liveChannels,
             'recommendedChannels' => $recommendedChannels,
+            'footballMatches' => $footballMatches,
+            'articles' => $articles,
         ]);
     }
 

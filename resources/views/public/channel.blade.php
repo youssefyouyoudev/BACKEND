@@ -23,8 +23,8 @@
                     <p>{{ $activeChannel['description'] }}</p>
                 </div>
                 <div class="rm-player-header__actions">
-                    <a class="rm-btn rm-btn-secondary rm-btn-sm" href="{{ route('home') }}">Channel Wall</a>
-                    <a class="rm-btn rm-btn-primary rm-btn-sm" href="{{ route('live') }}">TV Guide</a>
+                    <a class="rm-btn rm-btn-secondary rm-btn-sm" href="{{ route('live-tv') }}">Back to Live TV</a>
+                    <a class="rm-btn rm-btn-primary rm-btn-sm" href="{{ route('sports.football') }}">Football Scores</a>
                 </div>
             </header>
 

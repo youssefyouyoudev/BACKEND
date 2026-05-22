@@ -1,5 +1,8 @@
 @extends('layouts.app')
 
+@section('title', 'Live TV Channels | RifiMedia')
+@section('description', 'Watch approved live TV channels from public playlists with search, categories, and a mobile-friendly player.')
+
 @php
     $recommendedChannels = collect($initialChannels)->take(8)->map(fn ($channel) => [
         'id' => $channel['id'],
@@ -27,8 +30,8 @@
         <div class="rm-live-stage__header">
             <div>
                 <span class="rm-live-badge"><i></i> Live TV</span>
-                <h1>Sports channels, instantly switchable.</h1>
-                <p>Browse approved public streams with fast search, category filters, and a premium full-screen player path.</p>
+                <h1>Live TV channels, instantly switchable.</h1>
+                <p>Browse approved public channels with fast search, category filters, and a full watch page.</p>
             </div>
 
             <form class="rm-search rm-search--wide" @submit.prevent="loadChannels">
@@ -187,7 +190,7 @@ document.addEventListener('alpine:init', () => {
                 const payload = await response.json();
                 this.activeChannel = payload.data;
                 this.playSource((payload.data.sources || [])[0]);
-                history.replaceState(null, '', `{{ route('live') }}?channel=${id}`);
+                history.replaceState(null, '', `{{ route('live-tv') }}?channel=${id}`);
             } catch (error) {
                 console.error(error);
                 this.loadingPlayer = false;

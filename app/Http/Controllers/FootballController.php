@@ -60,6 +60,22 @@ class FootballController extends Controller
 
         return view('football.event', [
             'match' => $event,
+            'schema' => [
+                '@context' => 'https://schema.org',
+                '@type' => 'SportsEvent',
+                'name' => ($event['home_team']['name'] ?? 'Home').' vs '.($event['away_team']['name'] ?? 'Away'),
+                'startDate' => trim(($event['date'] ?? '').'T'.($event['time'] ?? '00:00')),
+                'eventStatus' => 'https://schema.org/EventScheduled',
+                'sport' => 'Football',
+                'location' => $event['venue'] ? [
+                    '@type' => 'Place',
+                    'name' => $event['venue'],
+                ] : null,
+                'competitor' => [
+                    ['@type' => 'SportsTeam', 'name' => $event['home_team']['name'] ?? 'Home'],
+                    ['@type' => 'SportsTeam', 'name' => $event['away_team']['name'] ?? 'Away'],
+                ],
+            ],
         ]);
     }
 

@@ -73,7 +73,7 @@ export function renderMatchCard(match) {
     const homeBadge = safeText(home.badge || '/brand/rifi-logo.png');
     const awayBadge = safeText(away.badge || '/brand/rifi-logo.png');
     const eventId = safeText(match?.id || '');
-    const detailsUrl = safeText(match?.event_url || `/football/event/${eventId}`);
+    const detailsUrl = safeText(match?.event_url || `/sports/football/event/${eventId}`);
 
     return `
         <article class="football-match-card" data-match-card data-event-id="${eventId}">
@@ -207,7 +207,7 @@ function bindFootballPage() {
     state.root.querySelectorAll('[data-football-filter]').forEach((button) => {
         button.addEventListener('click', () => {
             const filter = button.dataset.footballFilter;
-            if (filter === 'today') return fetchTodayMatches();
+            if (filter === 'today' || filter === 'live') return fetchTodayMatches();
             if (filter === 'tomorrow') return fetchMatchesByDate(offsetDate(1));
             if (filter === 'yesterday') return fetchMatchesByDate(offsetDate(-1));
             if (filter === 'upcoming') return fetchUpcomingMatches();
@@ -266,7 +266,7 @@ async function loadTvChannelsForCard(card) {
 async function fetchTvChannels(eventId) {
     if (state.tvCache.has(eventId)) return state.tvCache.get(eventId);
 
-    const template = state.root?.dataset.tvUrlTemplate || '/football/api/event/__EVENT_ID__/tv';
+    const template = state.root?.dataset.tvUrlTemplate || '/api/football/event/__EVENT_ID__/tv';
     const response = await fetch(template.replace('__EVENT_ID__', encodeURIComponent(eventId)), { headers: { Accept: 'application/json' } });
     if (! response.ok) throw new Error(response.status === 429 ? 'TV request rate limited. Try again shortly.' : 'TV channels could not be loaded.');
     const payload = await response.json();
@@ -309,7 +309,7 @@ function initFootballEventPage() {
     const target = root.querySelector('[data-event-tv-channels]');
     if (! eventId || ! target) return;
 
-    fetch(`/football/api/event/${encodeURIComponent(eventId)}/tv`, { headers: { Accept: 'application/json' } })
+    fetch(`/api/football/event/${encodeURIComponent(eventId)}/tv`, { headers: { Accept: 'application/json' } })
         .then((response) => response.ok ? response.json() : Promise.reject(new Error('Could not load TV channels.')))
         .then((payload) => {
             target.innerHTML = renderTvChannels(payload.data || []);

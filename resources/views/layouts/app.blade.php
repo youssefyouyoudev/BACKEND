@@ -52,18 +52,21 @@
         ];
         $mainNav = [
             ['label' => 'Home', 'href' => route('home'), 'active' => request()->routeIs('home')],
-            ['label' => 'Live Scores', 'href' => route('scores'), 'active' => request()->routeIs('scores', 'live-scores')],
-            ['label' => 'Fixtures', 'href' => route('fixtures'), 'active' => request()->routeIs('fixtures', 'matches.*')],
+            ['label' => 'Sports', 'href' => route('sports.index'), 'active' => request()->routeIs('sports.*', 'football.*', 'scores', 'fixtures', 'matches.*', 'leagues.*', 'teams.*', 'standings')],
+            ['label' => 'Football', 'href' => route('sports.football'), 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores')],
+            ['label' => 'Live TV', 'href' => route('live-tv'), 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
+            ['label' => 'Movies', 'href' => route('movies'), 'active' => request()->routeIs('movies')],
+            ['label' => 'TV Shows', 'href' => route('tv-shows'), 'active' => request()->routeIs('tv-shows')],
+            ['label' => 'Anime', 'href' => route('anime'), 'active' => request()->routeIs('anime')],
             ['label' => 'News', 'href' => route('news.index'), 'active' => request()->routeIs('news.*')],
-            ['label' => 'Leagues', 'href' => route('leagues.index'), 'active' => request()->routeIs('leagues.*', 'standings')],
-            ['label' => 'Channels', 'href' => route('live'), 'active' => request()->routeIs('live', 'channels.show')],
         ];
         $mobileQuickNav = [
             ['label' => 'Home', 'href' => route('home'), 'icon' => 'H', 'active' => request()->routeIs('home')],
-            ['label' => 'Scores', 'href' => route('scores'), 'icon' => 'S', 'active' => request()->routeIs('scores', 'live-scores')],
-            ['label' => 'Fixtures', 'href' => route('fixtures'), 'icon' => 'F', 'active' => request()->routeIs('fixtures', 'matches.*')],
+            ['label' => 'Sports', 'href' => route('sports.index'), 'icon' => 'S', 'active' => request()->routeIs('sports.*')],
+            ['label' => 'Football', 'href' => route('sports.football'), 'icon' => 'F', 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores')],
+            ['label' => 'Live TV', 'href' => route('live-tv'), 'icon' => 'L', 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
             ['label' => 'News', 'href' => route('news.index'), 'icon' => 'N', 'active' => request()->routeIs('news.*')],
-            ['label' => 'Channels', 'href' => route('live'), 'icon' => 'C', 'active' => request()->routeIs('live', 'channels.show')],
+            ['label' => 'Search', 'href' => route('search'), 'icon' => 'Q', 'active' => request()->routeIs('search')],
         ];
     @endphp
     <x-seo
@@ -102,7 +105,7 @@
                     <button type="button" class="rm-icon-btn rm-theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
                         <span data-theme-icon aria-hidden="true">D</span>
                     </button>
-                    <a href="{{ route('scores') }}" class="rm-profile-btn rm-cta-btn">Live Scores</a>
+                    <a href="{{ route('live-tv') }}" class="rm-profile-btn rm-cta-btn">Watch Live</a>
                     <button
                         type="button"
                         class="rm-mobile-nav"
@@ -160,7 +163,7 @@
                 <nav aria-label="Footer navigation" class="rm-footer__groups">
                     <span>
                         <strong>Football</strong>
-                        <a href="{{ route('scores') }}">Live Scores</a>
+                        <a href="{{ route('sports.football') }}">Football Scores</a>
                         <a href="{{ route('fixtures') }}">Fixtures</a>
                         <a href="{{ route('leagues.index') }}">Leagues</a>
                         <a href="{{ route('news.index') }}">News</a>
@@ -184,7 +187,7 @@
                     <p>&copy; {{ date('Y') }} RifiMedia Sports. All rights reserved.</p>
                     <span class="rm-social-links" aria-label="Social links">
                         <a href="{{ route('news.index') }}">Newsroom</a>
-                        <a href="{{ route('live') }}">Live TV</a>
+                        <a href="{{ route('live-tv') }}">Live TV</a>
                         <a href="{{ route('contact') }}">Contact</a>
                     </span>
                 </div>

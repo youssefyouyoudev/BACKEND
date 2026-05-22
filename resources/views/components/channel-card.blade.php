@@ -21,7 +21,7 @@
 @endphp
 
 <article class="rm-match-card rm-channel-card" data-channel-card>
-    <a href="{{ $url }}" class="rm-match-card__link" aria-label="Open {{ $displayName }} — {{ $category }}">
+    <a href="{{ $url }}" class="rm-match-card__link" aria-label="Open {{ $displayName }} - {{ $category }}">
 
         {{-- Poster / logo area --}}
         <span class="rm-match-card__poster">
@@ -65,7 +65,7 @@
             {{-- Footer: viewers + open button --}}
             <span class="rm-match-card__footer">
                 <span>{{ $viewers ? $viewers . ' viewers' : 'Media channel' }}</span>
-                <em aria-hidden="true">Open →</em>
+                <em aria-hidden="true">Open</em>
             </span>
         </span>
 

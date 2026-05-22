@@ -7,12 +7,12 @@
 <div
     class="rm-page football-live-page"
     data-football-live
-    data-today-url="{{ route('football.api.today') }}"
-    data-date-url="{{ route('football.api.date') }}"
-    data-upcoming-url="{{ route('football.api.upcoming') }}"
-    data-results-url="{{ route('football.api.results') }}"
-    data-event-url-template="{{ url('/football/api/event/__EVENT_ID__') }}"
-    data-tv-url-template="{{ url('/football/api/event/__EVENT_ID__/tv') }}"
+    data-today-url="{{ route('api.football.today') }}"
+    data-date-url="{{ route('api.football.date') }}"
+    data-upcoming-url="{{ route('api.football.upcoming') }}"
+    data-results-url="{{ route('api.football.results') }}"
+    data-event-url-template="{{ url('/api/football/event/__EVENT_ID__') }}"
+    data-tv-url-template="{{ url('/api/football/event/__EVENT_ID__/tv') }}"
 >
     <nav class="football-breadcrumb" aria-label="Breadcrumb">
         <a href="{{ route('home') }}">Home</a>
@@ -35,6 +35,7 @@
     <section class="football-filter-panel" aria-label="Football filters">
         <div class="football-quick-filters" role="tablist" aria-label="Match range">
             <button type="button" data-football-filter="today" class="is-active">Today</button>
+            <button type="button" data-football-filter="live">Live</button>
             <button type="button" data-football-filter="tomorrow">Tomorrow</button>
             <button type="button" data-football-filter="yesterday">Yesterday</button>
             <button type="button" data-football-filter="upcoming">Upcoming</button>

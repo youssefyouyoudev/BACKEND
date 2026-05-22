@@ -8,7 +8,7 @@
     $tags = collect(data_get($channel, 'display_tags', []))->take(3);
     $category = data_get($channel, 'category') ?: data_get($channel, 'group_title') ?: 'Premium sports TV';
     $program = data_get($channel, 'program.title') ?: 'Live matches, channels, and featured broadcasts';
-    $watchUrl = $channel ? (data_get($channel, 'watch_url') ?: route('channels.show', data_get($channel, 'id'))) : route('live');
+    $watchUrl = $channel ? (data_get($channel, 'watch_url') ?: route('channels.show', data_get($channel, 'id'))) : route('live-tv');
 @endphp
 
 <section class="rm-hero" aria-labelledby="rm-hero-title">

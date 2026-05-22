@@ -8,6 +8,8 @@ use App\Models\Channel;
 use App\Services\TheSportsDbService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
@@ -61,28 +63,19 @@ class SportsPageController extends Controller
         ]);
     }
 
-    public function scores(): View
+    public function scores(): RedirectResponse
     {
-        return view('public.scores', [
-            'matches' => collect(),
-            'leagues' => $this->leagueDirectory(),
-        ]);
+        return redirect()->route('sports.football');
     }
 
-    public function fixtures(): View
+    public function fixtures(): RedirectResponse
     {
-        return view('public.fixtures', [
-            'fixtures' => collect(),
-            'leagues' => $this->leagueDirectory(),
-        ]);
+        return redirect()->route('sports.football');
     }
 
-    public function matches(): View
+    public function matches(): RedirectResponse
     {
-        return view('public.matches', [
-            'matches' => collect(),
-            'leagues' => $this->leagueDirectory(),
-        ]);
+        return redirect()->route('sports.football');
     }
 
     public function standings(): View
@@ -160,10 +153,41 @@ class SportsPageController extends Controller
         ]);
     }
 
-    public function search(): View
+    public function search(Request $request): View
     {
+        $query = Str::of($request->string('q')->toString())->squish()->limit(80, '')->toString();
+
+        $channels = collect();
+        $articles = collect();
+
+        if ($query !== '') {
+            $channels = Channel::query()
+                ->where('is_active', true)
+                ->canonical()
+                ->whereHas('playlist', fn (Builder $playlistQuery) => $playlistQuery->where('is_public', true)->whereNotNull('approved_at'))
+                ->where('name', 'like', '%'.$query.'%')
+                ->with(['category', 'playlist', 'currentProgram'])
+                ->limit(12)
+                ->get();
+
+            $articles = Schema::hasTable('articles')
+                ? Article::query()
+                    ->published()
+                    ->where(function (Builder $articleQuery) use ($query): void {
+                        $articleQuery->where('title', 'like', '%'.$query.'%')
+                            ->orWhere('excerpt', 'like', '%'.$query.'%');
+                    })
+                    ->latest('published_at')
+                    ->limit(8)
+                    ->get()
+                : collect();
+        }
+
         return view('public.search', [
-            'channels' => $this->sportsChannels(12),
+            'query' => $query,
+            'channels' => $channels,
+            'articles' => $articles,
+            'pages' => $this->searchPages($query),
         ]);
     }
 
@@ -216,12 +240,14 @@ class SportsPageController extends Controller
     {
         $urls = collect([
             route('home'),
-            route('scores'),
-            route('fixtures'),
-            route('matches.index'),
+            route('sports.index'),
+            route('sports.football'),
+            route('live-tv'),
+            route('movies'),
+            route('tv-shows'),
+            route('anime'),
             route('news.index'),
             route('leagues.index'),
-            route('teams.index'),
             route('standings'),
             route('highlights'),
             route('search'),
@@ -235,7 +261,6 @@ class SportsPageController extends Controller
         ])
             ->merge($this->publishedArticles(100)->map(fn (Article $article) => route('news.show', $article->slug)))
             ->merge($this->leagueDirectory()->map(fn ($league) => route('leagues.show', $league['slug'])))
-            ->merge($this->teamDirectory()->map(fn ($team) => route('teams.show', $team['slug'])))
             ->unique()
             ->values();
 
@@ -299,27 +324,38 @@ class SportsPageController extends Controller
         return collect(['Football', 'Transfers', 'Champions League', 'La Liga', 'Premier League', 'Botola', 'AFCON', 'Morocco National Team']);
     }
 
+    private function searchPages(string $query): Collection
+    {
+        $pages = collect([
+            ['title' => 'Live TV', 'description' => 'Browse approved live TV channels.', 'url' => route('live-tv')],
+            ['title' => 'Football Scores', 'description' => 'Today, upcoming, and recent football matches.', 'url' => route('sports.football')],
+            ['title' => 'Movies', 'description' => 'Coming soon.', 'url' => route('movies')],
+            ['title' => 'TV Shows', 'description' => 'Coming soon.', 'url' => route('tv-shows')],
+            ['title' => 'Anime', 'description' => 'Coming soon.', 'url' => route('anime')],
+            ['title' => 'News', 'description' => 'Published RifiMedia articles.', 'url' => route('news.index')],
+        ]);
+
+        if ($query === '') {
+            return collect();
+        }
+
+        return $pages
+            ->filter(fn (array $page): bool => str_contains(Str::lower($page['title'].' '.$page['description']), Str::lower($query)))
+            ->values();
+    }
+
     private function leagueDirectory(): Collection
     {
-        return collect([
-            ['name' => 'Premier League', 'slug' => 'premier-league', 'region' => 'England'],
-            ['name' => 'La Liga', 'slug' => 'la-liga', 'region' => 'Spain'],
-            ['name' => 'Champions League', 'slug' => 'champions-league', 'region' => 'Europe'],
-            ['name' => 'Botola Pro', 'slug' => 'botola-pro', 'region' => 'Morocco'],
-            ['name' => 'AFCON', 'slug' => 'afcon', 'region' => 'Africa'],
-            ['name' => 'Serie A', 'slug' => 'serie-a', 'region' => 'Italy'],
-        ]);
+        return collect(config('football_leagues.top_leagues', []))
+            ->map(fn (array $league): array => [
+                'name' => $league['name'],
+                'slug' => $league['slug'],
+                'region' => $league['country'],
+            ]);
     }
 
     private function teamDirectory(): Collection
     {
-        return collect([
-            ['name' => 'Morocco National Team', 'slug' => 'morocco-national-team', 'region' => 'Morocco'],
-            ['name' => 'Raja Club Athletic', 'slug' => 'raja-club-athletic', 'region' => 'Morocco'],
-            ['name' => 'Wydad AC', 'slug' => 'wydad-ac', 'region' => 'Morocco'],
-            ['name' => 'Real Madrid', 'slug' => 'real-madrid', 'region' => 'Spain'],
-            ['name' => 'Barcelona', 'slug' => 'barcelona', 'region' => 'Spain'],
-            ['name' => 'Manchester City', 'slug' => 'manchester-city', 'region' => 'England'],
-        ]);
+        return collect();
     }
 }

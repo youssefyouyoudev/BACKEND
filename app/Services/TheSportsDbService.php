@@ -240,7 +240,7 @@ class TheSportsDbService
             'round' => $this->clean($event['intRound'] ?? null) ? 'Round '.$this->clean($event['intRound'] ?? null) : null,
             'poster' => $this->image($event['strPoster'] ?? $event['strThumb'] ?? $event['strFanart'] ?? null),
             'tv_channels' => [],
-            'event_url' => $eventId !== '' ? route('football.event', $eventId) : null,
+            'event_url' => $eventId !== '' ? route('sports.football.event', $eventId) : null,
         ];
     }
 

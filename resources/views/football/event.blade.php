@@ -6,7 +6,7 @@
 @section('content')
 <div class="rm-page football-live-page" data-football-event-page data-event-id="{{ $match['id'] }}">
     <nav class="football-breadcrumb" aria-label="Breadcrumb">
-        <a href="{{ route('football.index') }}">Football</a>
+        <a href="{{ route('sports.football') }}">Football</a>
         <span aria-hidden="true">/</span>
         <span>{{ $match['home_team']['name'] }} vs {{ $match['away_team']['name'] }}</span>
     </nav>
@@ -25,7 +25,7 @@
     <section class="football-panel">
         <div class="football-panel__header">
             <h2>TV channels</h2>
-            <a href="{{ route('football.index') }}">Back to live scores</a>
+            <a href="{{ route('sports.football') }}">Back to live scores</a>
         </div>
         <div data-event-tv-channels>
             <p class="football-empty">Loading broadcast information...</p>

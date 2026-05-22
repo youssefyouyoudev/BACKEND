@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\FootballController;
+use App\Http\Controllers\ComingSoonController;
+use App\Http\Controllers\SportsController;
 use App\Http\Controllers\Web\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Web\Admin\ChannelManagementController as AdminChannelController;
@@ -15,6 +17,11 @@ use App\Http\Controllers\StreamProxyController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+Route::get('/sports', SportsController::class)->name('sports.index');
+Route::get('/sports/football', [FootballController::class, 'index'])->name('sports.football');
+Route::get('/sports/football/event/{eventId}', [FootballController::class, 'event'])
+    ->whereNumber('eventId')
+    ->name('sports.football.event');
 Route::get('/football', [FootballController::class, 'index'])->name('football.index');
 Route::get('/football/event/{eventId}', [FootballController::class, 'event'])
     ->whereNumber('eventId')
@@ -28,6 +35,17 @@ Route::prefix('football/api')->middleware('throttle:api')->group(function (): vo
     Route::get('/event/{eventId}/tv', [FootballController::class, 'eventTv'])->whereNumber('eventId')->name('football.api.event-tv');
     Route::get('/channel-match-debug', [FootballController::class, 'matchChannelDebug'])->name('football.api.channel-match-debug');
 });
+Route::prefix('api/football')->middleware('throttle:api')->group(function (): void {
+    Route::get('/today', [FootballController::class, 'today'])->name('api.football.today');
+    Route::get('/date', [FootballController::class, 'byDate'])->name('api.football.date');
+    Route::get('/upcoming', [FootballController::class, 'upcoming'])->name('api.football.upcoming');
+    Route::get('/results', [FootballController::class, 'results'])->name('api.football.results');
+    Route::get('/event/{eventId}', [FootballController::class, 'event'])->whereNumber('eventId')->name('api.football.event');
+    Route::get('/event/{eventId}/tv', [FootballController::class, 'eventTv'])->whereNumber('eventId')->name('api.football.event-tv');
+});
+Route::get('/movies', ComingSoonController::class)->defaults('section', 'movies')->name('movies');
+Route::get('/tv-shows', ComingSoonController::class)->defaults('section', 'tv-shows')->name('tv-shows');
+Route::get('/anime', ComingSoonController::class)->defaults('section', 'anime')->name('anime');
 Route::get('/news', [SportsPageController::class, 'news'])->name('news.index');
 Route::get('/news/{slug}', [SportsPageController::class, 'article'])->name('news.show');
 Route::get('/scores', [SportsPageController::class, 'scores'])->name('scores');
@@ -52,6 +70,7 @@ Route::get('/editorial-policy', [SportsPageController::class, 'staticPage'])->de
 Route::get('/sitemap.xml', [SportsPageController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [SportsPageController::class, 'robots'])->name('robots');
 Route::get('/live', LiveTvController::class)->name('live');
+Route::get('/live-tv', LiveTvController::class)->name('live-tv');
 Route::get('/watch/{channel}', [ChannelController::class, 'show'])->name('channels.show');
 Route::get('/stream/{encodedUrl}', StreamProxyController::class)
     ->name('stream.proxy');
