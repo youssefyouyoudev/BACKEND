@@ -2,35 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use App\Support\StreamUrl;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
 
 class StreamProxyController extends Controller
 {
-    public function __invoke(Request $request, string $encodedUrl): RedirectResponse
+    public function __invoke(Request $request, string $encodedUrl)
     {
         $url = $this->decodeUrl($encodedUrl);
 
-        abort_if(
-            $url === null || ! filter_var($url, FILTER_VALIDATE_URL),
-            Response::HTTP_BAD_REQUEST,
-            'Invalid stream URL.'
-        );
+        if (! $url || ! filter_var($url, FILTER_VALIDATE_URL)) {
+            abort(Response::HTTP_BAD_REQUEST, 'Invalid stream URL.');
+        }
 
-        $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+        $scheme = strtolower(parse_url($url, PHP_URL_SCHEME) ?? '');
 
-        abort_if(
-            ! in_array($scheme, ['http', 'https'], true),
-            Response::HTTP_BAD_REQUEST,
-            'Unsupported stream URL scheme.'
-        );
-
-        Log::info('[RiFiProxy] Redirecting stream instead of proxying through PHP', [
-            'url' => StreamUrl::masked($url),
-        ]);
+        if (! in_array($scheme, ['http', 'https'], true)) {
+            abort(Response::HTTP_BAD_REQUEST, 'Unsupported stream URL scheme.');
+        }
 
         return redirect()->away($url);
     }
@@ -38,6 +27,7 @@ class StreamProxyController extends Controller
     private function decodeUrl(string $encodedUrl): ?string
     {
         $normalized = strtr($encodedUrl, '-_', '+/');
+
         $padding = strlen($normalized) % 4;
 
         if ($padding > 0) {
