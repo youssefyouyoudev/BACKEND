@@ -11,7 +11,7 @@
 
 <article {{ $attributes->merge(['class' => 'football-match-card']) }}>
     <header class="football-match-card__header">
-        <span>{{ data_get($match, 'league.name', 'Football') }}</span>
+        <span><x-icon name="trophy" /> {{ data_get($match, 'league.name', 'Football') }}</span>
         <b class="football-status-badge football-status-badge--{{ data_get($match, 'status_type', 'unknown') }}">{{ data_get($match, 'status', 'Unknown') }}</b>
     </header>
     <div class="football-scoreline">

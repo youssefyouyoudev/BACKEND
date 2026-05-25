@@ -1,7 +1,7 @@
 @props(['title', 'description', 'features' => []])
 
 <section {{ $attributes->merge(['class' => 'rm-coming-soon']) }}>
-    <span class="rm-kicker">Coming soon</span>
+    <span class="rm-kicker">Entertainment preview</span>
     <h1>{{ $title }}</h1>
     <p>{{ $description }}</p>
     <div class="rm-coming-soon__features">

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Football Fixtures, Match Calendar & Kickoff Times | RifiMedia Sports')
-@section('description', 'Browse football fixtures, upcoming matches, league schedules, kickoff times, and match center links on RifiMedia Sports.')
+@section('title', 'Football Fixtures, Match Calendar & Kickoff Times | RifiMedia')
+@section('description', 'Browse football fixtures, upcoming matches, league schedules, kickoff times, and match center links on RifiMedia.')
 
 @section('content')
 <div class="rm-page rm-page--fixtures">

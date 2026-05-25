@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Football Live Scores & TV Channels | RifiMedia Sports')
-@section('description', 'Today football matches, recent results, upcoming fixtures, and TV channels with direct watch links from RifiMedia Sports playlists.')
+@section('title', 'Football Live Scores & TV Channels | RifiMedia')
+@section('description', 'Today football matches, recent results, upcoming fixtures, and TV channels with direct watch links from RifiMedia playlists.')
 
 @section('content')
 <div
@@ -20,26 +20,26 @@
         <span>Football</span>
     </nav>
 
-    <section class="football-live-hero">
-        <div>
-            <span class="rm-kicker">Live football center</span>
-            <h1>Football Live Scores &amp; TV Channels</h1>
-            <p>Follow top European football fixtures, results, live status, and broadcast availability with direct links to channels already available in your RifiMedia playlist.</p>
+    <section class="football-live-hero" style="--rm-hero-photo: url('{{ config('rifimedia_visuals.images.stadium_night') }}')">
+        <div data-reveal>
+            <span class="rm-kicker"><x-icon name="football" /> RifiMedia</span>
+            <h1>Football live scores, fixtures, and TV channels</h1>
+            <p>Track live matches, kickoff times, results, and broadcast availability from a match-day dashboard built for quick scanning.</p>
         </div>
         <button type="button" class="football-refresh-btn" data-football-refresh>
-            <span aria-hidden="true">↻</span>
+            <x-icon name="signal" />
             Refresh
         </button>
     </section>
 
     <section class="football-filter-panel" aria-label="Football filters">
         <div class="football-quick-filters" role="tablist" aria-label="Match range">
-            <button type="button" data-football-filter="today" class="is-active">Today</button>
-            <button type="button" data-football-filter="live">Live</button>
-            <button type="button" data-football-filter="tomorrow">Tomorrow</button>
-            <button type="button" data-football-filter="yesterday">Yesterday</button>
-            <button type="button" data-football-filter="upcoming">Upcoming</button>
-            <button type="button" data-football-filter="results">Results</button>
+            <button type="button" data-football-filter="today" class="is-active"><x-icon name="calendar" />Today</button>
+            <button type="button" data-football-filter="live"><x-icon name="signal" />Live</button>
+            <button type="button" data-football-filter="tomorrow"><x-icon name="calendar" />Tomorrow</button>
+            <button type="button" data-football-filter="yesterday"><x-icon name="clock" />Yesterday</button>
+            <button type="button" data-football-filter="upcoming"><x-icon name="trending" />Upcoming</button>
+            <button type="button" data-football-filter="results"><x-icon name="scores" />Results</button>
         </div>
 
         <div class="football-date-filter">
@@ -49,11 +49,15 @@
     </section>
 
     <section class="football-league-strip" aria-label="Configured top leagues">
+        <button type="button" data-football-league="All" class="is-active">
+            <strong>All leagues</strong>
+            <small>Every match</small>
+        </button>
         @foreach($leagues as $league)
-            <span class="{{ empty($league['id']) ? 'is-missing' : '' }}">
+            <button type="button" data-football-league="{{ $league['name'] }}">
                 <strong>{{ $league['name'] }}</strong>
-                <small>{{ $league['country'] }}{{ empty($league['id']) ? ' · ID needed' : '' }}</small>
-            </span>
+                <small>{{ $league['country'] }}</small>
+            </button>
         @endforeach
     </section>
 

@@ -1,9 +1,7 @@
 @props(['title', 'description' => null, 'href' => null, 'label' => null, 'image' => null, 'disabled' => false])
 
 <article {{ $attributes->merge(['class' => 'rm-media-card'.($disabled ? ' is-disabled' : '')]) }}>
-    @if($image)
-        <img src="{{ $image }}" alt="" loading="lazy">
-    @endif
+    <img src="{{ $image ?: config('rifimedia_visuals.images.fallback_sports') }}" alt="{{ $title }}" loading="lazy" data-fallback-src="{{ config('rifimedia_visuals.images.fallback_sports') }}">
     @if($label)
         <span>{{ $label }}</span>
     @endif
@@ -13,7 +11,7 @@
     @endif
     @if($href && ! $disabled)
         <a href="{{ $href }}">Open</a>
-    @else
-        <em>Coming soon</em>
+    @elseif($label)
+        <em>{{ $label }}</em>
     @endif
 </article>

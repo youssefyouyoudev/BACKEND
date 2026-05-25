@@ -12,17 +12,17 @@ class ComingSoonController extends Controller
         $sections = [
             'movies' => [
                 'title' => 'Movies',
-                'description' => 'We are preparing a better movie discovery and watching experience.',
+                'description' => 'Movie discovery is being shaped into a cleaner premium RifiMedia experience.',
                 'features' => ['Movies library', 'Collections', 'Watchlist', 'Continue watching'],
             ],
             'tv-shows' => [
                 'title' => 'TV Shows',
-                'description' => 'We are preparing TV schedules, show pages, and simple browsing tools.',
+                'description' => 'TV schedules, show pages, and browsing tools are being shaped for RifiMedia users.',
                 'features' => ['TV schedule', 'Show pages', 'Watchlist', 'Episode tracking'],
             ],
             'anime' => [
                 'title' => 'Anime',
-                'description' => 'We are preparing a cleaner anime experience with episodes and watchlists.',
+                'description' => 'Anime episodes, season guides, and watchlists are being shaped for RifiMedia users.',
                 'features' => ['Anime episodes', 'Season guides', 'Watchlist', 'Release calendar'],
             ],
         ];

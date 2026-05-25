@@ -65,7 +65,7 @@
             {{-- Footer: viewers + open button --}}
             <span class="rm-match-card__footer">
                 <span>{{ $viewers ? $viewers . ' viewers' : 'Media channel' }}</span>
-                <em aria-hidden="true">Open</em>
+                <em aria-hidden="true"><x-icon name="play" /> Watch</em>
             </span>
         </span>
 

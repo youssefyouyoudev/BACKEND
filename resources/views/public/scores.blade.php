@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Live Football Scores Today | RifiMedia Sports')
-@section('description', 'Follow today’s football live scores, fixtures, results, and match updates on RifiMedia Sports.')
+@section('title', 'Live Football Scores Today | RifiMedia')
+@section('description', 'Follow today’s football live scores, fixtures, results, and match updates on RifiMedia.')
 
 @section('content')
 <div class="rm-page rm-page--scores">
@@ -31,7 +31,7 @@
                 <div class="rm-empty-state">
                     <span>No live scores available</span>
                     <strong>Live scores will appear here when matches are available.</strong>
-                    <p>No sample scores are shown as real. Connect a verified football data source to populate this page.</p>
+                    <p>Try another date or open the football dashboard for upcoming fixtures.</p>
                 </div>
             @endif
         </div>

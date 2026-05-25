@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', ($article->meta_title ?: $article->title).' | RifiMedia Sports')
-@section('description', $article->meta_description ?: ($article->excerpt ?: 'Read football news and sports coverage on RifiMedia Sports.'))
+@section('title', ($article->meta_title ?: $article->title).' | RifiMedia')
+@section('description', $article->meta_description ?: ($article->excerpt ?: 'Read football news and sports coverage on RifiMedia.'))
 
 @section('content')
 <article class="rm-page rm-page--article">
@@ -17,7 +17,7 @@
         <span class="rm-kicker">{{ $article->category?->name ?? 'Football' }}</span>
         <h1>{{ $article->title }}</h1>
         <p>{{ $article->excerpt }}</p>
-        <small>{{ $article->published_at?->format('F j, Y') }} · {{ $article->author?->name ?? 'RifiMedia Sports Desk' }}</small>
+        <small>{{ $article->published_at?->format('F j, Y') }} | {{ $article->author?->name ?? 'RifiMedia Desk' }}</small>
     </header>
 
     <x-ad-slot name="article_leaderboard" size="leaderboard" />

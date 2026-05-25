@@ -1,12 +1,12 @@
 @extends('layouts.app')
 
-@section('title', $page['title'].' | RifiMedia Sports')
+@section('title', $page['title'].' | RifiMedia')
 @section('description', $page['description'])
 
 @section('content')
 <div class="rm-page rm-page--static">
     <section class="rm-page-hero">
-        <span class="rm-kicker">RifiMedia Sports</span>
+        <span class="rm-kicker">RifiMedia</span>
         <h1>{{ $page['title'] }}</h1>
         <p>{{ $page['description'] }}</p>
     </section>

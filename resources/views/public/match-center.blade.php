@@ -6,7 +6,7 @@
     $availableTvChannels = $tvChannels->where('available', true);
 @endphp
 
-@section('title', $pageName.' Match Center | RifiMedia Sports')
+@section('title', $pageName.' Match Center | RifiMedia')
 @section('description', $item['description'] ?? 'Match center coverage with previews, fixtures, stats, standings, and related sports updates.')
 
 @section('content')
@@ -14,7 +14,7 @@
     <section class="rm-match-center-hero">
         <span class="rm-kicker">{{ ucfirst($mode) }} center</span>
         <h1>{{ $pageName }}</h1>
-        <p>{{ $item['description'] ?? 'Coverage center ready for reliable sports data.' }}</p>
+        <p>{{ $item['description'] ?? 'Browse coverage, related channels, and match-day information in one premium sports hub.' }}</p>
         <div class="rm-match-center-score">
             <div><span>Home</span><strong>-</strong></div>
             <div><span>Status</span><strong>Preview</strong></div>
@@ -80,7 +80,7 @@
             @foreach(['Preview', 'Timeline', 'Stats', 'Lineups', 'News'] as $tab)
                 <section>
                     <h2>{{ $tab }}</h2>
-                    <p>{{ $tab }} content will appear here when verified match, team, and editorial data is connected.</p>
+                    <p>{{ $tab }} details are not available right now. Check related channels and football scores for more coverage.</p>
                 </section>
             @endforeach
         </div>

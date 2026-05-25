@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Football Match Center, Previews & Reports | RifiMedia Sports')
+@section('title', 'Football Match Center, Previews & Reports | RifiMedia')
 @section('description', 'Browse football match center pages for previews, reports, stats, timelines, lineups, and related sports coverage.')
 
 @section('content')

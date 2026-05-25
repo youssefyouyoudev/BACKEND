@@ -9,6 +9,8 @@ const state = {
     root: null,
     activeFilter: 'today',
     activeCountry: 'All',
+    activeLeague: 'All',
+    currentMatches: [],
     refreshTimer: null,
     tvCache: new Map(),
 };
@@ -28,6 +30,11 @@ export function initFootballLivescore() {
 export async function fetchTodayMatches() {
     setActiveFilter('today');
     await loadMatches(state.root.dataset.todayUrl, 'No top league matches found for today.');
+}
+
+export async function fetchLiveMatches() {
+    setActiveFilter('live');
+    await loadMatches(state.root.dataset.todayUrl, 'No live matches right now.');
 }
 
 export async function fetchMatchesByDate(date) {
@@ -51,12 +58,15 @@ export function renderMatches(matches, emptyMessage = 'No matches available.') {
     const target = state.root?.querySelector(SELECTORS.matches);
     if (! target) return;
 
-    if (! Array.isArray(matches) || matches.length === 0) {
+    state.currentMatches = Array.isArray(matches) ? matches : [];
+    const visibleMatches = filterMatches(state.currentMatches);
+
+    if (visibleMatches.length === 0) {
         renderEmpty(emptyMessage);
         return;
     }
 
-    target.innerHTML = matches.map((match) => renderMatchCard(match)).join('');
+    target.innerHTML = visibleMatches.map((match) => renderMatchCard(match)).join('');
     target.querySelectorAll('[data-load-tv]').forEach((button) => {
         button.addEventListener('click', () => loadTvChannelsForCard(button.closest('[data-match-card]')));
     });
@@ -76,7 +86,7 @@ export function renderMatchCard(match) {
     const detailsUrl = safeText(match?.event_url || `/sports/football/event/${eventId}`);
 
     return `
-        <article class="football-match-card" data-match-card data-event-id="${eventId}">
+        <article class="football-match-card" data-match-card data-event-id="${eventId}" data-league="${safeText(match?.league?.name || 'Football')}">
             <header class="football-match-card__header">
                 <span>${safeText(match?.league?.name || 'Football')}</span>
                 <b class="football-status-badge football-status-badge--${statusType}">${safeText(match?.status || 'Unknown')}</b>
@@ -93,7 +103,7 @@ export function renderMatchCard(match) {
                 </div>
             </div>
             <footer class="football-match-card__meta">
-                <span>${safeText(formatDate(match?.date))}${match?.time ? ` · ${safeText(formatTime(match.time))}` : ''}</span>
+                <span>${safeText(formatDate(match?.date))}${match?.time ? ` &middot; ${safeText(formatTime(match.time))}` : ''}</span>
                 ${match?.venue ? `<span>${safeText(match.venue)}</span>` : ''}
             </footer>
             <section class="football-tv-box" data-tv-box>
@@ -138,14 +148,19 @@ export function renderError(message) {
     const target = state.root?.querySelector(SELECTORS.matches);
     if (! target) return;
 
-    target.innerHTML = `<div class="football-state football-state--error"><strong>Could not load matches</strong><p>${safeText(message || 'Please try again shortly.')}</p></div>`;
+    target.innerHTML = `<div class="football-state football-state--error"><strong>Could not load matches</strong><p>${safeText(message || 'Please try again shortly.')}</p><button type="button" class="football-tv-toggle" data-football-retry>Retry</button></div>`;
+    target.querySelector('[data-football-retry]')?.addEventListener('click', () => {
+        if (state.activeFilter === 'upcoming') return fetchUpcomingMatches();
+        if (state.activeFilter === 'results') return fetchResults();
+        return fetchTodayMatches();
+    });
 }
 
 export function renderEmpty(message) {
     const target = state.root?.querySelector(SELECTORS.matches);
     if (! target) return;
 
-    target.innerHTML = `<div class="football-state"><strong>No matches</strong><p>${safeText(message)}</p></div>`;
+    target.innerHTML = `<div class="football-state"><strong>No matches available for this filter right now.</strong><p>${safeText(message || 'Try another date, league, or match range.')}</p></div>`;
 }
 
 export function setActiveFilter(filter) {
@@ -197,7 +212,9 @@ export function autoRefreshLiveMatches() {
     clearInterval(state.refreshTimer);
     state.refreshTimer = setInterval(() => {
         if (document.visibilityState !== 'visible') return;
-        if (['today', 'date'].includes(state.activeFilter)) {
+        if (state.activeFilter === 'live') {
+            fetchLiveMatches();
+        } else if (['today', 'date'].includes(state.activeFilter)) {
             fetchTodayMatches();
         }
     }, 60000);
@@ -207,7 +224,8 @@ function bindFootballPage() {
     state.root.querySelectorAll('[data-football-filter]').forEach((button) => {
         button.addEventListener('click', () => {
             const filter = button.dataset.footballFilter;
-            if (filter === 'today' || filter === 'live') return fetchTodayMatches();
+            if (filter === 'today') return fetchTodayMatches();
+            if (filter === 'live') return fetchLiveMatches();
             if (filter === 'tomorrow') return fetchMatchesByDate(offsetDate(1));
             if (filter === 'yesterday') return fetchMatchesByDate(offsetDate(-1));
             if (filter === 'upcoming') return fetchUpcomingMatches();
@@ -230,6 +248,14 @@ function bindFootballPage() {
             state.activeCountry = button.dataset.tvCountry || 'All';
             state.root.querySelectorAll('[data-tv-country]').forEach((item) => item.classList.toggle('is-active', item === button));
             rerenderLoadedTvChannels();
+        });
+    });
+
+    state.root.querySelectorAll('[data-football-league]').forEach((button) => {
+        button.addEventListener('click', () => {
+            state.activeLeague = button.dataset.footballLeague || 'All';
+            state.root.querySelectorAll('[data-football-league]').forEach((item) => item.classList.toggle('is-active', item === button));
+            renderMatches(state.currentMatches, 'No matches available for this league right now.');
         });
     });
 }
@@ -283,6 +309,17 @@ function buildUnavailableChannel(channel) {
             <em>Not in playlist</em>
         </div>
     `;
+}
+
+function filterMatches(matches) {
+    return matches.filter((match) => {
+        const leagueName = String(match?.league?.name || '');
+        const statusType = String(match?.status_type || '').toLowerCase();
+        const leagueMatches = state.activeLeague === 'All' || leagueName === state.activeLeague;
+        const liveMatches = state.activeFilter !== 'live' || statusType.includes('live') || ['1h', '2h', 'ht'].includes(statusType);
+
+        return leagueMatches && liveMatches;
+    });
 }
 
 function rerenderLoadedTvChannels() {

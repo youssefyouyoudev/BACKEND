@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', 'Football Highlights Information | RifiMedia Sports')
-@section('description', 'Discover football highlights information, match recaps, and related sports coverage on RifiMedia Sports.')
+@section('title', 'Football Highlights Information | RifiMedia')
+@section('description', 'Discover football highlights information, match recaps, and related sports coverage on RifiMedia.')
 
 @section('content')
 <div class="rm-page">

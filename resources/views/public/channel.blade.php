@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', ($activeChannel['name'] ?? 'Channel').' Information | RifiMedia Sports')
-@section('description', 'Channel information, program guide, related media, and permitted live player access on RifiMedia Sports.')
+@section('title', ($activeChannel['name'] ?? 'Channel').' Information | RifiMedia')
+@section('description', 'Channel information, program guide, related media, and permitted live player access on RifiMedia.')
 @section('robots', 'noindex,follow')
 
 @section('content')

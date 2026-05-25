@@ -26,26 +26,26 @@
     })"
     x-init="init"
 >
-    <section class="rm-live-stage">
+    <section class="rm-live-stage" style="--rm-hero-photo: url('{{ config('rifimedia_visuals.images.stadium_night') }}')">
         <div class="rm-live-stage__header">
             <div>
-                <span class="rm-live-badge"><i></i> Live TV</span>
-                <h1>Live TV channels, instantly switchable.</h1>
-                <p>Browse approved public channels with fast search, category filters, and a full watch page.</p>
+                <span class="rm-live-badge"><i></i> <x-icon name="signal" /> Live TV</span>
+                <h1>Live TV channels with a cinematic player.</h1>
+                <p>Start watching instantly, search by channel name, filter by category, and jump into a full player whenever you need more space.</p>
             </div>
 
             <form class="rm-search rm-search--wide" @submit.prevent="loadChannels">
-                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                <x-icon name="search" />
                 <input type="search" x-model.debounce.400ms="search" @input.debounce.450ms="loadChannels" placeholder="Search live channels">
             </form>
         </div>
 
-        <div class="rm-live-layout">
+        <div class="rm-live-layout" id="channels">
             <aside class="rm-glass-card rm-live-browser" aria-label="Live channel browser">
                 <div class="rm-live-browser__top">
                     <strong>Channels</strong>
                     <button type="button" class="rm-icon-btn" @click="loadChannels" aria-label="Refresh channels">
-                        <svg viewBox="0 0 24 24" fill="none"><path d="M20 6v5h-5"></path><path d="M4 18v-5h5"></path><path d="M18 9a7 7 0 0 0-11.8-2.4M6 15a7 7 0 0 0 11.8 2.4"></path></svg>
+                        <x-icon name="signal" />
                     </button>
                 </div>
 
@@ -68,12 +68,25 @@
                                 <strong x-text="channel.name"></strong>
                                 <small x-text="channel.group_title"></small>
                             </span>
+                            <b aria-hidden="true">+</b>
                             <em><i></i><span x-text="channel.viewers_label"></span></em>
                         </button>
                     </template>
 
-                    <div class="rm-empty-state rm-empty-state--compact" x-show="!loadingList && channels.length === 0">
-                        <span>No channels found</span>
+                    <template x-if="loadingList">
+                        <div class="rm-skeleton-list" aria-label="Loading channels">
+                            <span></span><span></span><span></span><span></span>
+                        </div>
+                    </template>
+
+                    <div class="rm-empty-state rm-empty-state--compact" x-show="loadError && !loadingList">
+                        <span>Channels could not be loaded</span>
+                        <strong>Check your connection and try again.</strong>
+                        <button type="button" class="rm-btn rm-btn-secondary rm-btn-sm" @click="loadChannels">Retry</button>
+                    </div>
+
+                    <div class="rm-empty-state rm-empty-state--compact" x-show="!loadError && !loadingList && channels.length === 0">
+                        <span>No channels match your search</span>
                         <strong>Try a different search or category.</strong>
                     </div>
                 </div>
@@ -81,12 +94,12 @@
 
             <section class="rm-player-shell">
                 <div class="rm-player-header" x-show="activeChannel">
-                    <span class="rm-live-badge"><i></i> Live</span>
+                    <span class="rm-live-badge"><i></i> <x-icon name="play" /> Live</span>
                     <div>
                         <h2 x-text="activeChannel?.name || 'Select a channel'"></h2>
-                        <p><span x-text="activeChannel?.group_title"></span> <span aria-hidden="true">-</span> <strong x-text="activeChannel?.viewers_label"></strong> watching</p>
+                        <p><span x-text="activeChannel?.group_title"></span> <span aria-hidden="true">|</span> <strong x-text="activeChannel?.viewers_label"></strong> watching</p>
                     </div>
-                    <a :href="activeChannel ? `/watch/${activeChannel.id}` : '#'" class="rm-btn rm-btn-primary rm-btn-sm">Full Player</a>
+                    <a :href="activeChannel ? `/watch/${activeChannel.id}` : '#'" class="rm-btn rm-btn-primary rm-btn-sm"><x-icon name="play" />Full Player</a>
                 </div>
 
                 <div class="rm-player-frame rm-player-frame--spa">
@@ -139,7 +152,8 @@ document.addEventListener('alpine:init', () => {
         fallbackLogo: @js(asset('brand/rifi-logo.png')),
         hls: null,
         mpegts: null,
-        previewReconnects: 0,
+                previewReconnects: 0,
+                loadError: false,
 
         init() {
             const requested = initialChannelId
@@ -165,6 +179,7 @@ document.addEventListener('alpine:init', () => {
             });
 
             try {
+                this.loadError = false;
                 const response = await fetch(`/api/tv/channels?${params}`, { headers: { Accept: 'application/json' } });
                 if (!response.ok) throw new Error('Could not load channels');
                 const payload = await response.json();
@@ -174,6 +189,7 @@ document.addEventListener('alpine:init', () => {
                 }
             } catch (error) {
                 console.error(error);
+                this.loadError = true;
             } finally {
                 this.loadingList = false;
             }

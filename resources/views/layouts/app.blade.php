@@ -20,8 +20,8 @@
         })();
     </script>
     @php
-        $seoTitle = html_entity_decode(trim($__env->yieldContent('title')), ENT_QUOTES, 'UTF-8') ?: ($title ?? 'RifiMedia Sports - Football News, Live Scores, Fixtures & Match Updates');
-        $seoDescription = html_entity_decode(trim($__env->yieldContent('description')), ENT_QUOTES, 'UTF-8') ?: ($description ?? 'Follow football news, live scores, fixtures, standings, match previews, and sports updates on RifiMedia Sports.');
+        $seoTitle = html_entity_decode(trim($__env->yieldContent('title')), ENT_QUOTES, 'UTF-8') ?: ($title ?? 'RifiMedia - Live TV, Football Scores & Sports Streaming');
+        $seoDescription = html_entity_decode(trim($__env->yieldContent('description')), ENT_QUOTES, 'UTF-8') ?: ($description ?? 'RifiMedia brings football scores, live TV channels, sports updates, and entertainment into one clean platform.');
         $seoRobots = trim($__env->yieldContent('robots')) ?: ($robots ?? 'index,follow');
         $seoCanonical = $canonical ?? url()->current();
         $seoImage = $image ?? asset('brand/rifi-logo.png');
@@ -31,7 +31,7 @@
                 [
                     '@type' => 'Organization',
                     '@id' => url('/').'#organization',
-                    'name' => 'RifiMedia Sports',
+                    'name' => 'RifiMedia',
                     'url' => url('/'),
                     'logo' => asset('brand/rifi-logo.png'),
                 ],
@@ -39,8 +39,8 @@
                     '@type' => 'WebSite',
                     '@id' => url('/').'#website',
                     'url' => url('/'),
-                    'name' => 'RifiMedia Sports',
-                    'description' => 'Sports news, live scores, fixtures, standings, and match updates.',
+                    'name' => 'RifiMedia',
+                    'description' => 'Football scores, live TV channels, sports updates, and entertainment.',
                     'publisher' => ['@id' => url('/').'#organization'],
                     'potentialAction' => [
                         '@type' => 'SearchAction',
@@ -51,20 +51,19 @@
             ],
         ];
         $mainNav = [
-            ['label' => 'Home', 'href' => route('home'), 'active' => request()->routeIs('home')],
-            ['label' => 'Sports', 'href' => route('sports.index'), 'active' => request()->routeIs('sports.*', 'football.*', 'scores', 'fixtures', 'matches.*', 'leagues.*', 'teams.*', 'standings')],
-            ['label' => 'Football', 'href' => route('sports.football'), 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores')],
-            ['label' => 'Live TV', 'href' => route('live-tv'), 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
-            ['label' => 'Movies', 'href' => route('movies'), 'active' => request()->routeIs('movies')],
-            ['label' => 'TV Shows', 'href' => route('tv-shows'), 'active' => request()->routeIs('tv-shows')],
-            ['label' => 'Anime', 'href' => route('anime'), 'active' => request()->routeIs('anime')],
-            ['label' => 'News', 'href' => route('news.index'), 'active' => request()->routeIs('news.*')],
+            ['label' => 'Home', 'icon' => 'play', 'href' => route('home'), 'active' => request()->routeIs('home')],
+            ['label' => 'Football', 'icon' => 'football', 'href' => route('sports.football'), 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores')],
+            ['label' => 'Live TV', 'icon' => 'tv', 'href' => route('live-tv'), 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
+            ['label' => 'Channels', 'icon' => 'signal', 'href' => route('live-tv').'#channels', 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
+            ['label' => 'News', 'icon' => 'news', 'href' => route('news.index'), 'active' => request()->routeIs('news.*')],
+            ['label' => 'Leagues', 'icon' => 'trophy', 'href' => route('leagues.index'), 'active' => request()->routeIs('leagues.*')],
+            ['label' => 'Teams', 'icon' => 'globe', 'href' => route('teams.index'), 'active' => request()->routeIs('teams.*')],
         ];
         $mobileQuickNav = [
             ['label' => 'Home', 'href' => route('home'), 'icon' => 'H', 'active' => request()->routeIs('home')],
-            ['label' => 'Sports', 'href' => route('sports.index'), 'icon' => 'S', 'active' => request()->routeIs('sports.*')],
             ['label' => 'Football', 'href' => route('sports.football'), 'icon' => 'F', 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores')],
             ['label' => 'Live TV', 'href' => route('live-tv'), 'icon' => 'L', 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
+            ['label' => 'Leagues', 'href' => route('leagues.index'), 'icon' => 'G', 'active' => request()->routeIs('leagues.*')],
             ['label' => 'News', 'href' => route('news.index'), 'icon' => 'N', 'active' => request()->routeIs('news.*')],
             ['label' => 'Search', 'href' => route('search'), 'icon' => 'Q', 'active' => request()->routeIs('search')],
         ];
@@ -96,12 +95,14 @@
 
                 <nav class="rm-navbar__links" aria-label="Main menu">
                     @foreach($mainNav as $item)
-                        <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}">{{ $item['label'] }}</a>
+                        <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}"><x-icon :name="$item['icon']" />{{ $item['label'] }}</a>
                     @endforeach
                 </nav>
 
                 <div class="rm-navbar__actions">
-                    <a href="{{ route('search') }}" class="rm-icon-btn" aria-label="Search"><span aria-hidden="true">S</span></a>
+                    <a href="{{ route('search') }}" class="rm-icon-btn" aria-label="Search">
+                        <x-icon name="search" />
+                    </a>
                     <button type="button" class="rm-icon-btn rm-theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
                         <span data-theme-icon aria-hidden="true">D</span>
                     </button>
@@ -122,10 +123,8 @@
 
             <nav class="rm-navbar__drawer" x-show="mobileNavOpen" x-transition.opacity.origin.top @click.outside="mobileNavOpen = false" aria-label="Mobile menu">
                 @foreach($mainNav as $item)
-                    <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}">{{ $item['label'] }}</a>
+                        <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}"><x-icon :name="$item['icon']" />{{ $item['label'] }}</a>
                 @endforeach
-                <a href="{{ route('standings') }}">Standings</a>
-                <a href="{{ route('teams.index') }}">Teams</a>
                 @auth
                     @if(auth()->user()?->isAdmin())
                         <a href="{{ route('admin.dashboard') }}">Admin</a>
@@ -158,7 +157,7 @@
             <div class="rm-footer__inner">
                 <div class="rm-footer__brand">
                     <x-logo />
-                    <p>RifiMedia Sports brings football live scores, fixtures, league coverage, verified news, and curated sports channels into one premium match-day destination.</p>
+                    <p>RifiMedia brings football scores, live TV channels, sports updates, and entertainment into one clean platform.</p>
                 </div>
                 <nav aria-label="Footer navigation" class="rm-footer__groups">
                     <span>
@@ -184,14 +183,14 @@
                     </span>
                 </nav>
                 <div class="rm-footer__bottom">
-                    <p>&copy; {{ date('Y') }} RifiMedia Sports. All rights reserved.</p>
+                    <p>&copy; {{ date('Y') }} RifiMedia. All rights reserved.</p>
                     <span class="rm-social-links" aria-label="Social links">
                         <a href="{{ route('news.index') }}">Newsroom</a>
                         <a href="{{ route('live-tv') }}">Live TV</a>
                         <a href="{{ route('contact') }}">Contact</a>
                     </span>
                 </div>
-                <p class="rm-footer__legal">RifiMedia Sports is a football media and discovery platform. Channel availability, scores, fixtures, and match information may change. Users are responsible for ensuring they have rights to submitted playlist or stream sources.</p>
+                <p class="rm-footer__legal">RifiMedia is a media discovery platform. Channel availability, scores, fixtures, and match information may change. Users are responsible for ensuring they have rights to submitted playlist or stream sources.</p>
             </div>
         </footer>
     </div>
