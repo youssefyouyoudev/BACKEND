@@ -50,6 +50,29 @@ class StreamUrl
         );
     }
 
+    public static function signedBridge(?string $url, int $minutes = 15): ?string
+    {
+        if ($url === null || trim($url) === '') {
+            return $url;
+        }
+
+        return URL::temporarySignedRoute('stream.bridge', now()->addMinutes($minutes), [
+            'encodedUrl' => self::encodeProxyUrl(trim($url)),
+        ]);
+    }
+
+    public static function channelBridge(int $channelId, ?int $sourceId = null, int $minutes = 15): string
+    {
+        return URL::temporarySignedRoute(
+            'stream.bridge.channel',
+            now()->addMinutes($minutes),
+            array_filter([
+                'channel' => $channelId,
+                'source' => $sourceId,
+            ], fn ($value) => $value !== null)
+        );
+    }
+
     public static function encodeProxyUrl(string $url): string
     {
         return rtrim(strtr(base64_encode($url), '+/', '-_'), '=');

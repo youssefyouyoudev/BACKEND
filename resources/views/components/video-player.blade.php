@@ -232,10 +232,9 @@
                     this.loadToken += 1;
                     const token = this.loadToken;
                     const wasLiveRecovering = this.hasStartedPlayback || this.isHardReloading;
-                    const source = this.currentSource();
+                    let source = this.currentSource();
                     const streamType = detectStreamType(source);
                     const label = serverLabel(source, this.activeIndex);
-                    this.currentServer = source;
                     this.hasStartedPlayback = false;
                     this.isLiveStream = streamType !== 'mp4' && streamType !== 'dash';
                     this.isRecovering = false;
@@ -257,9 +256,16 @@
                     this.updateExternalLink(source);
 
                     if (source.requires_external_player && window.location.protocol === 'https:') {
-                        this.handleStartupFailure('This HTTP-only stream cannot play inside an HTTPS page. Use Open external player or try another source.', false);
-                        return;
+                        if (!source.browser_url) {
+                            this.currentServer = source;
+                            this.handleStartupFailure('This HTTP-only stream cannot play inside an HTTPS page. Use Open external player or try another source.', false);
+                            return;
+                        }
+
+                        source = { ...source, url: source.browser_url };
                     }
+
+                    this.currentServer = source;
 
                     this.cleanupPlayer();
                     this.setPlayerState((this.isSwitchingServer || wasLiveRecovering) ? 'reconnecting' : 'connecting', {

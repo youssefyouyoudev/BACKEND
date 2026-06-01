@@ -27,7 +27,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        URL::forceScheme('https');
+        if ((bool) config('rifimedia.force_https')) {
+            URL::forceScheme('https');
+        }
 
         Paginator::defaultView('components.pagination');
 

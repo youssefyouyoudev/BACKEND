@@ -5,6 +5,7 @@ use App\Models\Channel;
 use App\Models\ChannelStream;
 use App\Models\Playlist;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 
 uses(RefreshDatabase::class);
@@ -65,4 +66,27 @@ it('redirects approved channel sources by signed channel route', function () {
 
     $this->get(StreamUrl::channelRedirect($channel->id, $stream->id))
         ->assertRedirect('http://backup.example.com/live.ts');
+});
+
+it('bridges hls playlists through signed same-origin urls for browser playback', function () {
+    $url = 'http://example.com/live/master.m3u8';
+
+    Http::fake([
+        $url => Http::response(<<<'M3U'
+#EXTM3U
+#EXTINF:6,
+segment-1.ts
+M3U, 200, [
+            'Content-Type' => 'application/vnd.apple.mpegurl',
+        ]),
+    ]);
+
+    $content = $this->get(StreamUrl::signedBridge($url))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/vnd.apple.mpegurl')
+        ->content();
+
+    expect($content)->toContain('/bridge/');
+    expect($content)->toContain('signature=');
+    expect($content)->not->toContain('segment-1.ts');
 });

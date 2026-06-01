@@ -158,10 +158,12 @@ class Channel extends Model
                 ->values()
                 ->map(function (ChannelStream $s): array {
                     $playbackUrl = StreamUrl::channelRedirect($this->id, $s->id);
+                    $requiresExternal = $this->requiresExternalPlayer($s->stream_url);
 
                     return [
                         'url'   => $playbackUrl,
                         'external_url' => $playbackUrl,
+                        'browser_url' => $requiresExternal ? StreamUrl::channelBridge($this->id, $s->id) : $playbackUrl,
                         'type'  => $s->stream_type,
                         'label' => $s->label,
                         'source_id' => $s->id,
@@ -170,7 +172,7 @@ class Channel extends Model
                         'server_region' => $s->server_region,
                         'quality' => $s->quality,
                         'health_status' => $s->health_status,
-                        'requires_external_player' => $this->requiresExternalPlayer($s->stream_url),
+                        'requires_external_player' => $requiresExternal,
                     ];
                 });
         }
@@ -178,13 +180,15 @@ class Channel extends Model
         // Fallback: legacy single stream_url column.
         if ($this->stream_url) {
             $playbackUrl = StreamUrl::channelRedirect($this->id);
+            $requiresExternal = $this->requiresExternalPlayer($this->stream_url);
 
             return collect([[
                 'url'   => $playbackUrl,
                 'external_url' => $playbackUrl,
+                'browser_url' => $requiresExternal ? StreamUrl::channelBridge($this->id) : $playbackUrl,
                 'type'  => $this->stream_type ?? 'stream',
                 'label' => 'Server 1',
-                'requires_external_player' => $this->requiresExternalPlayer($this->stream_url),
+                'requires_external_player' => $requiresExternal,
             ]]);
         }
 

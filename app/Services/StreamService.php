@@ -67,16 +67,18 @@ class StreamService
         $serverNumber = count($sources) + 1;
 
         $playbackUrl = StreamUrl::channelRedirect($channel->id, $stream->id);
+        $requiresExternal = $this->requiresExternalPlayer($stream->stream_url);
 
         $sources[] = [
             'url' => $playbackUrl,
             'external_url' => $playbackUrl,
+            'browser_url' => $requiresExternal ? StreamUrl::channelBridge($channel->id, $stream->id) : $playbackUrl,
             'type' => $stream->stream_type ?? $channel->stream_type ?? 'stream',
             'label' => $this->displayLabel($stream->label, $serverNumber),
             'quality' => $stream->quality ?? null,
             'health_status' => $stream->health_status ?? 'unknown',
             'source_id' => $stream->id,
-            'requires_external_player' => $this->requiresExternalPlayer($stream->stream_url),
+            'requires_external_player' => $requiresExternal,
         ];
     }
 
@@ -92,15 +94,17 @@ class StreamService
         $serverNumber = count($sources) + 1;
 
         $playbackUrl = StreamUrl::channelRedirect($channel->id);
+        $requiresExternal = $this->requiresExternalPlayer($channel->stream_url);
 
         $sources[] = [
             'url' => $playbackUrl,
             'external_url' => $playbackUrl,
+            'browser_url' => $requiresExternal ? StreamUrl::channelBridge($channel->id) : $playbackUrl,
             'type' => $channel->stream_type ?? 'stream',
             'label' => 'Server '.$serverNumber,
             'quality' => null,
             'health_status' => 'unknown',
-            'requires_external_player' => $this->requiresExternalPlayer($channel->stream_url),
+            'requires_external_player' => $requiresExternal,
         ];
     }
 

@@ -346,11 +346,17 @@ document.addEventListener('alpine:init', () => {
             this.previewReconnects = 0;
 
             if (source.requires_external_player && window.location.protocol === 'https:') {
-                this.loadingPlayer = false;
-                this.playerError = true;
-                this.playerErrorMessage = 'This HTTP-only stream cannot play inside an HTTPS page. Open it in an external player or choose another source.';
-                return;
+                if (!source.browser_url) {
+                    this.loadingPlayer = false;
+                    this.playerError = true;
+                    this.playerErrorMessage = 'This HTTP-only stream cannot play inside an HTTPS page. Open it in an external player or choose another source.';
+                    return;
+                }
             }
+
+            const playableUrl = (source.requires_external_player && source.browser_url)
+                ? source.browser_url
+                : source.url;
 
             if (this.hls) {
                 this.hls.destroy();
@@ -365,7 +371,7 @@ document.addEventListener('alpine:init', () => {
             }
 
             const type = String(source.type || '').toLowerCase();
-            const isHls = type === 'hls' || String(source.url).toLowerCase().includes('.m3u');
+            const isHls = type === 'hls' || String(playableUrl).toLowerCase().includes('.m3u');
             const isMpegTs = ['mpegts', 'ts', 'stream'].includes(type);
             const markPlaying = () => {
                 this.loadingPlayer = false;
@@ -415,7 +421,7 @@ document.addEventListener('alpine:init', () => {
                     enableWorker: true,
                     lowLatencyMode: false,
                 });
-                this.hls.loadSource(source.url);
+                this.hls.loadSource(playableUrl);
                 this.hls.attachMedia(video);
                 this.hls.on(Hls.Events.MANIFEST_PARSED, () => {
                     markPlaying();
@@ -442,7 +448,7 @@ document.addEventListener('alpine:init', () => {
                 this.mpegts = window.mpegts.createPlayer({
                     type: 'mpegts',
                     isLive: true,
-                    url: source.url,
+                    url: playableUrl,
                     cors: true,
                     withCredentials: false,
                 }, {
@@ -468,7 +474,7 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            video.src = source.url;
+            video.src = playableUrl;
             video.oncanplay = () => {
                 this.loadingPlayer = false;
                 video.play().catch(() => {});
