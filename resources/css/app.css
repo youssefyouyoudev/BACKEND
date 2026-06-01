@@ -12992,6 +12992,277 @@ body.rm-body {
     }
 }
 
+/* Light-mode homepage polish: modern floating controls and readable surfaces. */
+html.theme-light body.rm-body {
+    background:
+        radial-gradient(circle at 12% 0%, rgba(225, 29, 72, 0.08), transparent 30%),
+        radial-gradient(circle at 88% 8%, rgba(14, 165, 233, 0.08), transparent 28%),
+        linear-gradient(180deg, #ffffff 0%, #f7f8fb 42%, #ffffff 100%) !important;
+}
+
+html.theme-light .rm-site > .rm-navbar,
+html.theme-light .rm-site > .rm-premium-navbar {
+    top: 14px !important;
+    width: min(100% - 32px, 1180px) !important;
+}
+
+html.theme-light .rm-premium-navbar .rm-navbar__inner,
+html.theme-light .rm-navbar__inner {
+    min-height: 60px !important;
+    padding: 8px 10px !important;
+    border-radius: 24px !important;
+    background: rgba(255, 255, 255, 0.86) !important;
+    border: 1px solid rgba(15, 23, 42, 0.1) !important;
+    box-shadow:
+        0 22px 70px rgba(15, 23, 42, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(22px) saturate(160%) !important;
+}
+
+html.theme-light .rm-premium-navbar.is-scrolled .rm-navbar__inner,
+html.theme-light .rm-premium-navbar.is-condensed .rm-navbar__inner {
+    background: rgba(255, 255, 255, 0.94) !important;
+    border-color: rgba(15, 23, 42, 0.14) !important;
+    box-shadow: 0 18px 54px rgba(15, 23, 42, 0.18) !important;
+}
+
+html.theme-light .rm-navbar__links {
+    background: rgba(15, 23, 42, 0.06) !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    border-radius: 999px !important;
+    padding: 4px !important;
+}
+
+html.theme-light .rm-navbar__links a {
+    min-height: 38px !important;
+    padding: 0 0.9rem !important;
+    color: #334155 !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+}
+
+html.theme-light .rm-navbar__links a::before {
+    display: none !important;
+}
+
+html.theme-light .rm-navbar__links a:hover,
+html.theme-light .rm-navbar__links a:focus-visible,
+html.theme-light .rm-navbar__links a.is-active {
+    color: #0f172a !important;
+    background: #ffffff !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12) !important;
+}
+
+html.theme-light .rm-icon-btn,
+html.theme-light .rm-theme-toggle,
+html.theme-light .rm-floating-theme-toggle {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.14) !important;
+}
+
+html.theme-light .rm-navbar__actions .rm-cta-btn,
+html.theme-light .rm-profile-btn,
+html.theme-light .rm-cta-btn {
+    background: #0f172a !important;
+    color: #ffffff !important;
+    border-color: #0f172a !important;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22) !important;
+}
+
+html.theme-light .rm-cinematic-hero,
+html.theme-light .rm-platform-hero,
+html.theme-light .football-live-hero,
+html.theme-light .rm-live-stage,
+html.theme-light .rm-page-hero {
+    color: #ffffff !important;
+    background:
+        linear-gradient(90deg, rgba(3, 7, 18, 0.94) 0%, rgba(3, 7, 18, 0.78) 45%, rgba(15, 23, 42, 0.38) 100%),
+        linear-gradient(180deg, rgba(3, 7, 18, 0.14), rgba(3, 7, 18, 0.82)),
+        var(--rm-hero-photo, url('/brand/rifi-mockup.png')) center / cover no-repeat !important;
+    border: 1px solid rgba(15, 23, 42, 0.14) !important;
+    box-shadow:
+        0 34px 90px rgba(15, 23, 42, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.16) !important;
+}
+
+html.theme-light .rm-cinematic-hero h1,
+html.theme-light .rm-platform-hero h1,
+html.theme-light .football-live-hero h1,
+html.theme-light .rm-live-stage h1,
+html.theme-light .rm-page-hero h1 {
+    color: #f8fafc !important;
+    text-shadow: 0 3px 18px rgba(0, 0, 0, 0.42);
+}
+
+html.theme-light .rm-cinematic-hero p,
+html.theme-light .rm-platform-hero p,
+html.theme-light .football-live-hero p,
+html.theme-light .rm-live-stage p,
+html.theme-light .rm-page-hero p,
+html.theme-light .rm-trust-strip span,
+html.theme-light .rm-hero-microstats span {
+    color: rgba(248, 250, 252, 0.84) !important;
+}
+
+html.theme-light .rm-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    align-items: center;
+}
+
+html.theme-light .rm-hero-actions .rm-btn,
+html.theme-light .rm-btn {
+    border-radius: 999px !important;
+}
+
+html.theme-light .rm-hero-actions .rm-btn {
+    min-height: 50px !important;
+    padding-inline: 1.15rem !important;
+    box-shadow:
+        0 18px 36px rgba(2, 6, 23, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+html.theme-light .rm-btn-primary {
+    background: linear-gradient(135deg, #ef233c 0%, #d90429 58%, #9f1239 100%) !important;
+    color: #ffffff !important;
+    border-color: rgba(225, 29, 72, 0.8) !important;
+    box-shadow: 0 16px 36px rgba(225, 29, 72, 0.28) !important;
+}
+
+html.theme-light .rm-btn-secondary {
+    background: rgba(255, 255, 255, 0.92) !important;
+    color: #0f172a !important;
+    border-color: rgba(15, 23, 42, 0.12) !important;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.13) !important;
+}
+
+html.theme-light .rm-btn-primary:hover,
+html.theme-light .rm-btn-secondary:hover,
+html.theme-light .rm-icon-btn:hover,
+html.theme-light .rm-floating-theme-toggle:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 20px 44px rgba(15, 23, 42, 0.2) !important;
+}
+
+html.theme-light .rm-section,
+html.theme-light .rm-glass-card,
+html.theme-light .rm-match-card,
+html.theme-light .rm-channel-card,
+html.theme-light .rm-story-card,
+html.theme-light .rm-media-card,
+html.theme-light .rm-directory-card,
+html.theme-light .rm-feature-grid article,
+html.theme-light .rm-home-copy-block,
+html.theme-light .rm-seo-panel,
+html.theme-light .football-match-shell,
+html.theme-light .rm-empty-state {
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.94)) !important;
+    border: 1px solid rgba(15, 23, 42, 0.1) !important;
+    color: #0f172a !important;
+    box-shadow: 0 18px 54px rgba(15, 23, 42, 0.1) !important;
+}
+
+html.theme-light .rm-feature-grid article,
+html.theme-light .rm-home-category-grid a {
+    background:
+        linear-gradient(145deg, #111827, #1e293b) !important;
+    color: #f8fafc !important;
+    border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html.theme-light .rm-feature-grid article p,
+html.theme-light .rm-home-category-grid a small {
+    color: rgba(248, 250, 252, 0.72) !important;
+}
+
+html.theme-light .rm-section-header h2,
+html.theme-light .rm-home-copy-block h2,
+html.theme-light .rm-empty-state strong {
+    color: #0f172a !important;
+}
+
+html.theme-light .rm-section-header p,
+html.theme-light .rm-home-copy-block p,
+html.theme-light .rm-empty-state p {
+    color: #475569 !important;
+}
+
+html.theme-light .rm-footer,
+html.theme-light .rm-premium-footer {
+    width: min(100% - 32px, 1180px) !important;
+    margin: clamp(2rem, 5vw, 4rem) auto 1.5rem !important;
+    border-radius: 24px !important;
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.1) !important;
+    box-shadow: 0 28px 80px rgba(15, 23, 42, 0.14) !important;
+    color: #0f172a !important;
+}
+
+html.theme-light .rm-footer__inner {
+    background: transparent !important;
+}
+
+html.theme-light .rm-footer p,
+html.theme-light .rm-footer__brand p,
+html.theme-light .rm-footer__legal,
+html.theme-light .rm-footer__bottom {
+    color: #475569 !important;
+}
+
+html.theme-light .rm-footer__groups strong {
+    color: #0f172a !important;
+}
+
+html.theme-light .rm-footer__groups a,
+html.theme-light .rm-social-links a {
+    color: #334155 !important;
+}
+
+html.theme-light .rm-footer__groups a:hover,
+html.theme-light .rm-social-links a:hover {
+    color: #e11d48 !important;
+}
+
+html.theme-light .rm-floating-theme-toggle {
+    right: 22px !important;
+    bottom: 22px !important;
+    width: 52px !important;
+    height: 52px !important;
+    border-radius: 18px !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(18px) saturate(160%) !important;
+    z-index: 60 !important;
+}
+
+@media (max-width: 700px) {
+    html.theme-light .rm-site > .rm-navbar,
+    html.theme-light .rm-site > .rm-premium-navbar {
+        width: min(100% - 18px, 1180px) !important;
+        top: 8px !important;
+    }
+
+    html.theme-light .rm-premium-navbar .rm-navbar__inner,
+    html.theme-light .rm-navbar__inner {
+        border-radius: 20px !important;
+    }
+
+    html.theme-light .rm-hero-actions .rm-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    html.theme-light .rm-footer,
+    html.theme-light .rm-premium-footer {
+        width: min(100% - 18px, 1180px) !important;
+        margin-bottom: 96px !important;
+    }
+}
+
 /* Responsive production hardening for public live.rifimedia.com surfaces */
 :root {
     --rm-container: min(100% - clamp(1rem, 4vw, 3rem), 88rem);
