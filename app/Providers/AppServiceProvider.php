@@ -45,6 +45,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(15)->by($request->user()?->id ?: $request->ip());
         });
 
+        RateLimiter::for('streams', function (Request $request) {
+            return Limit::perMinute(90)->by($request->ip());
+        });
+
         View::composer('*', function ($view): void {
             $view->with('appSettings', $this->resolveSharedSettings());
         });

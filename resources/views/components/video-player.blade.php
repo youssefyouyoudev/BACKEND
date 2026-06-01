@@ -41,6 +41,7 @@
         <div class="sat-player__error-actions rm-player-error__actions rifi-player-error-actions">
             <button type="button" class="rm-btn rm-btn-primary" data-player-retry>Retry</button>
             <button type="button" class="rm-btn rm-btn-secondary" data-player-next>Next channel</button>
+            <a href="#" class="rm-btn rm-btn-secondary" data-player-external target="_blank" rel="noopener">Open external player</a>
             <a href="{{ route('home') }}" class="rm-btn rm-btn-secondary">Back to channels</a>
         </div>
     </div>
@@ -61,7 +62,7 @@
     @push('scripts')
         <script>
         (() => {
-            const STARTUP_TIMEOUT_MS = 30000;
+            const STARTUP_TIMEOUT_MS = 8000;
             const BUFFERING_GRACE_MS = 5000;
             const LIVE_STALL_RECOVERY_MS = 45000;
             const HARD_RELOAD_AFTER_MS = 90000;
@@ -150,6 +151,7 @@
                     this.activeServerBadge = root.querySelector('[data-player-active-server]');
                     this.retryButton = root.querySelector('[data-player-retry]');
                     this.nextButton = root.querySelector('[data-player-next]');
+                    this.externalLink = root.querySelector('[data-player-external]');
                     this.quality = root.querySelector('[data-player-quality]');
                     this.serverSelector = root.querySelector('[data-player-servers]');
                     this.config = JSON.parse(root.dataset.config || '{}');
@@ -249,6 +251,13 @@
 
                     if (!source?.url) {
                         this.showError('Channel unavailable', 'No stream URL is configured for this channel.');
+                        return;
+                    }
+
+                    this.updateExternalLink(source);
+
+                    if (source.requires_external_player && window.location.protocol === 'https:') {
+                        this.handleStartupFailure('This HTTP-only stream cannot play inside an HTTPS page. Use Open external player or try another source.', false);
                         return;
                     }
 
@@ -553,7 +562,7 @@
                     });
                 }
 
-                handleStartupFailure(message) {
+                handleStartupFailure(message, retryable = true) {
                     this.clearTimeout();
                     this.clearBufferingTimeout();
                     this.failedIndexes.add(this.activeIndex);
@@ -561,7 +570,7 @@
                     this.renderServers();
                     const failedLabel = serverLabel(this.currentSource(), this.activeIndex);
 
-                    if (this.startupRetries < MAX_STARTUP_RETRIES) {
+                    if (retryable && this.startupRetries < MAX_STARTUP_RETRIES) {
                         this.startupRetries += 1;
                         console.warn('[RiFiPlayer] Retrying failed server startup', { server: failedLabel, retry: this.startupRetries, reason: message });
                         this.setPlayerState('reconnecting', {
@@ -610,7 +619,7 @@
                             type: detectStreamType(this.currentSource()),
                             timeout_ms: STARTUP_TIMEOUT_MS,
                         });
-                        this.handleStartupFailure(`The stream did not start within ${Math.round(STARTUP_TIMEOUT_MS / 1000)} seconds.`);
+                        this.handleStartupFailure(`This stream is unavailable. Try another source.`);
                     }, STARTUP_TIMEOUT_MS);
                 }
 
@@ -1102,6 +1111,17 @@
                     const quality = source.quality || 'Auto';
                     this.activeServerBadge.innerHTML = `<strong>${escapeHtml(label)}</strong><span>${escapeHtml(quality)} - ${escapeHtml(type)}</span>`;
                     this.activeServerBadge.hidden = false;
+                }
+
+                updateExternalLink(source = this.currentSource()) {
+                    if (!this.externalLink) return;
+
+                    if (source?.url) {
+                        this.externalLink.href = source.external_url || source.url;
+                        this.externalLink.hidden = false;
+                    } else {
+                        this.externalLink.hidden = true;
+                    }
                 }
 
                 engineFor(streamType) {

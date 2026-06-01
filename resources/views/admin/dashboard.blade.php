@@ -37,6 +37,18 @@
             <span class="stat-card__label">Queue mode</span>
             <strong>{{ strtoupper(config('queue.default')) }}</strong>
         </article>
+        <article class="stat-card">
+            <span class="stat-card__label">Online streams</span>
+            <strong>{{ number_format($stats['online_streams']) }}</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">Offline streams</span>
+            <strong>{{ number_format($stats['offline_streams']) }}</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">Unknown streams</span>
+            <strong>{{ number_format($stats['unknown_streams']) }}</strong>
+        </article>
     </section>
 
     <section class="admin-grid">
@@ -91,6 +103,53 @@
                 <li>Old channels are cleared and the playlist sync timestamp is refreshed after every import.</li>
             </ol>
         </article>
+    </section>
+
+    <section class="surface-card">
+        <div class="surface-card__header">
+            <div>
+                <p class="surface-card__eyebrow">Stream health</p>
+                <h2>Failed sources</h2>
+            </div>
+            <span class="surface-card__badge">Checked by scheduler</span>
+        </div>
+
+        @if($failedSources->isEmpty())
+            <div class="empty-state empty-state--compact">
+                <h3>No failed stream sources recorded.</h3>
+                <p>Run <code>php artisan streams:check-health</code> to populate health status.</p>
+            </div>
+        @else
+            <div class="table-shell">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Channel</th>
+                            <th>Status</th>
+                            <th>HTTP</th>
+                            <th>Latency</th>
+                            <th>Last checked</th>
+                            <th>Error</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($failedSources as $source)
+                            <tr>
+                                <td>
+                                    <strong>{{ $source->channel?->clean_display_name ?? 'Unknown channel' }}</strong>
+                                    <span class="table-subtle">{{ $source->label ?: 'Server '.$source->priority }}</span>
+                                </td>
+                                <td><span class="status-pill status-pill--{{ str($source->health_status)->slug('-') }}">{{ str($source->health_status)->headline() }}</span></td>
+                                <td>{{ $source->response_code ?: '-' }}</td>
+                                <td>{{ $source->latency_ms ? $source->latency_ms.' ms' : '-' }}</td>
+                                <td>{{ $source->last_checked_at?->diffForHumans() ?? 'Never' }}</td>
+                                <td><span class="table-url">{{ $source->last_error ?: 'No details' }}</span></td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
     </section>
 
     <section class="surface-card" id="playlist-table">

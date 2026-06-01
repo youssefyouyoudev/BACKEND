@@ -156,24 +156,35 @@ class Channel extends Model
             return $this->streams
                 ->where('is_active', true)
                 ->values()
-                ->map(fn (ChannelStream $s) => [
-                    'url'   => StreamUrl::proxied($s->stream_url),
-                    'type'  => $s->stream_type,
-                    'label' => $s->label,
-                    'source_code' => $s->source_code,
-                    'server_name' => $s->server_name,
-                    'server_region' => $s->server_region,
-                    'quality' => $s->quality,
-                    'health_status' => $s->health_status,
-                ]);
+                ->map(function (ChannelStream $s): array {
+                    $playbackUrl = StreamUrl::channelRedirect($this->id, $s->id);
+
+                    return [
+                        'url'   => $playbackUrl,
+                        'external_url' => $playbackUrl,
+                        'type'  => $s->stream_type,
+                        'label' => $s->label,
+                        'source_id' => $s->id,
+                        'source_code' => $s->source_code,
+                        'server_name' => $s->server_name,
+                        'server_region' => $s->server_region,
+                        'quality' => $s->quality,
+                        'health_status' => $s->health_status,
+                        'requires_external_player' => $this->requiresExternalPlayer($s->stream_url),
+                    ];
+                });
         }
 
         // Fallback: legacy single stream_url column.
         if ($this->stream_url) {
+            $playbackUrl = StreamUrl::channelRedirect($this->id);
+
             return collect([[
-                'url'   => StreamUrl::proxied($this->stream_url),
+                'url'   => $playbackUrl,
+                'external_url' => $playbackUrl,
                 'type'  => $this->stream_type ?? 'stream',
                 'label' => 'Server 1',
+                'requires_external_player' => $this->requiresExternalPlayer($this->stream_url),
             ]]);
         }
 
@@ -183,6 +194,11 @@ class Channel extends Model
     public function getCategoryAttribute(): ?string
     {
         return $this->group_title;
+    }
+
+    private function requiresExternalPlayer(?string $url): bool
+    {
+        return strtolower((string) parse_url((string) $url, PHP_URL_SCHEME)) === 'http';
     }
 
     public function scopeVisibleTo(Builder $query, User $user): Builder

@@ -1,80 +1,68 @@
 <?php
 
 use App\Support\StreamUrl;
-use Illuminate\Support\Facades\Http;
+use App\Models\Channel;
+use App\Models\ChannelStream;
+use App\Models\Playlist;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\URL;
 
-it('redirects secure stream urls instead of proxying bytes through php', function () {
+uses(RefreshDatabase::class);
+
+it('requires a valid temporary signature before redirecting streams', function () {
     $url = 'https://example.com/live/master.m3u8';
 
     $this->get('/stream/'.StreamUrl::encodeProxyUrl($url))
+        ->assertForbidden();
+
+    $this->get(StreamUrl::signedRedirect($url))
         ->assertRedirect($url);
 });
 
-it('proxies insecure stream urls to avoid browser mixed content blocks', function () {
+it('redirects insecure stream urls instead of proxying bytes through php', function () {
     $url = 'http://example.com/live/channel.ts';
 
-    Http::fake([
-        $url => Http::response('ts-bytes', 200, [
-            'Content-Type' => 'video/mp2t',
-        ]),
-    ]);
-
-    $this->get('/stream/'.StreamUrl::encodeProxyUrl($url).'?sig=invalid')
-        ->assertForbidden();
-
-    $response = $this->get(StreamUrl::proxied($url))
-        ->assertOk()
-        ->assertHeader('Content-Type', 'video/mp2t');
-
-    expect($response->streamedContent())->toBe('ts-bytes');
-});
-
-it('rewrites insecure hls playlist entries through the stream proxy', function () {
-    $url = 'http://example.com/live/master.m3u8';
-
-    Http::fake([
-        $url => Http::response(<<<'M3U'
-#EXTM3U
-#EXTINF:6,
-segment-1.ts
-M3U, 200, [
-            'Content-Type' => 'application/vnd.apple.mpegurl',
-        ]),
-    ]);
-
-    $content = $this->get(StreamUrl::proxied($url))
-        ->assertOk()
-        ->assertHeader('Content-Type', 'application/vnd.apple.mpegurl')
-        ->content();
-
-    expect($content)->toContain('/stream/');
-    expect($content)->not->toContain('segment-1.ts');
-});
-
-it('returns a readable proxy error when an insecure upstream stream fails', function () {
-    $url = 'http://example.com/live/offline.ts';
-
-    Http::fake([
-        $url => Http::response('offline', 503),
-    ]);
-
-    $this->get(StreamUrl::proxied($url))
-        ->assertStatus(502)
-        ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
-        ->assertSeeText('Stream source returned HTTP 503.');
+    $this->get(StreamUrl::signedRedirect($url))
+        ->assertRedirect($url);
 });
 
 it('rejects invalid encoded stream urls', function () {
-    $this->get('/stream/not-valid!!!!')
+    $this->get(URL::temporarySignedRoute('stream.proxy', now()->addMinutes(5), [
+        'encodedUrl' => 'not-valid!!!!',
+    ]))
         ->assertBadRequest();
 });
 
 it('rejects decoded values that are not valid urls', function () {
-    $this->get('/stream/'.StreamUrl::encodeProxyUrl('not a url'))
+    $this->get(StreamUrl::signedRedirect('not a url'))
         ->assertBadRequest();
 });
 
 it('rejects unsupported stream url schemes', function () {
-    $this->get('/stream/'.StreamUrl::encodeProxyUrl('ftp://example.com/live.ts'))
+    $this->get(StreamUrl::signedRedirect('ftp://example.com/live.ts'))
         ->assertBadRequest();
+});
+
+it('redirects approved channel sources by signed channel route', function () {
+    $playlist = Playlist::factory()->create([
+        'is_public' => true,
+        'approved_at' => now(),
+    ]);
+
+    $channel = Channel::factory()->for($playlist)->create([
+        'stream_url' => 'https://primary.example.com/live.m3u8',
+    ]);
+
+    $stream = ChannelStream::query()->create([
+        'channel_id' => $channel->id,
+        'stream_url' => 'http://backup.example.com/live.ts',
+        'stream_hash' => sha1('http://backup.example.com/live.ts'),
+        'stream_type' => 'mpegts',
+        'priority' => 1,
+        'is_active' => true,
+        'label' => 'Backup',
+    ]);
+
+    $this->get(StreamUrl::channelRedirect($channel->id, $stream->id))
+        ->assertRedirect('http://backup.example.com/live.ts');
 });

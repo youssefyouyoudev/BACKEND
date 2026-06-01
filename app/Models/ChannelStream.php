@@ -24,10 +24,12 @@ class ChannelStream extends Model
         'quality',
         'health_status',
         'latency_ms',
+        'response_code',
         'failure_count',
         'success_count',
         'last_error',
         'last_checked_at',
+        'last_success_at',
     ];
 
     protected function casts(): array
@@ -36,9 +38,11 @@ class ChannelStream extends Model
             'is_active' => 'boolean',
             'priority'  => 'integer',
             'latency_ms' => 'integer',
+            'response_code' => 'integer',
             'failure_count' => 'integer',
             'success_count' => 'integer',
             'last_checked_at' => 'datetime',
+            'last_success_at' => 'datetime',
         ];
     }
 

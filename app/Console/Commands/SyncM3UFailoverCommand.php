@@ -71,8 +71,9 @@ class SyncM3UFailoverCommand extends Command
             $message = 'Source reachable.';
 
             try {
-                $response = Http::timeout(8)
-                    ->connectTimeout(4)
+                $response = Http::connectTimeout(3)
+                    ->timeout(5)
+                    ->retry(1, 200)
                     ->withHeaders(['Range' => 'bytes=0-2048'])
                     ->get($stream->stream_url);
 
@@ -105,8 +106,10 @@ class SyncM3UFailoverCommand extends Command
             $stream->forceFill([
                 'health_status' => $status,
                 'latency_ms' => $latency,
+                'response_code' => $httpStatus,
                 'last_error' => $status === 'active' ? null : $message,
                 'last_checked_at' => now(),
+                'last_success_at' => $status === 'active' ? now() : $stream->last_success_at,
                 'success_count' => $status === 'active' ? $stream->success_count + 1 : $stream->success_count,
                 'failure_count' => $status === 'active' ? $stream->failure_count : $stream->failure_count + 1,
             ])->save();

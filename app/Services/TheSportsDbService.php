@@ -34,8 +34,9 @@ class TheSportsDbService
         $url = $this->endpoint($endpoint);
 
         try {
-            $response = Http::timeout(10)
-                ->retry(2, 500)
+            $response = Http::connectTimeout(3)
+                ->timeout(8)
+                ->retry(1, 200)
                 ->acceptJson()
                 ->get($url, array_filter($query, fn ($value): bool => $value !== null && $value !== ''));
 

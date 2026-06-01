@@ -43,3 +43,17 @@ Schedule::command('m3u:sync-failover --probe')
     ->onOneServer()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/m3u-failover-sync.log'));
+
+Schedule::command('streams:check-health --popular --limit=100')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/stream-health.log'));
+
+Schedule::command('streams:check-health --limit=500')
+    ->hourly()
+    ->withoutOverlapping(60)
+    ->onOneServer()
+    ->runInBackground()
+    ->appendOutputTo(storage_path('logs/stream-health.log'));

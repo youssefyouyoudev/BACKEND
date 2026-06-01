@@ -73,7 +73,11 @@ Route::permanentRedirect('/live', '/live-tv')->name('live');
 Route::get('/live-tv', LiveTvController::class)->name('live-tv');
 Route::get('/watch/{channel}', [ChannelController::class, 'show'])->name('channels.show');
 Route::get('/stream/{encodedUrl}', StreamProxyController::class)
+    ->middleware(['signed', 'throttle:streams'])
     ->name('stream.proxy');
+Route::get('/go/{channel}', [StreamProxyController::class, 'playChannel'])
+    ->middleware(['signed', 'throttle:streams'])
+    ->name('stream.channel');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/admin/login', [AdminAuthController::class, 'create'])->name('admin.login');

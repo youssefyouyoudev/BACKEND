@@ -7,7 +7,7 @@ Disallow: /stream/
 Disallow: /api
 Disallow: /api/
 Disallow: /watch/
-Disallow: /*?sig=
+Disallow: /*?signature=
 Disallow: /*?search=
 
 Sitemap: {{ route('sitemap') }}

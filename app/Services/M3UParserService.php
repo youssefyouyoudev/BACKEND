@@ -7,6 +7,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class M3UParserService
 {
@@ -52,8 +53,9 @@ class M3UParserService
         if ($playlist->source_url) {
             $this->urlSafetyService->assertSafeForImport($playlist->source_url);
 
-            $response = Http::timeout(60)
-                ->connectTimeout(15)
+            $response = Http::connectTimeout(3)
+                ->timeout(8)
+                ->retry(1, 200)
                 ->accept('application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*')
                 ->withOptions([
                     'allow_redirects' => [
@@ -71,8 +73,17 @@ class M3UParserService
                 ]);
             }
 
+            $body = (string) $response->body();
+            $maxBytes = max(1, $this->playlistConfigInt('max_download_kb', 5120)) * 1024;
+
+            if (strlen($body) > $maxBytes) {
+                throw ValidationException::withMessages([
+                    'playlist' => ['The playlist is too large to import safely.'],
+                ]);
+            }
+
             return [
-                'content'  => (string) $response->body(),
+                'content'  => $body,
                 'base_url' => $playlist->source_url,
             ];
         }
@@ -135,6 +146,11 @@ class M3UParserService
             }
 
             $streamUrl  = trim($this->resolveUrl($line, $baseUrl));
+            if (! $this->isSafeStreamUrl($streamUrl)) {
+                $currentExtInf = null;
+                continue;
+            }
+
             $streamHash = sha1($this->normalizeUrlForHash($streamUrl));
             $groupTitle = $this->sanitizeString($currentExtInf['group_title'] ?? null);
 
@@ -154,6 +170,10 @@ class M3UParserService
             ];
 
             $currentExtInf = null;
+
+            if (count($entries) >= $this->playlistConfigInt('max_channels_per_import', 20000)) {
+                break;
+            }
         }
 
         if ($entries === []) {
@@ -192,6 +212,15 @@ class M3UParserService
             'group_title'    => $attributes['group-title'] ?? null,
             'raw_attributes' => $attributes,
         ];
+    }
+
+    private function playlistConfigInt(string $key, int $default): int
+    {
+        try {
+            return (int) config("rifimedia.playlists.{$key}", $default);
+        } catch (Throwable) {
+            return $default;
+        }
     }
 
     /**
@@ -342,6 +371,35 @@ class M3UParserService
             str_ends_with($urlPath, '/ts')  => 'mpegts',
             default                          => 'stream',
         };
+    }
+
+    private function isSafeStreamUrl(string $url): bool
+    {
+        if (! filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        $parts = parse_url($url);
+        $scheme = strtolower($parts['scheme'] ?? '');
+        $host = strtolower($parts['host'] ?? '');
+
+        if (! in_array($scheme, ['http', 'https'], true) || $host === '') {
+            return false;
+        }
+
+        if (isset($parts['user']) || isset($parts['pass'])) {
+            return false;
+        }
+
+        if ($host === 'localhost' || str_ends_with($host, '.local') || str_ends_with($host, '.internal')) {
+            return false;
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
+        }
+
+        return true;
     }
 
     private function extractHeaderTitle(string $line): ?string

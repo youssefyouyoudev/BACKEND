@@ -72,7 +72,7 @@ class ChannelController extends Controller
             'display_tags' => $channel->display_tags,
             'quality_label' => $channel->quality_label,
             'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
-            'stream_url' => $source['url'] ?? StreamUrl::proxied($channel->stream_url),
+            'stream_url' => $source['url'] ?? StreamUrl::signedRedirect($channel->stream_url),
             'stream_type' => $source['type'] ?? $channel->stream_type ?? 'stream',
             'sources' => $streamService ? $streamService->sourcesFor($channel) : $channel->active_stream_sources->values()->all(),
             'category' => $channel->category?->name ?? $channel->group_title ?: 'General',

@@ -66,12 +66,17 @@ class StreamService
         $seen[$hash] = true;
         $serverNumber = count($sources) + 1;
 
+        $playbackUrl = StreamUrl::channelRedirect($channel->id, $stream->id);
+
         $sources[] = [
-            'url' => StreamUrl::proxied($stream->stream_url),
+            'url' => $playbackUrl,
+            'external_url' => $playbackUrl,
             'type' => $stream->stream_type ?? $channel->stream_type ?? 'stream',
             'label' => $this->displayLabel($stream->label, $serverNumber),
             'quality' => $stream->quality ?? null,
             'health_status' => $stream->health_status ?? 'unknown',
+            'source_id' => $stream->id,
+            'requires_external_player' => $this->requiresExternalPlayer($stream->stream_url),
         ];
     }
 
@@ -86,12 +91,16 @@ class StreamService
         $seen[$hash] = true;
         $serverNumber = count($sources) + 1;
 
+        $playbackUrl = StreamUrl::channelRedirect($channel->id);
+
         $sources[] = [
-            'url' => StreamUrl::proxied($channel->stream_url),
+            'url' => $playbackUrl,
+            'external_url' => $playbackUrl,
             'type' => $channel->stream_type ?? 'stream',
             'label' => 'Server '.$serverNumber,
             'quality' => null,
             'health_status' => 'unknown',
+            'requires_external_player' => $this->requiresExternalPlayer($channel->stream_url),
         ];
     }
 
@@ -107,5 +116,10 @@ class StreamService
         }
 
         return 'Server '.$serverNumber;
+    }
+
+    private function requiresExternalPlayer(?string $url): bool
+    {
+        return strtolower((string) parse_url((string) $url, PHP_URL_SCHEME)) === 'http';
     }
 }

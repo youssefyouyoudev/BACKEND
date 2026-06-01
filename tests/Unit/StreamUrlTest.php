@@ -5,7 +5,7 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 
-it('rewrites hls playlist urls through the stream proxy', function () {
+it('rewrites hls playlist urls through signed stream redirects', function () {
     $playlist = StreamUrl::rewritePlaylist(
         <<<'M3U'
 #EXTM3U
@@ -19,7 +19,7 @@ M3U,
     );
 
     expect($playlist)->toContain('/stream/');
-    expect($playlist)->toContain('sig=');
+    expect($playlist)->toContain('signature=');
     expect($playlist)->not->toContain('URI="keys/live.key"');
     expect($playlist)->not->toContain('variant/main.m3u8');
     expect($playlist)->not->toContain('segment-1.ts');

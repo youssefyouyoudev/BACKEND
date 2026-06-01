@@ -724,7 +724,8 @@ input {
 }
 
 .status-pill--completed,
-.status-pill--ready {
+.status-pill--ready,
+.status-pill--online {
     color: #c9ffd8;
     background: rgba(65, 217, 111, 0.12);
 }
@@ -741,9 +742,17 @@ input {
 }
 
 .status-pill--failed,
-.status-pill--error {
+.status-pill--error,
+.status-pill--offline,
+.status-pill--timeout {
     color: #ffd3d8;
     background: rgba(255, 97, 104, 0.12);
+}
+
+.status-pill--unknown,
+.status-pill--unchecked {
+    color: #dce6f0;
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .text-end .button,

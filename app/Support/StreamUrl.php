@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\URL;
+
 class StreamUrl
 {
     public static function browserSafe(?string $url): ?string
@@ -23,7 +25,7 @@ class StreamUrl
         return preg_replace('/^http:\/\//i', 'https://', $url, 1) ?? $url;
     }
 
-    public static function proxied(?string $url): ?string
+    public static function signedRedirect(?string $url, int $minutes = 15): ?string
     {
         if ($url === null || trim($url) === '') {
             return $url;
@@ -31,10 +33,21 @@ class StreamUrl
 
         $url = trim($url);
 
-        return route('stream.proxy', [
+        return URL::temporarySignedRoute('stream.proxy', now()->addMinutes($minutes), [
             'encodedUrl' => self::encodeProxyUrl($url),
-            'sig' => self::proxySignature($url),
         ]);
+    }
+
+    public static function channelRedirect(int $channelId, ?int $sourceId = null, int $minutes = 15): string
+    {
+        return URL::temporarySignedRoute(
+            'stream.channel',
+            now()->addMinutes($minutes),
+            array_filter([
+                'channel' => $channelId,
+                'source' => $sourceId,
+            ], fn ($value) => $value !== null)
+        );
     }
 
     public static function encodeProxyUrl(string $url): string
@@ -54,11 +67,6 @@ class StreamUrl
         $decoded = base64_decode($normalized, true);
 
         return $decoded === false ? null : $decoded;
-    }
-
-    public static function hasValidProxySignature(string $url, string $signature): bool
-    {
-        return hash_equals(self::proxySignature($url), $signature);
     }
 
     public static function isPlaylist(string $url, string $contentType, string $body): bool
@@ -152,12 +160,12 @@ class StreamUrl
         if (str_starts_with($trimmed, '#')) {
             return (string) preg_replace_callback(
                 '/URI="([^"]+)"/',
-                fn (array $matches): string => 'URI="'.self::proxied(self::resolve($matches[1], $baseUrl)).'"',
+                fn (array $matches): string => 'URI="'.self::signedRedirect(self::resolve($matches[1], $baseUrl)).'"',
                 $line
             );
         }
 
-        return self::proxied(self::resolve($trimmed, $baseUrl)) ?? $line;
+        return self::signedRedirect(self::resolve($trimmed, $baseUrl)) ?? $line;
     }
 
     private static function resolve(string $candidate, string $baseUrl): string
@@ -184,8 +192,4 @@ class StreamUrl
         return $base['scheme'].'://'.$base['host'].$port.$resolvedPath;
     }
 
-    private static function proxySignature(string $url): string
-    {
-        return hash_hmac('sha256', $url, (string) config('app.key'));
-    }
 }
