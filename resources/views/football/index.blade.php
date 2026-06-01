@@ -31,20 +31,20 @@
                 <span><x-icon name="tv" /> Watch indicators</span>
             </div>
         </div>
-        <button type="button" class="football-refresh-btn" data-football-refresh>
+        <button type="button" class="football-refresh-btn rm-btn rm-btn-secondary" data-football-refresh>
             <x-icon name="signal" />
             Refresh
         </button>
     </section>
 
     <section class="football-filter-panel" aria-label="Football filters">
-        <div class="football-quick-filters" role="tablist" aria-label="Match range">
-            <button type="button" data-football-filter="today" class="is-active"><x-icon name="calendar" />Today</button>
-            <button type="button" data-football-filter="live"><x-icon name="signal" />Live</button>
-            <button type="button" data-football-filter="tomorrow"><x-icon name="calendar" />Tomorrow</button>
-            <button type="button" data-football-filter="yesterday"><x-icon name="clock" />Yesterday</button>
-            <button type="button" data-football-filter="upcoming"><x-icon name="trending" />Upcoming</button>
-            <button type="button" data-football-filter="results"><x-icon name="scores" />Results</button>
+        <div class="football-quick-filters chip-scroll" role="tablist" aria-label="Match range">
+            <button type="button" data-football-filter="today" class="chip is-active chip-active"><x-icon name="calendar" />Today</button>
+            <button type="button" data-football-filter="live" class="chip"><x-icon name="signal" />Live</button>
+            <button type="button" data-football-filter="tomorrow" class="chip"><x-icon name="calendar" />Tomorrow</button>
+            <button type="button" data-football-filter="yesterday" class="chip"><x-icon name="clock" />Yesterday</button>
+            <button type="button" data-football-filter="upcoming" class="chip"><x-icon name="trending" />Upcoming</button>
+            <button type="button" data-football-filter="results" class="chip"><x-icon name="scores" />Results</button>
         </div>
 
         <div class="football-date-filter">
@@ -59,12 +59,12 @@
     </section>
 
     <section class="football-league-strip" aria-label="Configured top leagues">
-        <button type="button" data-football-league="All" class="is-active">
+        <button type="button" data-football-league="All" class="chip is-active chip-active">
             <strong>All leagues</strong>
             <small>Every match</small>
         </button>
         @foreach($leagues as $league)
-            <button type="button" data-football-league="{{ $league['name'] }}">
+            <button type="button" data-football-league="{{ $league['name'] }}" class="chip">
                 <strong>{{ $league['name'] }}</strong>
                 <small>{{ $league['country'] }}</small>
             </button>
@@ -74,7 +74,7 @@
     <section class="football-country-filter" aria-label="TV country filter">
         <span>TV region</span>
         @foreach(['All', 'Morocco', 'MENA', 'United Kingdom', 'France', 'Spain', 'Germany', 'Italy'] as $country)
-            <button type="button" data-tv-country="{{ $country }}" class="{{ $loop->first ? 'is-active' : '' }}">{{ $country }}</button>
+            <button type="button" data-tv-country="{{ $country }}" class="chip {{ $loop->first ? 'is-active chip-active' : '' }}">{{ $country }}</button>
         @endforeach
     </section>
 

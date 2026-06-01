@@ -12,7 +12,6 @@
             const stored = localStorage.getItem(storageKey);
             const system = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
             const theme = stored || system;
-            if (! stored) localStorage.setItem(storageKey, theme);
             document.documentElement.classList.remove('theme-light', 'theme-dark', 'light', 'dark');
             document.documentElement.classList.add(`theme-${theme}`, theme);
             document.documentElement.dataset.theme = theme;

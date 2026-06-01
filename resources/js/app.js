@@ -8,14 +8,14 @@ window.mpegts = mpegts;
 const applyThemeLabel = () => {
     const isLight = document.documentElement.classList.contains('theme-light');
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
-        const label = isLight ? 'Switch to dark theme' : 'Switch to light theme';
+        const label = isLight ? 'Switch to dark mode' : 'Switch to light mode';
         button.dataset.themeState = isLight ? 'light' : 'dark';
         button.setAttribute('aria-label', label);
         button.setAttribute('title', label);
     });
 };
 
-const setTheme = (theme) => {
+const setTheme = (theme, persist = true) => {
     const normalized = theme === 'light' ? 'light' : 'dark';
     const root = document.documentElement;
     root.classList.toggle('theme-light', normalized === 'light');
@@ -24,15 +24,21 @@ const setTheme = (theme) => {
     root.classList.toggle('dark', normalized === 'dark');
     root.dataset.theme = normalized;
     root.style.colorScheme = normalized;
-    localStorage.setItem('rifi-theme', normalized);
+    if (persist) {
+        localStorage.setItem('rifi-theme', normalized);
+    }
     applyThemeLabel();
 };
 
 document.addEventListener('DOMContentLoaded', () => {
     const stored = localStorage.getItem('rifi-theme');
     if (! stored) {
-        setTheme(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        setTheme(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark', false);
     }
+    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (event) => {
+        if (localStorage.getItem('rifi-theme')) return;
+        setTheme(event.matches ? 'light' : 'dark', false);
+    });
     applyThemeLabel();
 
     const navbar = document.querySelector('[data-navbar]');
@@ -54,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             button.classList.remove('is-bouncing');
             void button.offsetWidth;
             button.classList.add('is-bouncing');
-            setTheme(next);
+            setTheme(next, true);
         });
     });
 

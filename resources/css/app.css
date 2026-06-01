@@ -15783,3 +15783,630 @@ input:focus-visible {
         transition-duration: 0.01ms !important;
     }
 }
+/* RifiMedia design system consolidation
+   This final layer intentionally wins over older component generations above. */
+:root,
+[data-theme="light"],
+html.theme-light {
+    --bg: #f7f8fb;
+    --bg-soft: #eef2f7;
+    --surface: #ffffff;
+    --surface-soft: #f1f5f9;
+    --surface-elevated: #ffffff;
+    --panel: rgba(255, 255, 255, 0.9);
+    --panel-strong: rgba(255, 255, 255, 0.98);
+    --panel-border: rgba(15, 23, 42, 0.12);
+    --text: #0f172a;
+    --text-soft: #334155;
+    --muted: #64748b;
+    --border: rgba(15, 23, 42, 0.12);
+    --primary: #e11d48;
+    --primary-hover: #be123c;
+    --success: #16a34a;
+    --warning: #f59e0b;
+    --danger: #dc2626;
+    --shadow: 0 18px 45px rgba(15, 23, 42, 0.12);
+    --shadow-soft: 0 10px 30px rgba(15, 23, 42, 0.08);
+    --card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.92));
+    --hero-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(241, 245, 249, 0.82));
+    --focus-ring: 0 0 0 4px rgba(225, 29, 72, 0.2);
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 10px;
+    color-scheme: light;
+}
+
+[data-theme="dark"],
+html.theme-dark {
+    --bg: #050816;
+    --bg-soft: #0b1020;
+    --surface: #0f172a;
+    --surface-soft: #111827;
+    --surface-elevated: #172033;
+    --panel: rgba(15, 23, 42, 0.86);
+    --panel-strong: rgba(15, 23, 42, 0.96);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --text: #f8fafc;
+    --text-soft: #cbd5e1;
+    --muted: #94a3b8;
+    --border: rgba(255, 255, 255, 0.12);
+    --primary: #f43f5e;
+    --primary-hover: #fb7185;
+    --success: #22c55e;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --shadow: 0 24px 70px rgba(0, 0, 0, 0.38);
+    --shadow-soft: 0 14px 38px rgba(0, 0, 0, 0.28);
+    --card-gradient: linear-gradient(145deg, rgba(23, 32, 51, 0.95), rgba(15, 23, 42, 0.9));
+    --hero-gradient: linear-gradient(135deg, rgba(5, 8, 22, 0.86), rgba(15, 23, 42, 0.76));
+    --focus-ring: 0 0 0 4px rgba(244, 63, 94, 0.28);
+    color-scheme: dark;
+}
+
+html {
+    background: var(--bg);
+}
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+body,
+body.rm-body,
+html.theme-dark body.rm-body,
+html.theme-light body.rm-body {
+    background:
+        radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 14%, transparent), transparent 30%),
+        linear-gradient(135deg, var(--bg) 0%, var(--bg-soft) 100%);
+    color: var(--text);
+}
+
+.rm-site,
+html.theme-dark .rm-site,
+html.theme-light .rm-site {
+    background: transparent;
+    color: var(--text);
+}
+
+.rm-main,
+.site-container {
+    width: min(100% - clamp(1rem, 4vw, 4rem), 1440px);
+    margin-inline: auto;
+}
+
+.rm-page,
+.rm-section {
+    color: var(--text);
+}
+
+.rm-section,
+.rm-glass-card,
+.rm-player-shell,
+.rm-player-header,
+.rm-match-card,
+.football-match-shell,
+.football-filter-panel,
+.football-league-strip,
+.football-country-filter,
+.rm-story-card,
+.rm-news-empty,
+.rm-directory-card,
+.rm-media-card,
+.rm-feature-grid article,
+.rm-home-copy-block,
+.rm-seo-panel,
+.rm-live-browser,
+.rm-live-details,
+.empty-state,
+.error-state,
+.rm-empty-state {
+    background: var(--card-gradient);
+    border: 1px solid var(--border);
+    color: var(--text);
+    box-shadow: var(--shadow-soft);
+}
+
+.rm-page-hero,
+.rm-news-hero,
+.football-live-hero,
+.rm-live-stage,
+.rm-platform-hero {
+    background:
+        var(--hero-gradient),
+        var(--rm-hero-photo, none) center / cover no-repeat;
+    border: 1px solid var(--border);
+    color: var(--text);
+    box-shadow: var(--shadow);
+}
+
+.rm-page-hero p,
+.football-live-hero p,
+.rm-live-stage p,
+.rm-platform-hero p,
+.rm-section-header p,
+.rm-empty-state p,
+.empty-state p,
+.error-state p,
+.rm-news-empty p,
+.rm-directory-card p,
+.football-match-card__meta,
+.football-team strong,
+.rm-live-row small,
+.rm-live-details p {
+    color: var(--text-soft);
+}
+
+.rm-eyebrow,
+.rm-kicker,
+.rm-live-badge,
+.rm-story-card__label,
+.football-status-badge {
+    color: var(--primary);
+}
+
+.btn,
+.rm-btn,
+.football-refresh-btn,
+.football-tv-toggle,
+.football-watch-btn em,
+.rm-profile-btn,
+.rm-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.72rem 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font-weight: 800;
+    font-size: clamp(0.88rem, 0.82rem + 0.2vw, 1rem);
+    line-height: 1.1;
+    color: var(--text);
+    background: var(--surface-elevated);
+    box-shadow: none;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, color 160ms ease, opacity 160ms ease;
+}
+
+.btn-primary,
+.rm-btn-primary,
+.rm-cta-btn {
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+    color: #ffffff;
+    border-color: color-mix(in srgb, var(--primary) 72%, #ffffff 8%);
+}
+
+.btn-secondary,
+.rm-btn-secondary,
+.football-refresh-btn {
+    background: color-mix(in srgb, var(--surface-elevated) 86%, var(--primary) 8%);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+.btn-ghost,
+.rm-btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border-color: transparent;
+}
+
+.btn-danger,
+.rm-btn-danger {
+    background: var(--danger);
+    color: #ffffff;
+}
+
+.btn-icon,
+.rm-icon-btn,
+.rm-theme-toggle,
+.rm-floating-theme-toggle {
+    inline-size: 44px;
+    block-size: 44px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-elevated);
+    color: var(--text);
+}
+
+.btn-sm,
+.rm-btn-sm {
+    min-height: 38px;
+    padding: 0.55rem 0.78rem;
+    font-size: 0.86rem;
+}
+
+.btn-lg,
+.rm-btn-lg {
+    min-height: 52px;
+    padding: 0.9rem 1.25rem;
+    font-size: 1.05rem;
+}
+
+.btn-block,
+.rm-btn-block {
+    width: 100%;
+}
+
+.btn:hover,
+.rm-btn:hover,
+.football-refresh-btn:hover,
+.football-tv-toggle:hover,
+.football-watch-btn:hover em,
+.rm-icon-btn:hover,
+.rm-theme-toggle:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+}
+
+.btn:disabled,
+.rm-btn:disabled,
+.football-refresh-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.64;
+    transform: none;
+}
+
+.is-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.is-loading::after,
+.loading-skeleton::after {
+    content: "";
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 999px;
+    color: var(--primary);
+    animation: rm-spin 800ms linear infinite;
+    position: absolute;
+}
+
+.chip-scroll,
+.rm-tabs,
+.football-quick-filters,
+.football-league-strip,
+.football-country-filter,
+.rm-topic-cloud {
+    display: flex;
+    gap: 0.65rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x proximity;
+    padding-bottom: 0.2rem;
+}
+
+.chip-scroll::-webkit-scrollbar,
+.rm-tabs::-webkit-scrollbar,
+.football-quick-filters::-webkit-scrollbar,
+.football-league-strip::-webkit-scrollbar,
+.football-country-filter::-webkit-scrollbar {
+    display: none;
+}
+
+.chip,
+.rm-tabs button,
+.football-quick-filters button,
+.football-league-strip button,
+.football-country-filter button,
+.rm-topic-cloud a {
+    flex: 0 0 auto;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.65rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-elevated);
+    color: var(--text);
+    font-weight: 800;
+    scroll-snap-align: start;
+}
+
+.chip-active,
+.chip.is-active,
+.rm-tabs button.is-active,
+.football-quick-filters button.is-active,
+.football-league-strip button.is-active,
+.football-country-filter button.is-active {
+    background: color-mix(in srgb, var(--primary) 16%, var(--surface-elevated));
+    color: var(--primary);
+    border-color: color-mix(in srgb, var(--primary) 54%, var(--border));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 25%, transparent);
+}
+
+.rm-navbar,
+.rm-navbar__inner,
+.rm-navbar__drawer,
+.rm-bottom-nav,
+.rm-footer {
+    background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+    color: var(--text);
+    border-color: var(--border);
+}
+
+.rm-navbar__links a,
+.rm-navbar__drawer a,
+.rm-bottom-nav a {
+    min-height: 44px;
+    color: var(--text-soft);
+}
+
+.rm-navbar__links a:hover,
+.rm-navbar__links a.is-active,
+.rm-navbar__drawer a:hover,
+.rm-navbar__drawer a.is-active,
+.rm-bottom-nav a.is-active {
+    color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+}
+
+input,
+select,
+textarea,
+.rm-search input,
+.football-date-filter input,
+.football-search-filter input {
+    min-height: 44px;
+    color: var(--text);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--muted);
+    opacity: 1;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+    box-shadow: var(--focus-ring);
+}
+
+.empty-state,
+.error-state,
+.rm-empty-state,
+.rm-news-empty,
+.football-state,
+.rm-live-state-panel {
+    border-radius: var(--radius-lg);
+    padding: clamp(1.25rem, 3vw, 2.4rem);
+    text-align: center;
+}
+
+.error-state,
+.rm-live-state-panel--error,
+.football-state--error {
+    border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+    background: color-mix(in srgb, var(--surface-elevated) 86%, var(--danger) 7%);
+}
+
+.status-banner,
+.rm-live-fallback-note,
+.inline-warning {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid color-mix(in srgb, var(--warning) 42%, var(--border));
+    background: color-mix(in srgb, var(--surface-elevated) 86%, var(--warning) 10%);
+    color: var(--text);
+}
+
+.loading-skeleton,
+.football-match-card--skeleton,
+.rm-player-frame--skeleton,
+.rm-skeleton-list span {
+    background: linear-gradient(90deg, var(--surface-soft), color-mix(in srgb, var(--surface-soft) 72%, var(--primary) 8%), var(--surface-soft));
+    background-size: 200% 100%;
+    animation: rm-skeleton 1400ms ease-in-out infinite;
+}
+
+.rm-live-layout {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.86fr) minmax(0, 1.4fr);
+    gap: clamp(1rem, 2vw, 1.5rem);
+    align-items: start;
+}
+
+.rm-player-shell {
+    position: sticky;
+    top: 96px;
+}
+
+.rm-live-row,
+.rm-channel-card,
+.football-match-card,
+.rm-directory-card,
+.rm-story-card {
+    color: var(--text);
+    border-color: var(--border);
+}
+
+.rm-live-row:hover,
+.rm-live-row:focus-visible,
+.rm-live-row.is-active,
+.rm-channel-card:hover,
+.rm-channel-card:focus-within,
+.football-match-card:hover,
+.football-match-card:focus-within {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--primary) 48%, var(--border));
+}
+
+.rm-live-row b,
+.status-badge,
+.football-status-badge--live {
+    color: #ffffff;
+    background: var(--success);
+}
+
+.football-status-badge--finished,
+.football-status-badge--result {
+    color: var(--text);
+    background: color-mix(in srgb, var(--surface-soft) 80%, var(--primary) 10%);
+}
+
+.football-status-badge--not_started,
+.football-status-badge--scheduled,
+.football-status-badge--unknown {
+    color: var(--text);
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+}
+
+.football-match-grid,
+.football-league-group__matches,
+.rm-directory-grid,
+.rm-media-grid,
+.rm-feature-grid,
+.rm-home-category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+    gap: clamp(0.9rem, 2vw, 1.25rem);
+}
+
+@keyframes rm-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes rm-skeleton {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+@media (max-width: 767px) {
+    .rm-main,
+    .site-container {
+        width: min(100% - 1rem, 100%);
+    }
+
+    .rm-live-stage__header,
+    .football-live-hero,
+    .rm-platform-hero {
+        grid-template-columns: 1fr !important;
+    }
+
+    .rm-live-layout {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .rm-player-shell {
+        order: -1;
+        position: static;
+        width: 100%;
+    }
+
+    .rm-live-browser {
+        width: 100%;
+    }
+
+    .rm-live-row,
+    .rm-channel-card,
+    .football-match-card {
+        min-height: 96px;
+    }
+
+    .rm-search,
+    .rm-search input,
+    .football-search-filter,
+    .football-search-filter input,
+    .football-date-filter,
+    .football-date-filter input {
+        width: 100%;
+    }
+
+    .rm-footer {
+        padding-bottom: 88px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 1180px) {
+    .rm-live-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .rm-player-shell {
+        position: static;
+    }
+}
+
+@media (min-width: 1600px) {
+    .rm-main,
+    .site-container {
+        width: min(100% - 6rem, 1720px);
+    }
+
+    body {
+        font-size: 1.08rem;
+    }
+
+    .rm-live-layout {
+        grid-template-columns: minmax(420px, 0.8fr) minmax(0, 1.5fr);
+        gap: 2rem;
+    }
+
+    .rm-match-row,
+    .rm-premium-channel-grid,
+    .football-match-grid,
+    .rm-directory-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+
+    .rm-btn,
+    .btn,
+    .chip,
+    .rm-tabs button,
+    .football-quick-filters button,
+    .football-league-strip button,
+    .football-country-filter button {
+        min-height: 54px;
+        font-size: 1.05rem;
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+        outline-width: 4px;
+        outline-offset: 5px;
+        box-shadow: 0 0 0 7px color-mix(in srgb, var(--primary) 24%, transparent);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

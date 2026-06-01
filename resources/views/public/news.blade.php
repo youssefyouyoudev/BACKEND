@@ -22,8 +22,8 @@
         <section class="rm-news-empty" aria-labelledby="rm-news-empty-title">
             <span class="rm-news-empty__icon"><x-icon name="news" /></span>
             <p class="rm-eyebrow">Newsroom</p>
-            <h2 id="rm-news-empty-title">Sports stories are being prepared</h2>
-            <p>Match previews, football updates, and channel news will appear here soon.</p>
+            <h2 id="rm-news-empty-title">Newsroom is being prepared</h2>
+            <p>Meanwhile, explore live scores and channels. Published stories will appear here only when real editorial content is ready.</p>
             <div class="rm-hero-actions">
                 <a href="{{ route('live-tv') }}" class="rm-btn rm-btn-primary"><x-icon name="play" />Explore Live TV</a>
                 <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-secondary"><x-icon name="scores" />View Football Scores</a>

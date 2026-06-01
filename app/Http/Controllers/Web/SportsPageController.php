@@ -12,6 +12,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -346,12 +347,12 @@ class SportsPageController extends Controller
 
     private function leagueDirectory(): Collection
     {
-        return collect(config('football_leagues.top_leagues', []))
+        return Cache::remember('public-directory:football-leagues', now()->addDay(), fn () => collect(config('football_leagues.top_leagues', []))
             ->map(fn (array $league): array => [
                 'name' => $league['name'],
                 'slug' => $league['slug'],
                 'region' => $league['country'],
-            ]);
+            ]));
     }
 
     private function teamDirectory(): Collection

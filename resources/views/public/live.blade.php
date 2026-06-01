@@ -45,7 +45,7 @@
             </form>
         </div>
 
-        <div class="rm-live-loading-layout" x-show.important="loadingList" x-cloak aria-live="polite" aria-label="Loading live channels">
+        <div class="rm-live-loading-layout" x-show.important="loadingList && channels.length === 0" x-cloak aria-live="polite" aria-label="Loading live channels">
             <section class="rm-player-shell rm-player-shell--skeleton">
                 <div class="rm-player-header rm-player-header--skeleton">
                     <span></span>
@@ -76,7 +76,7 @@
             <button type="button" class="rm-btn rm-btn-secondary rm-btn-sm" @click="loadChannels">Retry</button>
         </div>
 
-        <div class="rm-live-layout" id="channels" x-show.important="!loadingList && (!loadError || channels.length > 0)" x-cloak>
+        <div class="rm-live-layout" id="channels" x-show.important="channels.length > 0 || (!loadingList && !loadError)" x-cloak>
             <aside class="rm-glass-card rm-live-browser" aria-label="Live channel browser">
                 <div class="rm-live-browser__top">
                     <strong>Channels</strong>
@@ -85,12 +85,12 @@
                     </button>
                 </div>
 
-                <div class="rm-tabs" role="tablist" aria-label="Filter channels">
-                    <button type="button" :class="{ 'is-active': activeCategory === '__ALL__' }" @click="setCategory('__ALL__')">
+                <div class="rm-tabs chip-scroll" role="tablist" aria-label="Filter channels">
+                    <button type="button" class="chip" :class="{ 'is-active chip-active': activeCategory === '__ALL__' }" @click="setCategory('__ALL__')">
                         All <span>{{ number_format($totalCount) }}</span>
                     </button>
                     @foreach($categoryCounts->take(8) as $category => $count)
-                        <button type="button" :class="{ 'is-active': activeCategory === @js($category) }" @click="setCategory(@js($category))">
+                        <button type="button" class="chip" :class="{ 'is-active chip-active': activeCategory === @js($category) }" @click="setCategory(@js($category))">
                             {{ $category }} <span>{{ $count }}</span>
                         </button>
                     @endforeach
@@ -154,8 +154,11 @@
                     <div class="rm-player-empty rm-player-empty--error" x-show.important="playerError && activeChannel && !loadingPlayer">
                         <span><x-icon name="signal" /></span>
                         <strong>This channel could not be loaded.</strong>
-                        <p>Try again, or choose another channel from the list.</p>
-                        <button type="button" class="rm-btn rm-btn-secondary rm-btn-sm" @click="selectChannel(activeChannel.id)">Retry</button>
+                        <p x-text="playerErrorMessage || 'Try again, or choose another channel from the list.'"></p>
+                        <div class="rm-empty-state__actions">
+                            <button type="button" class="rm-btn rm-btn-secondary rm-btn-sm" @click="selectChannel(activeChannel.id)">Retry</button>
+                            <a x-show.important="externalPlayerUrl" :href="externalPlayerUrl || '#'" class="rm-btn rm-btn-primary rm-btn-sm" target="_blank" rel="noopener">Open external player</a>
+                        </div>
                     </div>
                 </div>
 
@@ -200,6 +203,8 @@ document.addEventListener('alpine:init', () => {
         loadingPlayer: false,
         channelsLoaded: Array.isArray(initialChannels),
         playerError: false,
+        playerErrorMessage: '',
+        externalPlayerUrl: '',
         fallbackLogo: @js(asset('brand/rifi-logo.png')),
         hls: null,
         mpegts: null,
@@ -282,6 +287,8 @@ document.addEventListener('alpine:init', () => {
             this.activeChannel = null;
             this.loadingPlayer = false;
             this.playerError = false;
+            this.playerErrorMessage = '';
+            this.externalPlayerUrl = '';
 
             const video = this.$refs.video;
             if (video) {
@@ -306,6 +313,7 @@ document.addEventListener('alpine:init', () => {
         async selectChannel(id) {
             this.loadingPlayer = true;
             this.playerError = false;
+            this.playerErrorMessage = '';
             const cached = this.channels.find((channel) => Number(channel.id) === Number(id));
             if (cached) this.activeChannel = cached;
 
@@ -320,6 +328,7 @@ document.addEventListener('alpine:init', () => {
                 this.activeChannel = cached || null;
                 this.loadingPlayer = false;
                 this.playerError = true;
+                this.playerErrorMessage = 'The stream details could not be loaded. Your channel list is still available.';
             }
         },
 
@@ -328,10 +337,20 @@ document.addEventListener('alpine:init', () => {
             if (!source || !video) {
                 this.loadingPlayer = false;
                 this.playerError = true;
+                this.playerErrorMessage = 'No playable stream source is configured for this channel.';
                 return;
             }
             this.playerError = false;
+            this.playerErrorMessage = '';
+            this.externalPlayerUrl = source.external_url || source.url || '';
             this.previewReconnects = 0;
+
+            if (source.requires_external_player && window.location.protocol === 'https:') {
+                this.loadingPlayer = false;
+                this.playerError = true;
+                this.playerErrorMessage = 'This HTTP-only stream cannot play inside an HTTPS page. Open it in an external player or choose another source.';
+                return;
+            }
 
             if (this.hls) {
                 this.hls.destroy();

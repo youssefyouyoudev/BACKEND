@@ -201,7 +201,7 @@ export function renderError(message) {
     setShellBusy(false);
     updateMatchCount('Match feed unavailable');
 
-    target.innerHTML = `<div class="football-state football-state--error"><span>${ICONS.signal}</span><strong>Could not load matches</strong><p>${safeText(message || 'Please try again shortly.')}</p><button type="button" class="football-tv-toggle" data-football-retry>Retry</button></div>`;
+    target.innerHTML = `<div class="football-state football-state--error error-state"><span>${ICONS.signal}</span><strong>Could not load matches</strong><p>${safeText(message || 'Please try again shortly.')}</p><button type="button" class="rm-btn rm-btn-primary" data-football-retry>Retry</button></div>`;
     target.querySelector('[data-football-retry]')?.addEventListener('click', () => {
         if (state.activeFilter === 'upcoming') return fetchUpcomingMatches();
         if (state.activeFilter === 'results') return fetchResults();
@@ -216,13 +216,27 @@ export function renderEmpty(message) {
     setShellBusy(false);
     updateMatchCount('No matches');
 
-    target.innerHTML = `<div class="football-state"><span>${ICONS.football}</span><strong>No matches available for this filter right now.</strong><p>${safeText(message || 'Try changing the date, league, region, or search keyword.')}</p></div>`;
+    target.innerHTML = `
+        <div class="football-state empty-state">
+            <span>${ICONS.football}</span>
+            <strong>No matches found for this filter</strong>
+            <p>${safeText(message || 'Try changing the date, league, region, or search keyword.')}</p>
+            <div class="rm-empty-state__actions">
+                <button type="button" class="rm-btn rm-btn-primary rm-btn-sm" data-football-empty-action="today">Today</button>
+                <button type="button" class="rm-btn rm-btn-secondary rm-btn-sm" data-football-empty-action="upcoming">Upcoming</button>
+                <a href="/live-tv" class="rm-btn rm-btn-secondary rm-btn-sm">Browse Live TV</a>
+            </div>
+        </div>
+    `;
+    target.querySelector('[data-football-empty-action="today"]')?.addEventListener('click', fetchTodayMatches);
+    target.querySelector('[data-football-empty-action="upcoming"]')?.addEventListener('click', fetchUpcomingMatches);
 }
 
 export function setActiveFilter(filter) {
     state.activeFilter = filter;
     state.root?.querySelectorAll('[data-football-filter]').forEach((button) => {
         button.classList.toggle('is-active', button.dataset.footballFilter === filter);
+        button.classList.toggle('chip-active', button.dataset.footballFilter === filter);
     });
 }
 
@@ -302,16 +316,27 @@ function bindFootballPage() {
         }, 180);
     });
 
-    state.root.querySelector('[data-football-refresh]')?.addEventListener('click', () => {
-        if (state.activeFilter === 'upcoming') return fetchUpcomingMatches();
-        if (state.activeFilter === 'results') return fetchResults();
-        return fetchTodayMatches();
+    state.root.querySelector('[data-football-refresh]')?.addEventListener('click', async (event) => {
+        const button = event.currentTarget;
+        button.classList.add('is-loading');
+        button.disabled = true;
+        try {
+            if (state.activeFilter === 'upcoming') return await fetchUpcomingMatches();
+            if (state.activeFilter === 'results') return await fetchResults();
+            return await fetchTodayMatches();
+        } finally {
+            button.classList.remove('is-loading');
+            button.disabled = false;
+        }
     });
 
     state.root.querySelectorAll('[data-tv-country]').forEach((button) => {
         button.addEventListener('click', () => {
             state.activeCountry = button.dataset.tvCountry || 'All';
-            state.root.querySelectorAll('[data-tv-country]').forEach((item) => item.classList.toggle('is-active', item === button));
+            state.root.querySelectorAll('[data-tv-country]').forEach((item) => {
+                item.classList.toggle('is-active', item === button);
+                item.classList.toggle('chip-active', item === button);
+            });
             rerenderLoadedTvChannels();
         });
     });
@@ -319,7 +344,10 @@ function bindFootballPage() {
     state.root.querySelectorAll('[data-football-league]').forEach((button) => {
         button.addEventListener('click', () => {
             state.activeLeague = button.dataset.footballLeague || 'All';
-            state.root.querySelectorAll('[data-football-league]').forEach((item) => item.classList.toggle('is-active', item === button));
+            state.root.querySelectorAll('[data-football-league]').forEach((item) => {
+                item.classList.toggle('is-active', item === button);
+                item.classList.toggle('chip-active', item === button);
+            });
             renderMatches(state.currentMatches, 'Try changing the date, league, region, or search keyword.');
         });
     });
