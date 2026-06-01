@@ -48,10 +48,10 @@ Route::get('/tv-shows', ComingSoonController::class)->defaults('section', 'tv-sh
 Route::get('/anime', ComingSoonController::class)->defaults('section', 'anime')->name('anime');
 Route::get('/news', [SportsPageController::class, 'news'])->name('news.index');
 Route::get('/news/{slug}', [SportsPageController::class, 'article'])->name('news.show');
-Route::get('/scores', [SportsPageController::class, 'scores'])->name('scores');
-Route::get('/live-scores', [SportsPageController::class, 'scores'])->name('live-scores');
-Route::get('/fixtures', [SportsPageController::class, 'fixtures'])->name('fixtures');
-Route::get('/matches', [SportsPageController::class, 'matches'])->name('matches.index');
+Route::permanentRedirect('/scores', '/sports/football')->name('scores');
+Route::permanentRedirect('/live-scores', '/sports/football')->name('live-scores');
+Route::permanentRedirect('/fixtures', '/sports/football')->name('fixtures');
+Route::permanentRedirect('/matches', '/sports/football')->name('matches.index');
 Route::get('/leagues', [SportsPageController::class, 'leagues'])->name('leagues.index');
 Route::get('/leagues/{slug}', [SportsPageController::class, 'league'])->name('leagues.show');
 Route::get('/teams', [SportsPageController::class, 'teams'])->name('teams.index');
@@ -69,7 +69,7 @@ Route::get('/advertise', [SportsPageController::class, 'staticPage'])->defaults(
 Route::get('/editorial-policy', [SportsPageController::class, 'staticPage'])->defaults('page', 'editorial-policy')->name('editorial-policy');
 Route::get('/sitemap.xml', [SportsPageController::class, 'sitemap'])->name('sitemap');
 Route::get('/robots.txt', [SportsPageController::class, 'robots'])->name('robots');
-Route::get('/live', LiveTvController::class)->name('live');
+Route::permanentRedirect('/live', '/live-tv')->name('live');
 Route::get('/live-tv', LiveTvController::class)->name('live-tv');
 Route::get('/watch/{channel}', [ChannelController::class, 'show'])->name('channels.show');
 Route::get('/stream/{encodedUrl}', StreamProxyController::class)

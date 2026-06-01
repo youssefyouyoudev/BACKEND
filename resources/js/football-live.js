@@ -3,6 +3,7 @@ const SELECTORS = {
     eventRoot: '[data-football-event-page]',
     matches: '[data-football-matches]',
     status: '[data-football-status]',
+    count: '[data-football-count]',
 };
 
 const state = {
@@ -10,9 +11,19 @@ const state = {
     activeFilter: 'today',
     activeCountry: 'All',
     activeLeague: 'All',
+    searchQuery: '',
     currentMatches: [],
     refreshTimer: null,
     tvCache: new Map(),
+};
+
+const ICONS = {
+    calendar: '<svg class="rm-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"></path><path d="M16 2v4"></path><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M3 10h18"></path></svg>',
+    clock: '<svg class="rm-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>',
+    football: '<svg class="rm-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 3-2 3 2-1 4h-4L9 9Z"></path></svg>',
+    signal: '<svg class="rm-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h.01"></path><path d="M7 20a5 5 0 0 0-5-5"></path><path d="M12 20A10 10 0 0 0 2 10"></path><path d="M17 20A15 15 0 0 0 2 5"></path></svg>',
+    trophy: '<svg class="rm-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"></path><path d="M12 17v4"></path><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"></path><path d="M5 5H3v2a4 4 0 0 0 4 4"></path><path d="M19 5h2v2a4 4 0 0 1-4 4"></path></svg>',
+    tv: '<svg class="rm-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="12" rx="2"></rect><path d="M8 21h8"></path><path d="M12 17v4"></path></svg>',
 };
 
 export function initFootballLivescore() {
@@ -29,29 +40,29 @@ export function initFootballLivescore() {
 
 export async function fetchTodayMatches() {
     setActiveFilter('today');
-    await loadMatches(state.root.dataset.todayUrl, 'No top league matches found for today.');
+    await loadMatches(state.root.dataset.todayUrl);
 }
 
 export async function fetchLiveMatches() {
     setActiveFilter('live');
-    await loadMatches(state.root.dataset.todayUrl, 'No live matches right now.');
+    await loadMatches(state.root.dataset.todayUrl);
 }
 
 export async function fetchMatchesByDate(date) {
     setActiveFilter('date');
     const url = new URL(state.root.dataset.dateUrl, window.location.origin);
     url.searchParams.set('date', date);
-    await loadMatches(url.toString(), 'No top league matches found for this date.');
+    await loadMatches(url.toString());
 }
 
 export async function fetchUpcomingMatches() {
     setActiveFilter('upcoming');
-    await loadMatches(state.root.dataset.upcomingUrl, 'Upcoming matches are not available yet.');
+    await loadMatches(state.root.dataset.upcomingUrl);
 }
 
 export async function fetchResults() {
     setActiveFilter('results');
-    await loadMatches(state.root.dataset.resultsUrl, 'Recent results are not available yet.');
+    await loadMatches(state.root.dataset.resultsUrl);
 }
 
 export function renderMatches(matches, emptyMessage = 'No matches available.') {
@@ -61,19 +72,39 @@ export function renderMatches(matches, emptyMessage = 'No matches available.') {
     state.currentMatches = Array.isArray(matches) ? matches : [];
     const visibleMatches = filterMatches(state.currentMatches);
 
+    updateMatchCount(visibleMatches.length);
+
     if (visibleMatches.length === 0) {
         renderEmpty(emptyMessage);
         return;
     }
 
-    target.innerHTML = visibleMatches.map((match) => renderMatchCard(match)).join('');
+    target.innerHTML = groupMatchesByLeague(visibleMatches).map(renderLeagueGroup).join('');
     target.querySelectorAll('[data-load-tv]').forEach((button) => {
         button.addEventListener('click', () => loadTvChannelsForCard(button.closest('[data-match-card]')));
     });
 }
 
+export function renderLeagueGroup(group) {
+    return `
+        <section class="football-league-group" aria-label="${safeText(group.league)} matches">
+            <header class="football-league-group__header">
+                <span>${ICONS.trophy}</span>
+                <div>
+                    <h3>${safeText(group.league)}</h3>
+                    <p>${group.matches.length} ${group.matches.length === 1 ? 'match' : 'matches'}</p>
+                </div>
+            </header>
+            <div class="football-league-group__matches">
+                ${group.matches.map((match) => renderMatchCard(match)).join('')}
+            </div>
+        </section>
+    `;
+}
+
 export function renderMatchCard(match) {
     const statusType = safeText(match?.status_type || 'unknown');
+    const isLive = isLiveMatch(match);
     const home = match?.home_team || {};
     const away = match?.away_team || {};
     const score = match?.score || {};
@@ -84,30 +115,37 @@ export function renderMatchCard(match) {
     const awayBadge = safeText(away.badge || '/brand/rifi-logo.png');
     const eventId = safeText(match?.id || '');
     const detailsUrl = safeText(match?.event_url || `/sports/football/event/${eventId}`);
+    const homeName = safeText(home.name || 'Team pending');
+    const awayName = safeText(away.name || 'Team pending');
+    const leagueName = safeText(match?.league?.name || 'Football');
+    const formattedDate = safeText(formatDate(match?.date));
+    const formattedTime = safeText(formatTime(match?.time));
+    const statusLabel = safeText(match?.status || (formattedTime ? 'Scheduled' : 'Match status'));
 
     return `
-        <article class="football-match-card" data-match-card data-event-id="${eventId}" data-league="${safeText(match?.league?.name || 'Football')}">
+        <article class="football-match-card ${isLive ? 'is-live' : ''}" data-match-card data-event-id="${eventId}" data-league="${leagueName}">
             <header class="football-match-card__header">
-                <span>${safeText(match?.league?.name || 'Football')}</span>
-                <b class="football-status-badge football-status-badge--${statusType}">${safeText(match?.status || 'Unknown')}</b>
+                <span>${ICONS.trophy}${leagueName}</span>
+                <b class="football-status-badge football-status-badge--${statusType}">${isLive ? `${ICONS.signal} Live` : statusLabel}</b>
             </header>
             <div class="football-scoreline">
                 <div class="football-team">
                     <img src="${homeBadge}" alt="" loading="lazy" onerror="this.src='/brand/rifi-logo.png'">
-                    <strong>${safeText(home.name || 'Home')}</strong>
+                    <strong>${homeName}</strong>
                 </div>
                 <a href="${detailsUrl}" class="football-scoreline__score" aria-label="Open match details">${displayScore}</a>
                 <div class="football-team football-team--away">
                     <img src="${awayBadge}" alt="" loading="lazy" onerror="this.src='/brand/rifi-logo.png'">
-                    <strong>${safeText(away.name || 'Away')}</strong>
+                    <strong>${awayName}</strong>
                 </div>
             </div>
             <footer class="football-match-card__meta">
-                <span>${safeText(formatDate(match?.date))}${match?.time ? ` &middot; ${safeText(formatTime(match.time))}` : ''}</span>
+                <span>${ICONS.calendar}${formattedDate || 'Date unavailable'}</span>
+                ${formattedTime ? `<span>${ICONS.clock}${formattedTime}</span>` : ''}
                 ${match?.venue ? `<span>${safeText(match.venue)}</span>` : ''}
             </footer>
             <section class="football-tv-box" data-tv-box>
-                <button type="button" class="football-tv-toggle" data-load-tv>Show TV channels</button>
+                <button type="button" class="football-tv-toggle" data-load-tv>${ICONS.tv} Check TV channels</button>
             </section>
         </article>
     `;
@@ -115,7 +153,7 @@ export function renderMatchCard(match) {
 
 export function renderTvChannels(channels) {
     if (! Array.isArray(channels) || channels.length === 0) {
-        return '<p class="football-empty">Broadcast information is not available for this match.</p>';
+        return '<p class="football-empty">No TV channels are listed for this match yet.</p>';
     }
 
     const filtered = state.activeCountry === 'All'
@@ -123,7 +161,7 @@ export function renderTvChannels(channels) {
         : channels.filter((channel) => (channel.country || '').toLowerCase() === state.activeCountry.toLowerCase());
     const visible = filtered.length > 0 ? filtered : channels;
     const hasAvailable = visible.some((channel) => channel.available);
-    const helper = hasAvailable ? '' : '<p class="football-tv-note">Channels found, but not available in our playlist yet.</p>';
+    const helper = hasAvailable ? '<p class="football-tv-note football-tv-note--available">Watch links available</p>' : '<p class="football-tv-note">TV listings are available, but no matching RifiMedia channel is ready yet.</p>';
 
     return `
         ${helper}
@@ -137,18 +175,33 @@ export function renderLoading() {
     const target = state.root?.querySelector(SELECTORS.matches);
     if (! target) return;
 
-    target.innerHTML = Array.from({ length: 5 }).map(() => `
-        <article class="football-match-card football-match-card--skeleton">
-            <span></span><div></div><strong></strong><p></p>
-        </article>
-    `).join('');
+    setShellBusy(true);
+    updateMatchCount('Loading matches...');
+
+    target.innerHTML = `
+        <section class="football-league-group football-league-group--skeleton">
+            <header class="football-league-group__header">
+                <span></span><div><h3></h3><p></p></div>
+            </header>
+            <div class="football-league-group__matches">
+                ${Array.from({ length: 6 }).map(() => `
+                    <article class="football-match-card football-match-card--skeleton">
+                        <span></span><div></div><strong></strong><p></p>
+                    </article>
+                `).join('')}
+            </div>
+        </section>
+    `;
 }
 
 export function renderError(message) {
     const target = state.root?.querySelector(SELECTORS.matches);
     if (! target) return;
 
-    target.innerHTML = `<div class="football-state football-state--error"><strong>Could not load matches</strong><p>${safeText(message || 'Please try again shortly.')}</p><button type="button" class="football-tv-toggle" data-football-retry>Retry</button></div>`;
+    setShellBusy(false);
+    updateMatchCount('Match feed unavailable');
+
+    target.innerHTML = `<div class="football-state football-state--error"><span>${ICONS.signal}</span><strong>Could not load matches</strong><p>${safeText(message || 'Please try again shortly.')}</p><button type="button" class="football-tv-toggle" data-football-retry>Retry</button></div>`;
     target.querySelector('[data-football-retry]')?.addEventListener('click', () => {
         if (state.activeFilter === 'upcoming') return fetchUpcomingMatches();
         if (state.activeFilter === 'results') return fetchResults();
@@ -160,7 +213,10 @@ export function renderEmpty(message) {
     const target = state.root?.querySelector(SELECTORS.matches);
     if (! target) return;
 
-    target.innerHTML = `<div class="football-state"><strong>No matches available for this filter right now.</strong><p>${safeText(message || 'Try another date, league, or match range.')}</p></div>`;
+    setShellBusy(false);
+    updateMatchCount('No matches');
+
+    target.innerHTML = `<div class="football-state"><span>${ICONS.football}</span><strong>No matches available for this filter right now.</strong><p>${safeText(message || 'Try changing the date, league, region, or search keyword.')}</p></div>`;
 }
 
 export function setActiveFilter(filter) {
@@ -189,7 +245,7 @@ export function buildWatchButton(channel) {
         <a href="${safeText(fallback)}" class="football-watch-btn">
             <span>${channel.logo ? `<img src="${safeText(channel.logo)}" alt="" loading="lazy">` : safeText((channel.matched_channel_name || channel.channel || 'C').slice(0, 1))}</span>
             <strong>${safeText(channel.matched_channel_name || channel.channel || 'Channel')}</strong>
-            <em>Watch</em>
+            <em>${ICONS.tv} Watch</em>
         </a>
     `;
 }
@@ -237,6 +293,15 @@ function bindFootballPage() {
         if (event.target.value) fetchMatchesByDate(event.target.value);
     });
 
+    let searchTimer = null;
+    state.root.querySelector('[data-football-search]')?.addEventListener('input', (event) => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            state.searchQuery = String(event.target.value || '').trim().toLowerCase();
+            renderMatches(state.currentMatches);
+        }, 180);
+    });
+
     state.root.querySelector('[data-football-refresh]')?.addEventListener('click', () => {
         if (state.activeFilter === 'upcoming') return fetchUpcomingMatches();
         if (state.activeFilter === 'results') return fetchResults();
@@ -255,7 +320,7 @@ function bindFootballPage() {
         button.addEventListener('click', () => {
             state.activeLeague = button.dataset.footballLeague || 'All';
             state.root.querySelectorAll('[data-football-league]').forEach((item) => item.classList.toggle('is-active', item === button));
-            renderMatches(state.currentMatches, 'No matches available for this league right now.');
+            renderMatches(state.currentMatches, 'Try changing the date, league, region, or search keyword.');
         });
     });
 }
@@ -264,9 +329,10 @@ async function loadMatches(url, emptyMessage) {
     renderLoading();
     try {
         const response = await fetch(url, { headers: { Accept: 'application/json' } });
-        if (! response.ok) throw new Error(response.status === 429 ? 'Rate limit reached. Please retry shortly.' : 'The match service returned an error.');
+        if (! response.ok) throw new Error(response.status === 429 ? 'Too many match requests. Please retry shortly.' : 'The match feed is temporarily unavailable.');
         const payload = await response.json();
         renderMatches(payload.data || [], emptyMessage);
+        setShellBusy(false);
     } catch (error) {
         renderError(error.message);
     }
@@ -315,11 +381,59 @@ function filterMatches(matches) {
     return matches.filter((match) => {
         const leagueName = String(match?.league?.name || '');
         const statusType = String(match?.status_type || '').toLowerCase();
+        const haystack = [
+            match?.league?.name,
+            match?.home_team?.name,
+            match?.away_team?.name,
+            match?.status,
+            match?.venue,
+        ].filter(Boolean).join(' ').toLowerCase();
         const leagueMatches = state.activeLeague === 'All' || leagueName === state.activeLeague;
         const liveMatches = state.activeFilter !== 'live' || statusType.includes('live') || ['1h', '2h', 'ht'].includes(statusType);
+        const searchMatches = state.searchQuery === '' || haystack.includes(state.searchQuery);
 
-        return leagueMatches && liveMatches;
+        return leagueMatches && liveMatches && searchMatches;
     });
+}
+
+function groupMatchesByLeague(matches) {
+    const groups = new Map();
+
+    matches.forEach((match) => {
+        const league = match?.league?.name || 'Football';
+        if (!groups.has(league)) {
+            groups.set(league, []);
+        }
+        groups.get(league).push(match);
+    });
+
+    return Array.from(groups.entries()).map(([league, groupedMatches]) => ({
+        league,
+        matches: groupedMatches,
+    }));
+}
+
+function isLiveMatch(match) {
+    const statusType = String(match?.status_type || '').toLowerCase();
+    const status = String(match?.status || '').toLowerCase();
+
+    return statusType.includes('live') || status.includes('live') || ['1h', '2h', 'ht'].includes(statusType);
+}
+
+function updateMatchCount(value) {
+    const target = state.root?.querySelector(SELECTORS.count);
+    if (!target) return;
+
+    if (typeof value === 'number') {
+        target.textContent = `${value} ${value === 1 ? 'match' : 'matches'}`;
+        return;
+    }
+
+    target.textContent = value;
+}
+
+function setShellBusy(isBusy) {
+    state.root?.querySelector('.football-match-shell')?.setAttribute('aria-busy', isBusy ? 'true' : 'false');
 }
 
 function rerenderLoadedTvChannels() {

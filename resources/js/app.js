@@ -7,12 +7,11 @@ window.mpegts = mpegts;
 
 const applyThemeLabel = () => {
     const isLight = document.documentElement.classList.contains('theme-light');
-    document.querySelectorAll('[data-theme-icon]').forEach((icon) => {
-        icon.textContent = isLight ? 'D' : 'L';
-    });
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
-        button.setAttribute('aria-label', 'Switch theme');
-        button.setAttribute('title', 'Switch theme');
+        const label = isLight ? 'Switch to dark theme' : 'Switch to light theme';
+        button.dataset.themeState = isLight ? 'light' : 'dark';
+        button.setAttribute('aria-label', label);
+        button.setAttribute('title', label);
     });
 };
 
@@ -37,9 +36,14 @@ document.addEventListener('DOMContentLoaded', () => {
     applyThemeLabel();
 
     const navbar = document.querySelector('[data-navbar]');
+    let lastScrollY = window.scrollY;
     const syncNavbar = () => {
         if (! navbar) return;
-        navbar.classList.toggle('is-scrolled', window.scrollY > 12);
+        const currentScrollY = window.scrollY;
+        navbar.classList.toggle('is-scrolled', currentScrollY > 12);
+        navbar.classList.toggle('is-condensed', currentScrollY > 96);
+        navbar.classList.toggle('is-rising', currentScrollY < lastScrollY && currentScrollY > 96);
+        lastScrollY = currentScrollY;
     };
     syncNavbar();
     window.addEventListener('scroll', syncNavbar, { passive: true });
@@ -63,8 +67,9 @@ document.addEventListener('DOMContentLoaded', () => {
         target.src = fallback;
     }, true);
 
-    const revealItems = document.querySelectorAll('[data-reveal], .rm-section, .rm-match-card, .football-match-card, .rm-story-card, .rm-directory-card');
-    if ('IntersectionObserver' in window) {
+    const revealItems = document.querySelectorAll('[data-reveal], .rm-section, .rm-match-card, .football-match-card, .rm-story-card, .rm-directory-card, .rm-media-card');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if ('IntersectionObserver' in window && !reducedMotion) {
         const observer = new IntersectionObserver((entries) => {
             entries.forEach((entry) => {
                 if (!entry.isIntersecting) return;
@@ -84,13 +89,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.rm-carousel-shell').forEach((shell) => {
         const track = shell.querySelector('[data-carousel]');
         if (!track) return;
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         shell.addEventListener('click', (event) => {
             const button = event.target.closest('[data-carousel-prev], [data-carousel-next]');
             if (!button) return;
 
             const direction = button.hasAttribute('data-carousel-prev') ? -1 : 1;
-            track.scrollBy({ left: direction * Math.max(260, track.clientWidth * 0.78), behavior: 'smooth' });
+            track.scrollBy({
+                left: direction * Math.max(260, track.clientWidth * 0.78),
+                behavior: prefersReducedMotion ? 'auto' : 'smooth',
+            });
         });
     });
 });

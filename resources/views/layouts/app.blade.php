@@ -23,7 +23,7 @@
         $seoTitle = html_entity_decode(trim($__env->yieldContent('title')), ENT_QUOTES, 'UTF-8') ?: ($title ?? 'RifiMedia - Live TV, Football Scores & Sports Streaming');
         $seoDescription = html_entity_decode(trim($__env->yieldContent('description')), ENT_QUOTES, 'UTF-8') ?: ($description ?? 'RifiMedia brings football scores, live TV channels, sports updates, and entertainment into one clean platform.');
         $seoRobots = trim($__env->yieldContent('robots')) ?: ($robots ?? 'index,follow');
-        $seoCanonical = $canonical ?? url()->current();
+        $seoCanonical = preg_replace('/^http:\/\//i', 'https://', $canonical ?? url()->current());
         $seoImage = $image ?? asset('brand/rifi-logo.png');
         $baseSchema = [
             '@context' => 'https://schema.org',
@@ -51,21 +51,18 @@
             ],
         ];
         $mainNav = [
-            ['label' => 'Home', 'icon' => 'play', 'href' => route('home'), 'active' => request()->routeIs('home')],
-            ['label' => 'Football', 'icon' => 'football', 'href' => route('sports.football'), 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores')],
-            ['label' => 'Live TV', 'icon' => 'tv', 'href' => route('live-tv'), 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
-            ['label' => 'Channels', 'icon' => 'signal', 'href' => route('live-tv').'#channels', 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
+            ['label' => 'Scores', 'icon' => 'scores', 'href' => route('sports.football'), 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores', 'fixtures')],
+            ['label' => 'Live TV', 'icon' => 'tv', 'href' => route('live-tv'), 'active' => request()->routeIs('live', 'live-tv')],
             ['label' => 'News', 'icon' => 'news', 'href' => route('news.index'), 'active' => request()->routeIs('news.*')],
             ['label' => 'Leagues', 'icon' => 'trophy', 'href' => route('leagues.index'), 'active' => request()->routeIs('leagues.*')],
-            ['label' => 'Teams', 'icon' => 'globe', 'href' => route('teams.index'), 'active' => request()->routeIs('teams.*')],
+            ['label' => 'Search', 'icon' => 'search', 'href' => route('search'), 'active' => request()->routeIs('search')],
         ];
         $mobileQuickNav = [
-            ['label' => 'Home', 'href' => route('home'), 'icon' => 'H', 'active' => request()->routeIs('home')],
-            ['label' => 'Football', 'href' => route('sports.football'), 'icon' => 'F', 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores')],
-            ['label' => 'Live TV', 'href' => route('live-tv'), 'icon' => 'L', 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
-            ['label' => 'Leagues', 'href' => route('leagues.index'), 'icon' => 'G', 'active' => request()->routeIs('leagues.*')],
-            ['label' => 'News', 'href' => route('news.index'), 'icon' => 'N', 'active' => request()->routeIs('news.*')],
-            ['label' => 'Search', 'href' => route('search'), 'icon' => 'Q', 'active' => request()->routeIs('search')],
+            ['label' => 'Home', 'href' => route('home'), 'icon' => 'home', 'active' => request()->routeIs('home')],
+            ['label' => 'Scores', 'href' => route('sports.football'), 'icon' => 'scores', 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores', 'fixtures')],
+            ['label' => 'Live', 'href' => route('live-tv'), 'icon' => 'tv', 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
+            ['label' => 'Leagues', 'href' => route('leagues.index'), 'icon' => 'trophy', 'active' => request()->routeIs('leagues.*')],
+            ['label' => 'News', 'href' => route('news.index'), 'icon' => 'news', 'active' => request()->routeIs('news.*')],
         ];
     @endphp
     <x-seo
@@ -89,7 +86,7 @@
     @endif
 
     <div class="rm-site site-shell" x-data="{ mobileNavOpen: false }">
-        <header class="rm-navbar rm-premium-navbar" aria-label="Primary navigation" data-navbar>
+        <header class="rm-navbar rm-premium-navbar" data-navbar>
             <div class="rm-navbar__inner">
                 <x-logo />
 
@@ -104,9 +101,16 @@
                         <x-icon name="search" />
                     </a>
                     <button type="button" class="rm-icon-btn rm-theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
-                        <span data-theme-icon aria-hidden="true">D</span>
+                        <span class="rm-theme-icon rm-theme-icon--moon" aria-hidden="true"><x-icon name="moon" /></span>
+                        <span class="rm-theme-icon rm-theme-icon--sun" aria-hidden="true"><x-icon name="sun" /></span>
                     </button>
-                    <a href="{{ route('live-tv') }}" class="rm-profile-btn rm-cta-btn">Watch Live</a>
+                    @auth
+                        @if(auth()->user()?->isAdmin())
+                            <a href="{{ route('admin.dashboard') }}" class="rm-profile-btn rm-cta-btn">Admin</a>
+                        @endif
+                    @else
+                        <a href="{{ route('admin.login') }}" class="rm-profile-btn rm-cta-btn"><x-icon name="login" />Login</a>
+                    @endauth
                     <button
                         type="button"
                         class="rm-mobile-nav"
@@ -130,7 +134,7 @@
                         <a href="{{ route('admin.dashboard') }}">Admin</a>
                     @endif
                 @else
-                    <a href="{{ route('admin.login') }}">Login</a>
+                    <a href="{{ route('admin.login') }}"><x-icon name="login" />Login</a>
                 @endauth
             </nav>
         </header>
@@ -143,14 +147,15 @@
         <nav class="rm-bottom-nav" aria-label="Mobile quick navigation">
             @foreach($mobileQuickNav as $item)
                 <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}">
-                    <span aria-hidden="true">{{ $item['icon'] }}</span>
+                    <span aria-hidden="true"><x-icon :name="$item['icon']" /></span>
                     {{ $item['label'] }}
                 </a>
             @endforeach
         </nav>
 
         <button type="button" class="rm-floating-theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
-            <span data-theme-icon aria-hidden="true">D</span>
+            <span class="rm-theme-icon rm-theme-icon--moon" aria-hidden="true"><x-icon name="moon" /></span>
+            <span class="rm-theme-icon rm-theme-icon--sun" aria-hidden="true"><x-icon name="sun" /></span>
         </button>
 
         <footer class="rm-footer rm-premium-footer" aria-label="Site footer">
@@ -163,7 +168,7 @@
                     <span>
                         <strong>Football</strong>
                         <a href="{{ route('sports.football') }}">Football Scores</a>
-                        <a href="{{ route('fixtures') }}">Fixtures</a>
+                        <a href="{{ route('sports.football') }}">Fixtures</a>
                         <a href="{{ route('leagues.index') }}">Leagues</a>
                         <a href="{{ route('news.index') }}">News</a>
                     </span>

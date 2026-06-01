@@ -32,6 +32,11 @@
                 <span class="rm-live-badge"><i></i> <x-icon name="signal" /> Live TV</span>
                 <h1>Live TV channels with a cinematic player.</h1>
                 <p>Start watching instantly, search by channel name, filter by category, and jump into a full player whenever you need more space.</p>
+                <div class="rm-hero-microstats" aria-label="Live TV highlights">
+                    <span><x-icon name="tv" /> {{ number_format($totalCount) }} channels</span>
+                    <span><x-icon name="search" /> Search and filters</span>
+                    <span><x-icon name="play" /> Full player links</span>
+                </div>
             </div>
 
             <form class="rm-search rm-search--wide" @submit.prevent="loadChannels">
@@ -40,7 +45,38 @@
             </form>
         </div>
 
-        <div class="rm-live-layout" id="channels">
+        <div class="rm-live-loading-layout" x-show.important="loadingList" x-cloak aria-live="polite" aria-label="Loading live channels">
+            <section class="rm-player-shell rm-player-shell--skeleton">
+                <div class="rm-player-header rm-player-header--skeleton">
+                    <span></span>
+                    <div><strong></strong><p></p></div>
+                </div>
+                <div class="rm-player-frame rm-player-frame--spa rm-player-frame--skeleton"></div>
+            </section>
+            <aside class="rm-glass-card rm-live-browser rm-live-browser--skeleton">
+                <div class="rm-live-browser__top"><strong>Loading channels</strong></div>
+                <div class="rm-skeleton-list" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+            </aside>
+        </div>
+
+        <section class="rm-live-state-panel rm-live-state-panel--error" x-show.important="!loadingList && loadError && channels.length === 0" x-cloak aria-live="polite">
+            <span class="rm-live-state-panel__icon"><x-icon name="signal" /></span>
+            <p class="rm-eyebrow">Channel service unavailable</p>
+            <h2>Channels could not be loaded.</h2>
+            <p>Check your connection and try again. Your current playlist and watch links are unchanged.</p>
+            <button type="button" class="rm-btn rm-btn-primary" @click="loadChannels"><x-icon name="signal" />Retry</button>
+        </section>
+
+        <div class="rm-live-fallback-note" x-show.important="!loadingList && loadError && channels.length > 0" x-cloak role="status">
+            <span><x-icon name="signal" /></span>
+            <strong>Showing cached channels.</strong>
+            <p>The live channel API did not respond, but your current list is still available.</p>
+            <button type="button" class="rm-btn rm-btn-secondary rm-btn-sm" @click="loadChannels">Retry</button>
+        </div>
+
+        <div class="rm-live-layout" id="channels" x-show.important="!loadingList && (!loadError || channels.length > 0)" x-cloak>
             <aside class="rm-glass-card rm-live-browser" aria-label="Live channel browser">
                 <div class="rm-live-browser__top">
                     <strong>Channels</strong>
@@ -65,52 +101,65 @@
                         <button type="button" class="rm-live-row" :class="{ 'is-active': activeChannel && activeChannel.id === channel.id }" @click="selectChannel(channel.id)">
                             <img :src="channel.logo || fallbackLogo" :alt="channel.name" loading="lazy" x-on:error="$event.target.src = fallbackLogo">
                             <span>
-                                <strong x-text="channel.name"></strong>
-                                <small x-text="channel.group_title"></small>
+                                <strong x-text="channel.name || 'Live channel'"></strong>
+                                <small>
+                                    <span x-text="channel.group_title || 'Live TV'"></span>
+                                    <span aria-hidden="true"> • </span>
+                                    <span x-text="channel.language_label || 'Global'"></span>
+                                    <span aria-hidden="true"> • </span>
+                                    <span x-text="channel.quality_label || 'HD'"></span>
+                                </small>
                             </span>
-                            <b aria-hidden="true">+</b>
-                            <em><i></i><span x-text="channel.viewers_label"></span></em>
+                            <b aria-hidden="true" x-text="channel.status_label || 'On air'"></b>
+                            <em x-show.important="channel.viewers_label"><i></i><span x-text="channel.viewers_label"></span></em>
                         </button>
                     </template>
 
-                    <template x-if="loadingList">
-                        <div class="rm-skeleton-list" aria-label="Loading channels">
-                            <span></span><span></span><span></span><span></span>
-                        </div>
-                    </template>
-
-                    <div class="rm-empty-state rm-empty-state--compact" x-show="loadError && !loadingList">
-                        <span>Channels could not be loaded</span>
-                        <strong>Check your connection and try again.</strong>
-                        <button type="button" class="rm-btn rm-btn-secondary rm-btn-sm" @click="loadChannels">Retry</button>
-                    </div>
-
-                    <div class="rm-empty-state rm-empty-state--compact" x-show="!loadError && !loadingList && channels.length === 0">
-                        <span>No channels match your search</span>
-                        <strong>Try a different search or category.</strong>
+                    <div class="rm-empty-state rm-empty-state--compact" x-show.important="channelsLoaded && channels.length === 0">
+                        <span x-text="emptyTitle"></span>
+                        <strong x-text="emptyMessage"></strong>
                     </div>
                 </div>
             </aside>
 
             <section class="rm-player-shell">
-                <div class="rm-player-header" x-show="activeChannel">
+                <div class="rm-player-header" x-show.important="activeChannel">
                     <span class="rm-live-badge"><i></i> <x-icon name="play" /> Live</span>
                     <div>
-                        <h2 x-text="activeChannel?.name || 'Select a channel'"></h2>
-                        <p><span x-text="activeChannel?.group_title"></span> <span aria-hidden="true">|</span> <strong x-text="activeChannel?.viewers_label"></strong> watching</p>
+                        <h2 x-text="selectedTitle"></h2>
+                        <p x-show.important="selectedMeta" x-text="selectedMeta"></p>
                     </div>
                     <a :href="activeChannel ? `/watch/${activeChannel.id}` : '#'" class="rm-btn rm-btn-primary rm-btn-sm"><x-icon name="play" />Full Player</a>
                 </div>
 
-                <div class="rm-player-frame rm-player-frame--spa">
-                    <video x-ref="video" controls playsinline autoplay muted></video>
-                    <div class="rm-player-loading" x-show="loadingPlayer" x-transition.opacity>
-                        <span></span>
-                        <p>Connecting to selected channel...</p>
+                <div class="rm-player-header rm-player-header--empty" x-show.important="!activeChannel">
+                    <span class="rm-live-badge rm-live-badge--idle"><x-icon name="tv" /> Ready</span>
+                    <div>
+                        <h2>Choose a channel to start watching.</h2>
+                        <p>Pick any channel from the list to load the player.</p>
                     </div>
                 </div>
 
-                <div class="rm-glass-card rm-live-details" x-show="activeChannel">
+                <div class="rm-player-frame rm-player-frame--spa" :class="{ 'is-empty': !activeChannel }">
+                    <video x-ref="video" controls playsinline autoplay muted></video>
+                    <div class="rm-player-empty" x-show.important="!activeChannel">
+                        <span><x-icon name="tv" /></span>
+                        <strong>Choose a channel to start watching.</strong>
+                        <p>Search or use the category filters to find a live channel.</p>
+                    </div>
+                    <div class="rm-player-loading" x-show.important="loadingPlayer" x-transition.opacity>
+                        <span></span>
+                        <p>Connecting to selected channel...</p>
+                    </div>
+                    <div class="rm-player-empty rm-player-empty--error" x-show.important="playerError && activeChannel && !loadingPlayer">
+                        <span><x-icon name="signal" /></span>
+                        <strong>This channel could not be loaded.</strong>
+                        <p>Try again, or choose another channel from the list.</p>
+                        <button type="button" class="rm-btn rm-btn-secondary rm-btn-sm" @click="selectChannel(activeChannel.id)">Retry</button>
+                    </div>
+                </div>
+
+                <div class="rm-glass-card rm-live-details" x-show.important="activeChannel">
                     <img :src="activeChannel?.logo || fallbackLogo" alt="" loading="lazy" x-on:error="$event.target.src = fallbackLogo">
                     <div>
                         <p class="rm-eyebrow">Now streaming</p>
@@ -123,7 +172,7 @@
     </section>
 
     @if($recommendedChannels->count())
-        <section class="rm-section" id="following">
+        <section class="rm-section" id="following" x-show.important="!loadingList && !loadError && channelsLoaded && channels.length > 0" x-cloak>
             <div class="rm-section-header">
                 <div>
                     <p class="rm-eyebrow">Recommended</p>
@@ -149,11 +198,40 @@ document.addEventListener('alpine:init', () => {
         search: '',
         loadingList: false,
         loadingPlayer: false,
+        channelsLoaded: Array.isArray(initialChannels),
+        playerError: false,
         fallbackLogo: @js(asset('brand/rifi-logo.png')),
         hls: null,
         mpegts: null,
-                previewReconnects: 0,
-                loadError: false,
+        previewReconnects: 0,
+        loadError: false,
+
+        get selectedTitle() {
+            return this.activeChannel?.name || '';
+        },
+
+        get selectedMeta() {
+            if (!this.activeChannel) return '';
+
+            const parts = [
+                this.activeChannel.group_title || this.activeChannel.category,
+                this.activeChannel.viewers_label ? `${this.activeChannel.viewers_label} watching` : '',
+            ].filter(Boolean);
+
+            return parts.join(' | ');
+        },
+
+        get emptyTitle() {
+            return this.search.trim() || this.activeCategory !== '__ALL__'
+                ? 'No channels match your search'
+                : 'No live channels available right now';
+        },
+
+        get emptyMessage() {
+            return this.search.trim() || this.activeCategory !== '__ALL__'
+                ? 'Try another keyword or category.'
+                : 'Approved live channels will appear here when they are available.';
+        },
 
         init() {
             const requested = initialChannelId
@@ -172,6 +250,7 @@ document.addEventListener('alpine:init', () => {
 
         async loadChannels() {
             this.loadingList = true;
+            this.loadError = false;
             const params = new URLSearchParams({
                 per_page: '80',
                 category: this.activeCategory,
@@ -179,24 +258,54 @@ document.addEventListener('alpine:init', () => {
             });
 
             try {
-                this.loadError = false;
                 const response = await fetch(`/api/tv/channels?${params}`, { headers: { Accept: 'application/json' } });
                 if (!response.ok) throw new Error('Could not load channels');
                 const payload = await response.json();
                 this.channels = payload.data || [];
+                this.channelsLoaded = true;
+                if (this.channels.length === 0) {
+                    this.clearActiveChannel();
+                    return;
+                }
                 if (this.channels.length && (!this.activeChannel || !this.channels.some((channel) => channel.id === this.activeChannel.id))) {
                     await this.selectChannel(this.channels[0].id);
                 }
             } catch (error) {
-                console.error(error);
                 this.loadError = true;
+                this.channelsLoaded = true;
             } finally {
                 this.loadingList = false;
             }
         },
 
+        clearActiveChannel() {
+            this.activeChannel = null;
+            this.loadingPlayer = false;
+            this.playerError = false;
+
+            const video = this.$refs.video;
+            if (video) {
+                video.pause();
+                video.removeAttribute('src');
+                video.load();
+            }
+
+            if (this.hls) {
+                this.hls.destroy();
+                this.hls = null;
+            }
+
+            if (this.mpegts) {
+                this.mpegts.unload();
+                this.mpegts.detachMediaElement();
+                this.mpegts.destroy();
+                this.mpegts = null;
+            }
+        },
+
         async selectChannel(id) {
             this.loadingPlayer = true;
+            this.playerError = false;
             const cached = this.channels.find((channel) => Number(channel.id) === Number(id));
             if (cached) this.activeChannel = cached;
 
@@ -208,8 +317,9 @@ document.addEventListener('alpine:init', () => {
                 this.playSource((payload.data.sources || [])[0]);
                 history.replaceState(null, '', `{{ route('live-tv') }}?channel=${id}`);
             } catch (error) {
-                console.error(error);
+                this.activeChannel = cached || null;
                 this.loadingPlayer = false;
+                this.playerError = true;
             }
         },
 
@@ -217,8 +327,10 @@ document.addEventListener('alpine:init', () => {
             const video = this.$refs.video;
             if (!source || !video) {
                 this.loadingPlayer = false;
+                this.playerError = true;
                 return;
             }
+            this.playerError = false;
             this.previewReconnects = 0;
 
             if (this.hls) {

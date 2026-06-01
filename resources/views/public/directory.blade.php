@@ -15,7 +15,14 @@
 
     <section class="rm-section">
         @if($items->isEmpty())
-            <x-empty-state title="No {{ $kind }} available" message="Browse football scores and live TV while this section is updated." action="Football Scores" :href="route('sports.football')" />
+            <x-empty-state
+                title="{{ ucfirst($kind) }} directory is being updated"
+                message="Browse live scores, channels, and league coverage while this directory is prepared."
+                action="View live scores"
+                :href="route('sports.football')"
+                secondary-action="Browse channels"
+                :secondary-href="route('live-tv')"
+            />
         @else
             <div class="rm-directory-grid">
                 @foreach($items as $item)

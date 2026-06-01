@@ -23,7 +23,7 @@
 
                 <div class="field rm-field">
                     <label for="email">Email</label>
-                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="email" placeholder="admin@rifimedia.test">
+                    <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="email" placeholder="you@example.com">
                 </div>
 
                 <div class="field rm-field">
@@ -39,7 +39,6 @@
                 <button type="submit" class="rm-btn rm-btn-primary rm-btn-full">Open Admin Dashboard</button>
             </form>
 
-            <p class="rm-auth-card__hint">Demo admin: <strong>admin@rifimedia.test</strong> / <strong>Password123!</strong></p>
         </section>
 
         <section class="rm-auth-preview" aria-label="RiFi Media preview">

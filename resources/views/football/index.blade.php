@@ -25,6 +25,11 @@
             <span class="rm-kicker"><x-icon name="football" /> RifiMedia</span>
             <h1>Football live scores, fixtures, and TV channels</h1>
             <p>Track live matches, kickoff times, results, and broadcast availability from a match-day dashboard built for quick scanning.</p>
+            <div class="rm-hero-microstats" aria-label="Football page highlights">
+                <span><x-icon name="calendar" /> Date filters</span>
+                <span><x-icon name="trophy" /> League grouping</span>
+                <span><x-icon name="tv" /> Watch indicators</span>
+            </div>
         </div>
         <button type="button" class="football-refresh-btn" data-football-refresh>
             <x-icon name="signal" />
@@ -46,6 +51,11 @@
             <label for="football-date">Jump to date</label>
             <input id="football-date" type="date" data-football-date value="{{ now()->toDateString() }}">
         </div>
+
+        <label class="football-search-filter" for="football-search">
+            <span>Search matches</span>
+            <input id="football-search" type="search" data-football-search placeholder="Search team or league">
+        </label>
     </section>
 
     <section class="football-league-strip" aria-label="Configured top leagues">
@@ -69,6 +79,13 @@
     </section>
 
     <section class="football-match-shell" aria-live="polite" aria-busy="false">
+        <div class="football-match-shell__header">
+            <div>
+                <p class="rm-eyebrow">Match feed</p>
+                <h2>Scores and fixtures</h2>
+            </div>
+            <span data-football-count>Loading matches...</span>
+        </div>
         <div data-football-status class="football-status sr-only"></div>
         <div data-football-matches class="football-match-grid">
             @for($i = 0; $i < 4; $i++)

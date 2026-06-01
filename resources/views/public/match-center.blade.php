@@ -31,7 +31,15 @@
         </div>
 
         @if($tvChannels->isEmpty())
-            <p class="rm-match-tv__empty">Broadcast information is not available for this match.</p>
+            <x-empty-state
+                class="rm-match-tv__empty"
+                title="Broadcast listings are being verified"
+                message="Open the live channel guide or check scores while broadcast data is refreshed."
+                action="Browse channels"
+                :href="route('live-tv')"
+                secondary-action="View live scores"
+                :secondary-href="route('sports.football')"
+            />
         @else
             @if($availableTvChannels->isEmpty())
                 <p class="rm-match-tv__empty">Channels found, but not available in our playlist yet.</p>
@@ -80,7 +88,11 @@
             @foreach(['Preview', 'Timeline', 'Stats', 'Lineups', 'News'] as $tab)
                 <section>
                     <h2>{{ $tab }}</h2>
-                    <p>{{ $tab }} details are not available right now. Check related channels and football scores for more coverage.</p>
+                    <p>Verified {{ strtolower($tab) }} information will appear here when reliable match data is connected.</p>
+                    <div class="rm-hero-actions">
+                        <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-secondary rm-btn-sm">View live scores</a>
+                        <a href="{{ route('live-tv') }}" class="rm-btn rm-btn-secondary rm-btn-sm">Browse channels</a>
+                    </div>
                 </section>
             @endforeach
         </div>

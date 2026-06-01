@@ -53,6 +53,8 @@ class LiveTvController extends Controller
     private function serializeLiveChannel(Channel $channel): array
     {
         $viewerCount = 1200 + (($channel->id * 137) % 184000);
+        $tags = collect($channel->display_tags);
+        $language = $tags->first(fn (string $tag): bool => in_array(strtoupper($tag), ['AR', 'FR', 'EN'], true));
 
         return [
             'id' => $channel->id,
@@ -63,6 +65,8 @@ class LiveTvController extends Controller
             'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'thumbnail' => $channel->logo ?: asset('brand/rifi-logo.png'),
             'group_title' => $channel->group_title ?: 'General',
+            'language_label' => $language ? strtoupper($language) : 'Global',
+            'status_label' => 'On air',
             'description' => ($channel->group_title ?: 'Live TV').' stream from '.($channel->playlist?->name ?? 'an approved public playlist').'.',
             'viewers' => $viewerCount,
             'viewers_label' => $viewerCount >= 1000 ? round($viewerCount / 1000, 1).'K' : (string) $viewerCount,

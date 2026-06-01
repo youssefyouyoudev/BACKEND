@@ -11,6 +11,6 @@
         @endif
     </div>
     @if($href && $action)
-        <a href="{{ $href }}" class="rm-section-header__link">{{ $action }}</a>
+        <a href="{{ $href }}" class="rm-section-header__link">{{ $action }} <x-icon name="arrow-up-right" /></a>
     @endif
 </div>
