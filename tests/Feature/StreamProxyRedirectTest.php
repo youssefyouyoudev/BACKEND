@@ -5,6 +5,7 @@ use App\Models\Channel;
 use App\Models\ChannelStream;
 use App\Models\Playlist;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\URL;
 
@@ -89,4 +90,12 @@ M3U, 200, [
     expect($content)->toContain('/bridge/');
     expect($content)->toContain('signature=');
     expect($content)->not->toContain('segment-1.ts');
+});
+
+it('generates https bridge urls when production https forcing is enabled', function () {
+    Config::set('rifimedia.force_https', true);
+
+    $url = StreamUrl::channelBridge(383, 383);
+
+    expect($url)->toStartWith('https://');
 });

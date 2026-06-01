@@ -1,7 +1,11 @@
 <?php
 
 return [
-    'force_https' => env('RIFIMEDIA_FORCE_HTTPS', str_starts_with((string) env('APP_URL', ''), 'https://')),
+    'force_https' => env(
+        'RIFIMEDIA_FORCE_HTTPS',
+        env('APP_ENV', 'production') !== 'local'
+        || str_starts_with((string) env('APP_URL', ''), 'https://')
+    ),
     'stream_bridge' => [
         'enabled' => env('RIFIMEDIA_STREAM_BRIDGE_ENABLED', true),
     ],

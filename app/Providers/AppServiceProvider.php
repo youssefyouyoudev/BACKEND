@@ -27,7 +27,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if ((bool) config('rifimedia.force_https')) {
+        if ($this->shouldForceHttps()) {
             URL::forceScheme('https');
         }
 
@@ -54,6 +54,25 @@ class AppServiceProvider extends ServiceProvider
         View::composer('*', function ($view): void {
             $view->with('appSettings', $this->resolveSharedSettings());
         });
+    }
+
+    private function shouldForceHttps(): bool
+    {
+        if ((bool) config('rifimedia.force_https')) {
+            return true;
+        }
+
+        if ($this->app->runningInConsole()) {
+            return false;
+        }
+
+        $request = request();
+        $forwardedProto = strtolower((string) $request->headers->get('x-forwarded-proto'));
+        $host = strtolower($request->getHost());
+
+        return $request->isSecure()
+            || str_contains($forwardedProto, 'https')
+            || str_ends_with($host, 'rifimedia.com');
     }
 
     /**
