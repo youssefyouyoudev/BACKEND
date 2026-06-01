@@ -100,4 +100,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
     Route::post('/playlists/{playlist}/parse', [AdminPlaylistController::class, 'parse'])
         ->middleware('throttle:playlists')
         ->name('admin.playlists.parse');
+    Route::put('/playlists/{playlist}', [AdminPlaylistController::class, 'update'])
+        ->middleware('throttle:playlists')
+        ->name('admin.playlists.update');
+    Route::delete('/playlists/{playlist}', [AdminPlaylistController::class, 'destroy'])
+        ->middleware('throttle:playlists')
+        ->name('admin.playlists.destroy');
 });

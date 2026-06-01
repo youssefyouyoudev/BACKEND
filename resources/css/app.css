@@ -746,6 +746,52 @@ input {
     background: rgba(255, 97, 104, 0.12);
 }
 
+.text-end .button,
+.text-end .playlist-editor {
+    margin: 0.15rem 0 0.15rem 0.35rem;
+}
+
+.playlist-editor {
+    position: relative;
+    display: inline-block;
+}
+
+.playlist-editor summary {
+    list-style: none;
+}
+
+.playlist-editor summary::-webkit-details-marker {
+    display: none;
+}
+
+.playlist-editor__form {
+    position: absolute;
+    right: 0;
+    z-index: 20;
+    display: grid;
+    width: min(88vw, 380px);
+    gap: 0.85rem;
+    margin-top: 0.55rem;
+    padding: 1rem;
+    text-align: left;
+    background: var(--panel-strong);
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+}
+
+.button--danger {
+    background: rgba(255, 97, 104, 0.14);
+    border-color: rgba(255, 97, 104, 0.28);
+    color: #ffd3d8;
+}
+
+.button--danger:hover,
+.button--danger:focus-visible {
+    border-color: rgba(255, 97, 104, 0.48);
+    background: rgba(255, 97, 104, 0.2);
+}
+
 .empty-state {
     padding: 2.2rem;
     text-align: center;

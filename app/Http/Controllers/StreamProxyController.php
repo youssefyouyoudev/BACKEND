@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\StreamUrl;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Symfony\Component\HttpFoundation\Response;
 
 class StreamProxyController extends Controller
@@ -21,7 +24,69 @@ class StreamProxyController extends Controller
             abort(Response::HTTP_BAD_REQUEST, 'Unsupported stream URL scheme.');
         }
 
+        $signature = (string) $request->query('sig', '');
+
+        if ($signature !== '' && ! StreamUrl::hasValidProxySignature($url, $signature)) {
+            abort(Response::HTTP_FORBIDDEN, 'Invalid stream URL signature.');
+        }
+
+        if ($scheme === 'http') {
+            return $this->proxyInsecureStream($url);
+        }
+
         return redirect()->away($url);
+    }
+
+    private function proxyInsecureStream(string $url): Response
+    {
+        try {
+            $response = Http::withOptions(['stream' => true])
+                ->timeout(0)
+                ->connectTimeout(10)
+                ->withHeaders([
+                    'Accept' => '*/*',
+                    'User-Agent' => 'RifiMediaStreamProxy/1.0',
+                ])
+                ->get($url);
+        } catch (ConnectionException) {
+            abort(Response::HTTP_BAD_GATEWAY, 'Stream source could not be reached.');
+        }
+
+        if (! $response->successful()) {
+            abort(Response::HTTP_BAD_GATEWAY, 'Stream source returned HTTP '.$response->status().'.');
+        }
+
+        $contentType = StreamUrl::contentTypeFor($url, $response->header('Content-Type'));
+
+        if (StreamUrl::isLikelyPlaylistUrl($url)) {
+            $body = $response->body();
+            $rewritten = StreamUrl::rewritePlaylist($body, $url);
+
+            return response($rewritten, Response::HTTP_OK, [
+                'Content-Type' => $contentType,
+                'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                'Access-Control-Allow-Origin' => '*',
+            ]);
+        }
+
+        $body = $response->toPsrResponse()->getBody();
+
+        return response()->stream(function () use ($body): void {
+            while (! $body->eof()) {
+                echo $body->read(1024 * 64);
+
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+
+                flush();
+            }
+        }, Response::HTTP_OK, [
+            'Content-Type' => $contentType,
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            'Access-Control-Allow-Origin' => '*',
+            'X-Accel-Buffering' => 'no',
+        ]);
     }
 
     private function decodeUrl(string $encodedUrl): ?string

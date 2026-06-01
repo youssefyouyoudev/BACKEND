@@ -158,6 +158,45 @@
                                             {{ in_array($playlist->status, ['queued', 'processing'], true) ? 'Parsing…' : 'Re-parse' }}
                                         </button>
                                     </form>
+
+                                    <details class="playlist-editor">
+                                        <summary class="button button--ghost">Edit</summary>
+                                        <form method="POST" action="{{ route('admin.playlists.update', $playlist) }}" class="playlist-editor__form" enctype="multipart/form-data">
+                                            @csrf
+                                            @method('PUT')
+
+                                            <div class="field">
+                                                <label for="playlist-{{ $playlist->id }}-name">Playlist name</label>
+                                                <input id="playlist-{{ $playlist->id }}-name" type="text" name="name" value="{{ old('name', $playlist->name) }}" required maxlength="120">
+                                            </div>
+
+                                            <div class="field">
+                                                <label for="playlist-{{ $playlist->id }}-url">M3U URL</label>
+                                                <input
+                                                    id="playlist-{{ $playlist->id }}-url"
+                                                    type="url"
+                                                    name="m3u_url"
+                                                    value="{{ old('m3u_url', $playlist->source_type === \App\Models\Playlist::SOURCE_TYPE_URL ? $playlist->source_url : '') }}"
+                                                    placeholder="https://partner.example.com/channel-pack.m3u"
+                                                >
+                                                <small class="field__hint">Leave empty when uploading a replacement file.</small>
+                                            </div>
+
+                                            <div class="field">
+                                                <label for="playlist-{{ $playlist->id }}-file">Replace with file</label>
+                                                <input id="playlist-{{ $playlist->id }}-file" type="file" name="playlist_file" accept=".m3u,.m3u8,.txt">
+                                                <small class="field__hint">Saving changes runs a fresh parse immediately.</small>
+                                            </div>
+
+                                                <button type="submit" class="button button--primary">Save &amp; Re-parse</button>
+                                        </form>
+                                    </details>
+
+                                    <form method="POST" action="{{ route('admin.playlists.destroy', $playlist) }}" onsubmit="return confirm('Delete this playlist and all imported channels?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="button button--danger">Delete</button>
+                                    </form>
                                 </td>
                             </tr>
                         @endforeach
