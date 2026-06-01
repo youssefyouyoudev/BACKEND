@@ -53,7 +53,15 @@ class StreamProxyController extends Controller
         }
 
         if (! $response->successful()) {
-            abort(Response::HTTP_BAD_GATEWAY, 'Stream source returned HTTP '.$response->status().'.');
+            return response(
+                'Stream source returned HTTP '.$response->status().'.',
+                Response::HTTP_BAD_GATEWAY,
+                [
+                    'Content-Type' => 'text/plain; charset=UTF-8',
+                    'Cache-Control' => 'no-store, no-cache, must-revalidate',
+                    'Access-Control-Allow-Origin' => '*',
+                ]
+            );
         }
 
         $contentType = StreamUrl::contentTypeFor($url, $response->header('Content-Type'));

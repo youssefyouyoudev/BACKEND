@@ -115,6 +115,13 @@
                 return 'application/octet-stream';
             };
 
+            const isStartupHttpFailure = (detail, info) => {
+                const statusCode = Number(info?.code || info?.status || info?.statusCode || 0);
+
+                return String(detail || '').toLowerCase().includes('httpstatus')
+                    || statusCode >= 400;
+            };
+
             const firstPlayableFromM3u = async (url) => {
                 const response = await fetch(url, { headers: { Accept: 'application/x-mpegURL, text/plain, */*' } });
                 if (!response.ok) throw new Error(`Playlist request failed with HTTP ${response.status}`);
@@ -413,6 +420,10 @@
                             this.handleRecoverableLiveError(detail || type || 'MPEG-TS live interruption.');
                             return;
                         }
+                        if (isStartupHttpFailure(detail, info)) {
+                            this.handleStartupFailure(detail || `Stream request failed with HTTP ${info?.code || 'error'}.`);
+                            return;
+                        }
                         if (this.isLiveStream) {
                             this.setPlayerState('loading', {
                                 title: this.isRecoveryLoad ? 'Restoring live broadcast' : 'Connecting to broadcast',
@@ -684,6 +695,7 @@
                 }
 
                 markPlaybackStarted(reason = 'playing') {
+                    const wasAlreadyPlaying = this.hasStartedPlayback && this.state === 'playing';
                     this.hasStartedPlayback = true;
                     this.isSwitchingServer = false;
                     this.isManualRetry = false;
@@ -707,11 +719,13 @@
                     if (this.error) this.error.hidden = true;
                     this.renderServers();
                     this.updateActiveServerBadge();
-                    console.log('[RiFiPlayer] Playback started', {
-                        server: serverLabel(this.currentSource(), this.activeIndex),
-                        engine: this.currentEngine,
-                        reason,
-                    });
+                    if (!wasAlreadyPlaying) {
+                        console.log('[RiFiPlayer] Playback started', {
+                            server: serverLabel(this.currentSource(), this.activeIndex),
+                            engine: this.currentEngine,
+                            reason,
+                        });
+                    }
                 }
 
                 showError(title, message) {

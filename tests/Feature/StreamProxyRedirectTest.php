@@ -51,6 +51,19 @@ M3U, 200, [
     expect($content)->not->toContain('segment-1.ts');
 });
 
+it('returns a readable proxy error when an insecure upstream stream fails', function () {
+    $url = 'http://example.com/live/offline.ts';
+
+    Http::fake([
+        $url => Http::response('offline', 503),
+    ]);
+
+    $this->get(StreamUrl::proxied($url))
+        ->assertStatus(502)
+        ->assertHeader('Content-Type', 'text/plain; charset=UTF-8')
+        ->assertSeeText('Stream source returned HTTP 503.');
+});
+
 it('rejects invalid encoded stream urls', function () {
     $this->get('/stream/not-valid!!!!')
         ->assertBadRequest();
