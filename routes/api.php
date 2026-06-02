@@ -11,8 +11,12 @@ use App\Http\Controllers\Api\ChannelController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\EpgController;
 use App\Http\Controllers\Api\HistoryController;
+use App\Http\Controllers\Api\Mobile\CategoryChannelController as MobileCategoryChannelController;
+use App\Http\Controllers\Api\Mobile\ChannelController as MobileChannelController;
+use App\Http\Controllers\Api\Mobile\LeagueController as MobileLeagueController;
+use App\Http\Controllers\Api\Mobile\NewsController as MobileNewsController;
+use App\Http\Controllers\Api\Mobile\SearchController as MobileSearchController;
 use App\Http\Controllers\Api\PlaylistController;
-use App\Http\Controllers\Api\PublicChannelController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PublicTvController;
 use App\Http\Controllers\FootballController as PublicFootballController;
@@ -27,11 +31,21 @@ Route::prefix('auth')->middleware('throttle:auth')->group(function (): void {
 
 Route::middleware('throttle:api')->group(function (): void {
     Route::get('/categories', CategoryController::class);
-    Route::get('/channels', [PublicChannelController::class, 'index']);
     Route::get('/channels/match', [PublicFootballController::class, 'matchChannelDebug']);
-    Route::get('/channels/{channel}', [PublicChannelController::class, 'show'])->whereNumber('channel');
     Route::get('/football/event/{eventId}/tv', [PublicFootballController::class, 'eventTv'])->whereNumber('eventId');
     Route::get('/epg', EpgController::class);
+});
+
+Route::middleware('throttle:mobile-api')->name('api.mobile.')->group(function (): void {
+    Route::get('/channels', [MobileChannelController::class, 'index'])->name('channels.index');
+    Route::get('/channels/featured', [MobileChannelController::class, 'featured'])->name('channels.featured');
+    Route::get('/channels/categories', [MobileChannelController::class, 'categories'])->name('channels.categories');
+    Route::get('/channels/{id}', [MobileChannelController::class, 'show'])->whereNumber('id')->name('channels.show');
+    Route::get('/categories/{slug}/channels', MobileCategoryChannelController::class)->name('categories.channels');
+    Route::get('/news', [MobileNewsController::class, 'index'])->name('news.index');
+    Route::get('/news/{slug}', [MobileNewsController::class, 'show'])->name('news.show');
+    Route::get('/leagues', MobileLeagueController::class)->name('leagues.index');
+    Route::get('/search', MobileSearchController::class)->name('search');
 });
 
 Route::middleware(['auth:sanctum', 'active.user', 'throttle:api'])->group(function (): void {
@@ -52,7 +66,6 @@ Route::middleware(['auth:sanctum', 'active.user', 'throttle:api'])->group(functi
     Route::post('/playlists/{playlist}/refresh', [PlaylistController::class, 'refresh'])->middleware('throttle:playlists');
     Route::delete('/playlists/{playlist}', [PlaylistController::class, 'destroy']);
 
-    Route::get('/channels/featured', [ChannelController::class, 'featured']);
     Route::get('/channels/favorites', [ChannelController::class, 'favorites']);
     Route::post('/channels/{channel}/favorite', [ChannelController::class, 'favorite']);
     Route::delete('/channels/{channel}/favorite', [ChannelController::class, 'unfavorite']);

@@ -36,11 +36,11 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(function (Request $request, \Throwable $e): bool {
-            return $request->is('api/*') || $request->expectsJson();
+            return $request->is('api/*') || $request->is('football/api/*') || $request->expectsJson();
         });
 
         $exceptions->render(function (ValidationException $exception, Request $request) {
-            if (! $request->is('api/*') && ! $request->expectsJson()) {
+            if (! $request->is('api/*') && ! $request->is('football/api/*') && ! $request->expectsJson()) {
                 return null;
             }
 
@@ -51,7 +51,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (AuthenticationException $exception, Request $request) {
-            if (! $request->is('api/*') && ! $request->expectsJson()) {
+            if (! $request->is('api/*') && ! $request->is('football/api/*') && ! $request->expectsJson()) {
                 return null;
             }
 
@@ -61,7 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (AuthorizationException $exception, Request $request) {
-            if (! $request->is('api/*') && ! $request->expectsJson()) {
+            if (! $request->is('api/*') && ! $request->is('football/api/*') && ! $request->expectsJson()) {
                 return null;
             }
 
@@ -71,7 +71,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (ModelNotFoundException $exception, Request $request) {
-            if (! $request->is('api/*') && ! $request->expectsJson()) {
+            if (! $request->is('api/*') && ! $request->is('football/api/*') && ! $request->expectsJson()) {
                 return null;
             }
 
@@ -81,7 +81,7 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->render(function (\Throwable $exception, Request $request) {
-            if (! $request->is('api/*') && ! $request->expectsJson()) {
+            if (! $request->is('api/*') && ! $request->is('football/api/*') && ! $request->expectsJson()) {
                 return null;
             }
 

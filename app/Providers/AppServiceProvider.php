@@ -37,6 +37,10 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
         });
 
+        RateLimiter::for('mobile-api', function (Request $request) {
+            return Limit::perMinute(90)->by($request->user()?->id ?: $request->ip());
+        });
+
         RateLimiter::for('auth', function (Request $request) {
             $key = strtolower((string) $request->input('email')).'|'.$request->ip();
 

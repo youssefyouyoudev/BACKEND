@@ -50,7 +50,7 @@ class FootballController extends Controller
 
         abort_unless($event, 404);
 
-        if (request()->expectsJson()) {
+        if (request()->expectsJson() || request()->is('football/api/*') || request()->is('api/football/*')) {
             return response()->json([
                 'success' => true,
                 'data' => $event,
