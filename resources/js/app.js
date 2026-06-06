@@ -1,6 +1,10 @@
 import './bootstrap';
 import Alpine from 'alpinejs';
 import mpegts from 'mpegts.js';
+import { initFocusNavigation } from './iptv/focus-navigation';
+import { initIptvPlayer } from './iptv/player';
+import { initIptvSearch } from './iptv/search';
+import { initPlaylistForms } from './iptv/playlist-form';
 
 window.Alpine = Alpine;
 window.mpegts = mpegts;
@@ -63,6 +67,11 @@ document.addEventListener('DOMContentLoaded', () => {
             setTheme(next, true);
         });
     });
+
+    initPlaylistForms();
+    initFocusNavigation();
+    initIptvPlayer();
+    initIptvSearch();
 
     document.addEventListener('error', (event) => {
         const target = event.target;

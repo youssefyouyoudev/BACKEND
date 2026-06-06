@@ -60,7 +60,9 @@ class UserSeeder extends Seeder
         $playlist = Playlist::query()->updateOrCreate(
             ['user_id' => $user->id, 'name' => 'Demo Legal Playlist'],
             [
+                'input_type' => Playlist::INPUT_TYPE_REMOTE_URL,
                 'source_type' => Playlist::SOURCE_TYPE_URL,
+                'm3u_url' => 'https://example.com/legal-demo.m3u8',
                 'source_url' => 'https://example.com/legal-demo.m3u8',
                 'status' => 'completed',
                 'is_public' => true,

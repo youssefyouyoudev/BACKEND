@@ -6,38 +6,25 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class WatchHistory extends Model
+class ParentalLock extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'channel_id',
-        'iptv_item_id',
-        'watched_at',
-        'duration',
-        'progress_seconds',
+        'pin_hash',
+        'locked_category_keywords',
     ];
 
     protected function casts(): array
     {
         return [
-            'watched_at' => 'datetime',
+            'locked_category_keywords' => 'array',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function channel(): BelongsTo
-    {
-        return $this->belongsTo(Channel::class);
-    }
-
-    public function iptvItem(): BelongsTo
-    {
-        return $this->belongsTo(IptvItem::class);
     }
 }

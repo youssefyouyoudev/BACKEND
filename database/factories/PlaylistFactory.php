@@ -18,8 +18,10 @@ class PlaylistFactory extends Factory
         return [
             'user_id' => User::factory(),
             'name' => fake()->company().' Playlist',
+            'input_type' => Playlist::INPUT_TYPE_REMOTE_URL,
             'source_type' => Playlist::SOURCE_TYPE_URL,
-            'source_url' => fake()->url(),
+            'm3u_url' => fake()->url(),
+            'source_url' => fn (array $attributes) => $attributes['m3u_url'],
             'status' => 'completed',
             'last_synced_at' => now(),
             'is_public' => false,

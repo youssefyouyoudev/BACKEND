@@ -28,7 +28,9 @@ class PlaylistImportService
         $playlist = Playlist::query()->create([
             'user_id'     => $user->id,
             'name'        => $attributes['name'] ?: 'Imported Playlist',
+            'input_type'  => Playlist::INPUT_TYPE_REMOTE_URL,
             'source_type' => Playlist::SOURCE_TYPE_URL,
+            'm3u_url'     => $attributes['source_url'],
             'source_url'  => $attributes['source_url'],
             'status'      => 'pending',
             'is_public'   => (bool) ($attributes['is_public'] ?? false),
@@ -44,6 +46,7 @@ class PlaylistImportService
         $playlist = Playlist::query()->create([
             'user_id'           => $user->id,
             'name'              => $attributes['name'] ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+            'input_type'        => Playlist::INPUT_TYPE_UPLOAD_FILE,
             'source_type'       => Playlist::SOURCE_TYPE_FILE,
             'file_path'         => $storedPath,
             'original_filename' => $file->getClientOriginalName(),

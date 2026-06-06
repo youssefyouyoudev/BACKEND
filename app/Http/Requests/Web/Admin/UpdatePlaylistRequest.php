@@ -10,6 +10,17 @@ use Illuminate\Validation\Validator;
 
 class UpdatePlaylistRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->filled('input_type')) {
+            return;
+        }
+
+        $this->merge([
+            'input_type' => $this->hasFile('playlist_file') ? 'upload' : 'm3u_url',
+        ]);
+    }
+
     public function authorize(): bool
     {
         return $this->user()?->isAdmin() ?? false;
@@ -21,15 +32,43 @@ class UpdatePlaylistRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:120'],
+            'input_type' => ['required', Rule::in(['m3u_url', 'remote_url', 'xtream', 'upload', 'upload_file', 'active_code'])],
             'm3u_url' => [
+                Rule::requiredIf(in_array($this->input('input_type'), ['m3u_url', 'remote_url'], true)),
                 'nullable',
                 'url:http,https',
                 'max:2048',
                 Rule::unique('playlists', 'source_url')->ignore($playlist instanceof Playlist ? $playlist->id : null),
             ],
-            'playlist_file' => [
+            'server_url' => [
+                Rule::requiredIf($this->input('input_type') === 'xtream'),
                 'nullable',
-                File::types(['m3u', 'm3u8', 'txt'])->max(5 * 1024),
+                'url:http,https',
+                'max:2048',
+            ],
+            'username' => [
+                Rule::requiredIf($this->input('input_type') === 'xtream'),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'password' => [
+                Rule::requiredIf($this->input('input_type') === 'xtream' && ! ($playlist instanceof Playlist && filled($playlist->password))),
+                'nullable',
+                'string',
+                'max:255',
+            ],
+            'output' => ['nullable', Rule::in(['mpegts', 'hls'])],
+            'playlist_file' => [
+                Rule::requiredIf(in_array($this->input('input_type'), ['upload', 'upload_file'], true) && ! ($playlist instanceof Playlist && $playlist->resolved_file_path)),
+                'nullable',
+                File::types(['m3u', 'm3u8', 'txt'])->max(10 * 1024),
+            ],
+            'active_code' => [
+                Rule::requiredIf($this->input('input_type') === 'active_code' && ! ($playlist instanceof Playlist && filled($playlist->active_code))),
+                'nullable',
+                'alpha_num',
+                'between:4,64',
             ],
         ];
     }
@@ -37,8 +76,20 @@ class UpdatePlaylistRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            if (filled($this->input('m3u_url')) && $this->hasFile('playlist_file')) {
-                $validator->errors()->add('playlist_file', 'Choose either a playlist URL or a file upload, not both.');
+            $inputType = $this->input('input_type');
+            $hasUrl = filled($this->input('m3u_url'));
+            $hasFile = $this->hasFile('playlist_file');
+
+            if (in_array($inputType, ['m3u_url', 'remote_url', 'xtream'], true) && $hasFile) {
+                $validator->errors()->add('playlist_file', 'File uploads are only available in Upload M3U File mode.');
+            }
+
+            if (in_array($inputType, ['upload', 'upload_file'], true) && $hasUrl) {
+                $validator->errors()->add('m3u_url', 'Remote URLs are only available in Remote M3U URL or Active Code mode.');
+            }
+
+            if ($inputType === 'active_code' && $hasFile) {
+                $validator->errors()->add('playlist_file', 'File uploads are not available in Active Code mode.');
             }
         });
     }

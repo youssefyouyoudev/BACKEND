@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\Mobile\SearchController as MobileSearchController;
 use App\Http\Controllers\Api\PlaylistController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PublicTvController;
+use App\Http\Controllers\Api\WatchController as ApiWatchController;
 use App\Http\Controllers\FootballController as PublicFootballController;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +35,12 @@ Route::middleware('throttle:api')->group(function (): void {
     Route::get('/channels/match', [PublicFootballController::class, 'matchChannelDebug']);
     Route::get('/football/event/{eventId}/tv', [PublicFootballController::class, 'eventTv'])->whereNumber('eventId');
     Route::get('/epg', EpgController::class);
+    Route::get('/watch/categories', [ApiWatchController::class, 'categories']);
+    Route::get('/watch/items', [ApiWatchController::class, 'items']);
+    Route::get('/watch/items/{item}', [ApiWatchController::class, 'show']);
+    Route::get('/watch/search', [ApiWatchController::class, 'search']);
+    Route::post('/watch/items/{item}/favorite', [ApiWatchController::class, 'favorite'])->middleware('auth:sanctum');
+    Route::post('/watch/items/{item}/history', [ApiWatchController::class, 'history'])->middleware('auth:sanctum');
 });
 
 Route::middleware('throttle:mobile-api')->name('api.mobile.')->group(function (): void {
@@ -98,8 +105,8 @@ Route::middleware('throttle:api')->group(function (): void {
 
     // Live TV split-screen: channels (paginated) + category counts
     Route::prefix('tv')->group(function (): void {
-        Route::get('/channels',   [PublicTvController::class, 'channels']);
-        Route::get('/channels/{channel}', [PublicTvController::class, 'show']);
+        Route::get('/channels', [PublicTvController::class, 'channels']);
+        Route::get('/channels/{item}', [PublicTvController::class, 'show']);
         Route::get('/categories', [PublicTvController::class, 'categories']);
     });
 });

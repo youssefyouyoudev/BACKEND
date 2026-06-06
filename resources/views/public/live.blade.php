@@ -13,6 +13,7 @@
         'avatar' => $channel['logo'],
         'category' => $channel['group_title'],
         'viewers_label' => $channel['viewers_label'],
+        'watch_url' => $channel['watch_url'],
     ]);
 @endphp
 
@@ -129,7 +130,7 @@
                         <h2 x-text="selectedTitle"></h2>
                         <p x-show.important="selectedMeta" x-text="selectedMeta"></p>
                     </div>
-                    <a :href="activeChannel ? `/watch/${activeChannel.id}` : '#'" class="rm-btn rm-btn-primary rm-btn-sm"><x-icon name="play" />Full Player</a>
+                    <a :href="activeChannel?.watch_url || '#'" class="rm-btn rm-btn-primary rm-btn-sm"><x-icon name="play" />Full Player</a>
                 </div>
 
                 <div class="rm-player-header rm-player-header--empty" x-show.important="!activeChannel">

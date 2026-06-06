@@ -13,6 +13,7 @@ class Favorite extends Model
     protected $fillable = [
         'user_id',
         'channel_id',
+        'iptv_item_id',
     ];
 
     public function user(): BelongsTo
@@ -23,5 +24,10 @@ class Favorite extends Model
     public function channel(): BelongsTo
     {
         return $this->belongsTo(Channel::class);
+    }
+
+    public function iptvItem(): BelongsTo
+    {
+        return $this->belongsTo(IptvItem::class);
     }
 }

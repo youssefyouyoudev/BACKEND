@@ -3,74 +3,106 @@
 namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
-use App\Models\Channel;
-use App\Services\StreamService;
+use App\Models\IptvCategory;
+use App\Models\IptvItem;
+use App\Support\StreamUrl;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 
 class LiveTvController extends Controller
 {
-    public function __construct(private readonly StreamService $streamService)
-    {
-    }
-
     public function __invoke(): View
     {
-        // Category list with per-category channel counts (two queries, no N+1)
         $publicPlaylistScope = fn (Builder $q) => $q
             ->where('is_public', true)
             ->whereNotNull('approved_at');
 
-        $baseQuery = fn () => Channel::query()
-            ->where('is_active', true)
-            ->canonical()
+        $baseQuery = fn () => IptvItem::query()
+            ->visible()
+            ->where('type', IptvItem::TYPE_LIVE)
+            ->where('is_adult', false)
             ->whereHas('playlist', $publicPlaylistScope);
 
-        $totalCount = Cache::remember('public-live:total-count', now()->addMinutes(10), fn () => $baseQuery()->count());
+        $totalCount = Cache::remember('public-live:iptv-total-count', now()->addMinutes(10), fn () => $baseQuery()->count());
 
-        $categoryCounts = Cache::remember('public-live:category-counts', now()->addMinutes(10), fn () => $baseQuery()
-            ->whereNotNull('group_title')
-            ->selectRaw('group_title, COUNT(*) as cnt')
-            ->groupBy('group_title')
-            ->orderBy('group_title')
-            ->pluck('cnt', 'group_title'));
-
-        // Serve the first page of ALL channels server-side so the UI has
-        // content immediately without waiting for an AJAX round-trip.
-        $initialChannels = Cache::remember('public-live:initial-channels', now()->addMinutes(5), fn () => $baseQuery()
-            ->with(['streams' => fn ($q) => $q->where('is_active', true)->orderBy('priority')])
-            ->orderByDesc('is_featured')
+        $categoryCounts = Cache::remember('public-live:iptv-category-counts', now()->addMinutes(10), fn () => IptvCategory::query()
+            ->where('type', IptvCategory::TYPE_LIVE)
+            ->whereHas('playlist', $publicPlaylistScope)
+            ->withCount(['items' => fn (Builder $query) => $query
+                ->visible()
+                ->where('type', IptvItem::TYPE_LIVE)
+                ->where('is_adult', false)])
+            ->whereHas('items', fn (Builder $query) => $query
+                ->visible()
+                ->where('type', IptvItem::TYPE_LIVE)
+                ->where('is_adult', false))
             ->orderBy('sort_order')
+            ->orderBy('name')
+            ->pluck('items_count', 'name'));
+
+        $initialChannels = Cache::remember('public-live:iptv-initial-items', now()->addMinutes(5), fn () => $baseQuery()
+            ->with(['category', 'playlist:id,name'])
+            ->orderByDesc('updated_at')
             ->orderBy('name')
             ->limit(60)
             ->get()
-            ->map(fn (Channel $ch) => $this->serializeLiveChannel($ch)));
+            ->map(fn (IptvItem $item) => $this->serializeLiveItem($item)));
 
         return view('public.live', compact('totalCount', 'categoryCounts', 'initialChannels'));
     }
 
-    private function serializeLiveChannel(Channel $channel): array
+    private function serializeLiveItem(IptvItem $item): array
     {
-        $viewerCount = 1200 + (($channel->id * 137) % 184000);
-        $tags = collect($channel->display_tags);
-        $language = $tags->first(fn (string $tag): bool => in_array(strtoupper($tag), ['AR', 'FR', 'EN'], true));
+        $viewerCount = 1200 + (($item->id * 137) % 184000);
+        $category = $item->category?->name ?: $item->group_title ?: 'General';
 
         return [
-            'id' => $channel->id,
-            'name' => $channel->clean_display_name,
-            'original_name' => $channel->name,
-            'display_tags' => $channel->display_tags,
-            'quality_label' => $channel->quality_label,
-            'logo' => $channel->logo ?: asset('brand/rifi-logo.png'),
-            'thumbnail' => $channel->logo ?: asset('brand/rifi-logo.png'),
-            'group_title' => $channel->group_title ?: 'General',
-            'language_label' => $language ? strtoupper($language) : 'Global',
+            'id' => $item->id,
+            'name' => $item->name,
+            'original_name' => $item->name,
+            'display_tags' => [],
+            'quality_label' => $this->qualityLabel($item),
+            'logo' => $item->logo ?: asset('brand/rifi-logo.png'),
+            'thumbnail' => $item->logo ?: asset('brand/rifi-logo.png'),
+            'group_title' => $category,
+            'language_label' => 'Global',
             'status_label' => 'On air',
-            'description' => ($channel->group_title ?: 'Live TV').' stream from '.($channel->playlist?->name ?? 'an approved public playlist').'.',
+            'description' => $item->description ?: "{$category} stream from ".($item->playlist?->name ?? 'an approved public playlist').'.',
             'viewers' => $viewerCount,
             'viewers_label' => $viewerCount >= 1000 ? round($viewerCount / 1000, 1).'K' : (string) $viewerCount,
-            'sources' => $this->streamService->sourcesFor($channel),
+            'watch_url' => route('watch.item', $item),
+            'sources' => $this->sourcesFor($item),
         ];
+    }
+
+    private function qualityLabel(IptvItem $item): string
+    {
+        if (preg_match('/\b(4K|UHD|FHD|HD|SD)\b/i', $item->name, $matches) === 1) {
+            return strtoupper($matches[1]);
+        }
+
+        return 'HD';
+    }
+
+    private function sourcesFor(IptvItem $item): array
+    {
+        if (! $item->stream_url) {
+            return [];
+        }
+
+        $requiresExternalPlayer = strtolower((string) parse_url($item->stream_url, PHP_URL_SCHEME)) === 'http';
+        $playbackUrl = StreamUrl::signedRedirect($item->stream_url);
+
+        return [[
+            'url' => $playbackUrl,
+            'external_url' => $playbackUrl,
+            'browser_url' => $requiresExternalPlayer ? StreamUrl::signedBridge($item->stream_url) : $playbackUrl,
+            'type' => $item->extension ?: 'stream',
+            'label' => 'Server 1',
+            'quality' => $this->qualityLabel($item),
+            'health_status' => 'unknown',
+            'requires_external_player' => $requiresExternalPlayer,
+        ]];
     }
 }

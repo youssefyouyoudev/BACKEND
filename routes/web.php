@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\Admin\ProgramController as AdminProgramController;
 use App\Http\Controllers\Web\ChannelController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\LiveTvController;
+use App\Http\Controllers\Web\WatchController;
 use App\Http\Controllers\Web\SportsPageController;
 use App\Http\Controllers\StreamBridgeController;
 use App\Http\Controllers\StreamProxyController;
@@ -72,6 +73,15 @@ Route::get('/sitemap.xml', [SportsPageController::class, 'sitemap'])->name('site
 Route::get('/robots.txt', [SportsPageController::class, 'robots'])->name('robots');
 Route::permanentRedirect('/live', '/live-tv')->name('live');
 Route::get('/live-tv', LiveTvController::class)->name('live-tv');
+Route::get('/watch', [WatchController::class, 'index'])->name('watch.index');
+Route::get('/watch/live', [WatchController::class, 'live'])->name('watch.live');
+Route::get('/watch/movies', [WatchController::class, 'movies'])->name('watch.movies');
+Route::get('/watch/series', [WatchController::class, 'series'])->name('watch.series');
+Route::get('/watch/category/{category}', [WatchController::class, 'category'])->name('watch.category');
+Route::get('/watch/item/{item}', [WatchController::class, 'item'])->name('watch.item');
+Route::post('/watch/item/{item}/favorite', [WatchController::class, 'favorite'])->middleware('auth')->name('watch.favorite');
+Route::post('/watch/item/{item}/history', [WatchController::class, 'history'])->name('watch.history');
+Route::get('/watch/search', [WatchController::class, 'search'])->name('watch.search');
 Route::get('/watch/{channel}', [ChannelController::class, 'show'])->name('channels.show');
 Route::get('/stream/{encodedUrl}', StreamProxyController::class)
     ->middleware(['signed', 'throttle:streams'])
@@ -105,12 +115,21 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
     Route::resource('programs', AdminProgramController::class)
         ->except(['create', 'show'])
         ->names('admin.programs');
+    Route::get('/playlists', [AdminPlaylistController::class, 'index'])
+        ->name('admin.playlists.index');
+    Route::get('/playlists/create', [AdminPlaylistController::class, 'create'])
+        ->name('admin.playlists.create');
     Route::post('/playlists', [AdminPlaylistController::class, 'store'])
         ->middleware('throttle:playlists')
         ->name('admin.playlists.store');
+    Route::get('/playlists/{playlist}/edit', [AdminPlaylistController::class, 'edit'])
+        ->name('admin.playlists.edit');
     Route::post('/playlists/{playlist}/parse', [AdminPlaylistController::class, 'parse'])
         ->middleware('throttle:playlists')
         ->name('admin.playlists.parse');
+    Route::post('/playlists/{playlist}/reimport', [AdminPlaylistController::class, 'reimport'])
+        ->middleware('throttle:playlists')
+        ->name('admin.playlists.reimport');
     Route::put('/playlists/{playlist}', [AdminPlaylistController::class, 'update'])
         ->middleware('throttle:playlists')
         ->name('admin.playlists.update');

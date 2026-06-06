@@ -29,23 +29,25 @@ M3U);
     $this->actingAs($admin)
         ->post('/admin/playlists', [
             'name' => 'Arena Pack',
+            'input_type' => Playlist::INPUT_TYPE_UPLOAD_FILE,
             'playlist_file' => $playlistFile,
         ])
-        ->assertRedirect('/admin');
+        ->assertRedirect();
 
     $playlist = Playlist::query()->firstOrFail();
 
     expect($playlist->source_type)->toBe(Playlist::SOURCE_TYPE_FILE);
+    expect($playlist->input_type)->toBe(Playlist::INPUT_TYPE_UPLOAD_FILE);
     expect($playlist->file_path)->not->toBeNull();
     Storage::disk('playlists')->assertExists($playlist->file_path);
 
     $this->actingAs($admin)
         ->post("/admin/playlists/{$playlist->id}/parse")
-        ->assertRedirect('/admin');
+        ->assertRedirect();
 
     $playlist->refresh();
 
-    expect($playlist->status)->toBe('completed');
+    expect($playlist->status)->toBe('active');
     expect($playlist->last_synced_at)->not->toBeNull();
     expect($playlist->channels()->count())->toBe(2);
 });
@@ -71,23 +73,83 @@ M3U),
     $this->actingAs($admin)
         ->post('/admin/playlists', [
             'name' => 'Admin Pack',
+            'input_type' => Playlist::INPUT_TYPE_REMOTE_URL,
             'm3u_url' => 'https://example.com/admin-pack.m3u',
         ])
-        ->assertRedirect('/admin');
+        ->assertRedirect('/admin/playlists');
 
     $playlist = Playlist::query()->firstOrFail();
 
     expect($playlist->source_type)->toBe(Playlist::SOURCE_TYPE_URL);
+    expect($playlist->input_type)->toBe(Playlist::INPUT_TYPE_REMOTE_URL);
 
     $this->actingAs($admin)
         ->post("/admin/playlists/{$playlist->id}/parse")
-        ->assertRedirect('/admin');
+        ->assertRedirect();
 
     $playlist->refresh();
 
-    expect($playlist->status)->toBe('completed');
+    expect($playlist->status)->toBe('active');
     expect($playlist->last_synced_at)->not->toBeNull();
     expect($playlist->channels()->count())->toBe(2);
+});
+
+it('accepts an iptv get php url with query parameters from the admin dashboard', function () {
+    config()->set('queue.default', 'sync');
+
+    $url = 'https://example.com/get.php?username=USER&password=PASS&type=m3u_plus&output=mpegts';
+
+    Http::fake([
+        $url => Http::response(<<<'M3U'
+#EXTM3U
+#EXTINF:-1 tvg-id="sports-1" group-title="Sports",Query Sports
+https://streams.example.com/live/USER/PASS/12345
+M3U),
+    ]);
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($admin)
+        ->post('/admin/playlists', [
+            'name' => 'Query Pack',
+            'input_type' => Playlist::INPUT_TYPE_REMOTE_URL,
+            'm3u_url' => $url,
+        ])
+        ->assertRedirect();
+
+    $playlist = Playlist::query()->firstOrFail();
+
+    expect($playlist->status)->toBe('active');
+    expect($playlist->m3u_url)->toBe($url);
+    expect($playlist->channels()->count())->toBe(1);
+});
+
+it('saves an active code only playlist without parsing until a url or file is available', function () {
+    config()->set('queue.default', 'sync');
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($admin)
+        ->post('/admin/playlists', [
+            'name' => 'Activation Pack',
+            'input_type' => Playlist::INPUT_TYPE_ACTIVE_CODE,
+            'active_code' => '696966207988',
+        ])
+        ->assertRedirect();
+
+    $playlist = Playlist::query()->firstOrFail();
+
+    expect($playlist->input_type)->toBe(Playlist::INPUT_TYPE_ACTIVE_CODE);
+    expect($playlist->active_code)->toBe('696966207988');
+    expect($playlist->m3u_url)->toBeNull();
+    expect($playlist->status)->toBe('needs_url');
+    expect($playlist->channels()->count())->toBe(0);
 });
 
 it('updates a playlist source and reparses it from the admin dashboard', function () {
@@ -116,9 +178,10 @@ M3U),
     $this->actingAs($admin)
         ->post('/admin/playlists', [
             'name' => 'Original Pack',
+            'input_type' => Playlist::INPUT_TYPE_REMOTE_URL,
             'm3u_url' => 'https://example.com/original.m3u',
         ])
-        ->assertRedirect('/admin');
+        ->assertRedirect('/admin/playlists');
 
     $playlist = Playlist::query()->firstOrFail();
 
@@ -127,15 +190,16 @@ M3U),
     $this->actingAs($admin)
         ->put("/admin/playlists/{$playlist->id}", [
             'name' => 'Replacement Pack',
+            'input_type' => Playlist::INPUT_TYPE_REMOTE_URL,
             'm3u_url' => 'https://example.com/replacement.m3u',
         ])
-        ->assertRedirect('/admin');
+        ->assertRedirect('/admin/playlists');
 
     $playlist->refresh();
 
     expect($playlist->name)->toBe('Replacement Pack');
     expect($playlist->source_url)->toBe('https://example.com/replacement.m3u');
-    expect($playlist->status)->toBe('completed');
+    expect($playlist->status)->toBe('active');
     expect($playlist->channels()->count())->toBe(2);
     expect($playlist->channels()->where('name', 'Original Sports')->exists())->toBeFalse();
 });
@@ -158,9 +222,10 @@ M3U);
     $this->actingAs($admin)
         ->post('/admin/playlists', [
             'name' => 'Rename Me',
+            'input_type' => Playlist::INPUT_TYPE_UPLOAD_FILE,
             'playlist_file' => $playlistFile,
         ])
-        ->assertRedirect('/admin');
+        ->assertRedirect('/admin/playlists');
 
     $playlist = Playlist::query()->firstOrFail();
     $filePath = $playlist->file_path;
@@ -168,15 +233,16 @@ M3U);
     $this->actingAs($admin)
         ->put("/admin/playlists/{$playlist->id}", [
             'name' => 'Renamed File Pack',
+            'input_type' => Playlist::INPUT_TYPE_UPLOAD_FILE,
         ])
-        ->assertRedirect('/admin');
+        ->assertRedirect('/admin/playlists');
 
     $playlist->refresh();
 
     expect($playlist->name)->toBe('Renamed File Pack');
     expect($playlist->source_type)->toBe(Playlist::SOURCE_TYPE_FILE);
     expect($playlist->file_path)->toBe($filePath);
-    expect($playlist->status)->toBe('completed');
+    expect($playlist->status)->toBe('active');
     expect($playlist->channels()->count())->toBe(1);
     Storage::disk('playlists')->assertExists($filePath);
 });
@@ -199,9 +265,10 @@ M3U);
     $this->actingAs($admin)
         ->post('/admin/playlists', [
             'name' => 'Delete Me',
+            'input_type' => Playlist::INPUT_TYPE_UPLOAD_FILE,
             'playlist_file' => $playlistFile,
         ])
-        ->assertRedirect('/admin');
+        ->assertRedirect('/admin/playlists');
 
     $playlist = Playlist::query()->firstOrFail();
     $filePath = $playlist->file_path;
@@ -211,7 +278,7 @@ M3U);
 
     $this->actingAs($admin)
         ->delete("/admin/playlists/{$playlist->id}")
-        ->assertRedirect('/admin');
+        ->assertRedirect('/admin/playlists');
 
     expect(Playlist::query()->whereKey($playlist->id)->exists())->toBeFalse();
     Storage::disk('playlists')->assertMissing($filePath);

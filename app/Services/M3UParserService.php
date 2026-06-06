@@ -50,11 +50,13 @@ class M3UParserService
             ]);
         }
 
-        if ($playlist->source_url) {
-            $this->urlSafetyService->assertSafeForImport($playlist->source_url);
+        $sourceUrl = $playlist->m3u_url ?: $playlist->source_url;
+
+        if ($sourceUrl) {
+            $this->urlSafetyService->assertSafeForImport($sourceUrl);
 
             $response = Http::connectTimeout(3)
-                ->timeout(8)
+                ->timeout(15)
                 ->retry(1, 200)
                 ->accept('application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*')
                 ->withOptions([
@@ -65,7 +67,7 @@ class M3UParserService
                         'track_redirects' => false,
                     ],
                 ])
-                ->get($playlist->source_url);
+                ->get($sourceUrl);
 
             if (! $response->successful()) {
                 throw ValidationException::withMessages([
@@ -84,7 +86,7 @@ class M3UParserService
 
             return [
                 'content'  => $body,
-                'base_url' => $playlist->source_url,
+                'base_url' => $sourceUrl,
             ];
         }
 

@@ -7,7 +7,9 @@ use App\Http\Requests\Web\Admin\StorePlaylistRequest;
 use App\Http\Requests\Web\Admin\UpdatePlaylistRequest;
 use App\Models\Playlist;
 use App\Services\PlaylistImportService;
+use App\Services\PlaylistImporter;
 use App\Services\UrlSafetyService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -19,55 +21,95 @@ class PlaylistController extends Controller
     public function __construct(
         private readonly UrlSafetyService $urlSafetyService,
         private readonly PlaylistImportService $playlistImportService,
+        private readonly PlaylistImporter $iptvImporter,
     ) {
+    }
+
+    public function index(): View
+    {
+        $playlists = Playlist::query()
+            ->withCount('iptvItems')
+            ->latest()
+            ->paginate(15);
+
+        return view('admin.playlists.index', [
+            'playlists' => $playlists,
+        ]);
+    }
+
+    public function create(): View
+    {
+        return view('admin.playlists.create', [
+            'playlist' => new Playlist(['input_type' => Playlist::INPUT_TYPE_M3U_URL, 'output' => 'mpegts']),
+        ]);
+    }
+
+    public function edit(Playlist $playlist): View
+    {
+        return view('admin.playlists.edit', [
+            'playlist' => $playlist,
+        ]);
     }
 
     public function store(StorePlaylistRequest $request): RedirectResponse
     {
-        $validated    = $request->validated();
-        $sourceUrl    = $validated['m3u_url'] ?? null;
+        $validated = $request->validated();
+        $inputType = $this->normalizeInputType($validated['input_type']);
+        $sourceUrl = $validated['m3u_url'] ?? null;
         $uploadedFile = $request->file('playlist_file');
 
         if ($sourceUrl) {
             $this->urlSafetyService->assertSafeForImport($sourceUrl);
         }
 
-        $filePath         = null;
-        $sourceType       = Playlist::SOURCE_TYPE_URL;
+        $filePath = null;
+        $sourceType = Playlist::SOURCE_TYPE_URL;
         $originalFilename = null;
 
-        if ($uploadedFile !== null) {
+        if ($inputType === Playlist::INPUT_TYPE_UPLOAD && $uploadedFile instanceof UploadedFile) {
             $sourceType = Playlist::SOURCE_TYPE_FILE;
-            $filePath   = $uploadedFile->storeAs(
-                '',
-                Str::uuid()->toString().'-'.preg_replace('/[^a-zA-Z0-9.\-_]/', '-', $uploadedFile->getClientOriginalName()),
-                'playlists'
-            );
+            $filePath = $this->storeUploadedPlaylist($uploadedFile);
             $originalFilename = $uploadedFile->getClientOriginalName();
         }
 
+        if ($inputType === Playlist::INPUT_TYPE_XTREAM) {
+            $sourceUrl = null;
+        }
+
         $playlist = Playlist::query()->create([
-            'user_id'           => $request->user()->id,
-            'name'              => $validated['name'],
-            'source_type'       => $sourceType,
-            'source_url'        => $sourceUrl,
-            'file_path'         => $filePath,
-            'stored_path'       => $filePath,
+            'user_id' => $request->user()->id,
+            'name' => $validated['name'],
+            'input_type' => $inputType,
+            'source_type' => $sourceType,
+            'm3u_url' => $sourceUrl,
+            'source_url' => $sourceUrl,
+            'server_url' => $validated['server_url'] ?? null,
+            'username' => $validated['username'] ?? null,
+            'password' => $validated['password'] ?? null,
+            'output' => $validated['output'] ?? 'mpegts',
+            'file_path' => $filePath,
+            'active_code' => $inputType === Playlist::INPUT_TYPE_ACTIVE_CODE ? ($validated['active_code'] ?? null) : null,
+            'stored_path' => $filePath,
             'original_filename' => $originalFilename,
-            'status'            => 'pending',
-            'is_public'         => true,
+            'status' => $this->playlistHasImportableSource($inputType, $sourceUrl, $filePath) ? 'pending' : 'needs_url',
+            'is_public' => true,
             'approved_by_admin' => $request->user()->id,
-            'approved_at'       => now(),
+            'approved_at' => now(),
         ]);
 
-        // Parse immediately after saving — no separate "Parse Playlist" step needed.
-        try {
-            set_time_limit(300);
-            $this->playlistImportService->process($playlist);
-
+        if (! $this->playlistHasImportableSource($inputType, $sourceUrl, $filePath)) {
             return redirect()
                 ->route('admin.dashboard')
-                ->with('status', "Playlist \"{$playlist->name}\" imported successfully with {$playlist->channels()->count()} channels.");
+                ->with('status', "Playlist \"{$playlist->name}\" saved. Add an M3U URL or upload a file before parsing channels.");
+        }
+
+        try {
+            set_time_limit(300);
+            $this->runImporters($playlist);
+
+            return redirect()
+                ->route('admin.playlists.index')
+                ->with('status', "Playlist \"{$playlist->name}\" imported successfully with {$playlist->iptvItems()->count()} IPTV items.");
         } catch (Throwable $exception) {
             report($exception);
 
@@ -81,15 +123,29 @@ class PlaylistController extends Controller
 
     public function parse(Playlist $playlist): RedirectResponse
     {
-        $playlist->update(['status' => 'processing']);
+        return $this->reimport($playlist);
+    }
 
-        // Always run synchronously — no queue worker dependency.
-        try {
-            set_time_limit(300);
-            $this->playlistImportService->process($playlist);
+    public function reimport(Playlist $playlist): RedirectResponse
+    {
+        if (! $this->playlistHasImportableSource($playlist->input_type, $playlist->m3u_url ?: $playlist->source_url, $playlist->resolved_file_path)) {
+            $playlist->update(['status' => 'needs_url']);
 
             return redirect()
                 ->route('admin.dashboard')
+                ->withErrors([
+                    'playlist' => 'Add an M3U URL or upload a file before parsing this playlist.',
+                ]);
+        }
+
+        $playlist->update(['status' => 'processing']);
+
+        try {
+            set_time_limit(300);
+            $this->runImporters($playlist);
+
+            return redirect()
+                ->back()
                 ->with('status', "Playlist \"{$playlist->name}\" parsed successfully.");
         } catch (Throwable $exception) {
             report($exception);
@@ -105,6 +161,7 @@ class PlaylistController extends Controller
     public function update(UpdatePlaylistRequest $request, Playlist $playlist): RedirectResponse
     {
         $validated = $request->validated();
+        $inputType = $this->normalizeInputType($validated['input_type']);
         $sourceUrl = $validated['m3u_url'] ?? null;
         $uploadedFile = $request->file('playlist_file');
         $oldFilePath = $playlist->resolved_file_path;
@@ -115,23 +172,43 @@ class PlaylistController extends Controller
 
         $updates = [
             'name' => $validated['name'],
+            'input_type' => $inputType,
+            'active_code' => $inputType === Playlist::INPUT_TYPE_ACTIVE_CODE
+                ? (($validated['active_code'] ?? null) ?: $playlist->active_code)
+                : null,
+            'server_url' => $inputType === Playlist::INPUT_TYPE_XTREAM ? ($validated['server_url'] ?? null) : null,
+            'username' => $inputType === Playlist::INPUT_TYPE_XTREAM ? ($validated['username'] ?? null) : null,
+            'password' => $inputType === Playlist::INPUT_TYPE_XTREAM ? (($validated['password'] ?? null) ?: $playlist->password) : null,
+            'output' => $validated['output'] ?? $playlist->output ?? 'mpegts',
             'status' => 'pending',
         ];
 
-        if ($sourceUrl) {
+        if ($inputType === Playlist::INPUT_TYPE_M3U_URL || $inputType === Playlist::INPUT_TYPE_ACTIVE_CODE || $inputType === Playlist::INPUT_TYPE_XTREAM) {
             $updates['source_type'] = Playlist::SOURCE_TYPE_URL;
             $updates['source_url'] = $sourceUrl;
+            $updates['m3u_url'] = $sourceUrl;
             $updates['file_path'] = null;
             $updates['stored_path'] = null;
             $updates['original_filename'] = null;
-        } elseif ($uploadedFile instanceof UploadedFile) {
-            $filePath = $this->storeUploadedPlaylist($uploadedFile);
+        }
+
+        if ($inputType === Playlist::INPUT_TYPE_UPLOAD) {
+            $filePath = $uploadedFile instanceof UploadedFile
+                ? $this->storeUploadedPlaylist($uploadedFile)
+                : $oldFilePath;
 
             $updates['source_type'] = Playlist::SOURCE_TYPE_FILE;
             $updates['source_url'] = null;
+            $updates['m3u_url'] = null;
             $updates['file_path'] = $filePath;
             $updates['stored_path'] = $filePath;
-            $updates['original_filename'] = $uploadedFile->getClientOriginalName();
+            $updates['original_filename'] = $uploadedFile instanceof UploadedFile
+                ? $uploadedFile->getClientOriginalName()
+                : $playlist->original_filename;
+        }
+
+        if (! $this->playlistHasImportableSource($inputType, $sourceUrl, $updates['file_path'] ?? null)) {
+            $updates['status'] = 'needs_url';
         }
 
         $playlist->update($updates);
@@ -140,12 +217,18 @@ class PlaylistController extends Controller
             Storage::disk('playlists')->delete($oldFilePath);
         }
 
-        try {
-            set_time_limit(300);
-            $this->playlistImportService->process($playlist);
-
+        if (! $this->playlistHasImportableSource($inputType, $sourceUrl, $playlist->resolved_file_path)) {
             return redirect()
                 ->route('admin.dashboard')
+                ->with('status', "Playlist \"{$playlist->name}\" saved. Add an M3U URL or upload a file before parsing channels.");
+        }
+
+        try {
+            set_time_limit(300);
+            $this->runImporters($playlist);
+
+            return redirect()
+                ->route('admin.playlists.index')
                 ->with('status', "Playlist \"{$playlist->name}\" updated and parsed successfully.");
         } catch (Throwable $exception) {
             report($exception);
@@ -170,7 +253,7 @@ class PlaylistController extends Controller
         }
 
         return redirect()
-            ->route('admin.dashboard')
+            ->route('admin.playlists.index')
             ->with('status', "Playlist \"{$name}\" deleted.");
     }
 
@@ -181,5 +264,34 @@ class PlaylistController extends Controller
             Str::uuid()->toString().'-'.preg_replace('/[^a-zA-Z0-9.\-_]/', '-', $uploadedFile->getClientOriginalName()),
             'playlists'
         );
+    }
+
+    private function playlistHasImportableSource(string $inputType, ?string $sourceUrl, ?string $filePath): bool
+    {
+        return match ($inputType) {
+            Playlist::INPUT_TYPE_UPLOAD => filled($filePath),
+            Playlist::INPUT_TYPE_ACTIVE_CODE,
+            Playlist::INPUT_TYPE_M3U_URL => filled($sourceUrl),
+            Playlist::INPUT_TYPE_XTREAM => true,
+            default => false,
+        };
+    }
+
+    private function normalizeInputType(string $inputType): string
+    {
+        return match ($inputType) {
+            'remote_url' => Playlist::INPUT_TYPE_M3U_URL,
+            'upload_file' => Playlist::INPUT_TYPE_UPLOAD,
+            default => $inputType,
+        };
+    }
+
+    private function runImporters(Playlist $playlist): void
+    {
+        if ($playlist->input_type !== Playlist::INPUT_TYPE_XTREAM) {
+            $this->playlistImportService->process($playlist);
+        }
+
+        $this->iptvImporter->import($playlist->refresh());
     }
 }
