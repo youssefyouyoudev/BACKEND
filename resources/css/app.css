@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './live-player.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -814,6 +815,271 @@ input {
 
 .empty-state--compact {
     padding: 1.2rem;
+}
+
+.iptv-admin-hero {
+    margin-bottom: 1.25rem;
+}
+
+.iptv-admin-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.iptv-admin-stats article {
+    padding: 1.15rem;
+    background: linear-gradient(145deg, rgba(10, 31, 47, 0.92), rgba(4, 15, 24, 0.96));
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+}
+
+.iptv-admin-stats span {
+    display: block;
+    color: var(--muted);
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.iptv-admin-stats strong {
+    display: block;
+    margin-top: 0.35rem;
+    color: #f7fbff;
+    font-size: 1.8rem;
+}
+
+.iptv-admin-filters {
+    display: grid;
+    grid-template-columns: minmax(280px, 2fr) repeat(4, minmax(150px, 1fr)) auto;
+    gap: 0.85rem;
+    align-items: end;
+    margin: 1.25rem 0;
+}
+
+.iptv-admin-filters label {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 0;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.iptv-admin-filters input,
+.iptv-admin-filters select {
+    width: 100%;
+    min-height: 48px;
+    padding: 0.75rem 0.9rem;
+    color: var(--text);
+    background: rgba(2, 10, 16, 0.72);
+    border: 1px solid rgba(132, 170, 196, 0.16);
+    border-radius: 14px;
+    outline: none;
+}
+
+.iptv-admin-filters input:focus,
+.iptv-admin-filters select:focus {
+    border-color: rgba(65, 217, 111, 0.5);
+    box-shadow: 0 0 0 4px rgba(65, 217, 111, 0.08);
+}
+
+.iptv-admin-search {
+    grid-column: span 1;
+}
+
+.iptv-admin-search > div {
+    display: flex;
+    gap: 0.55rem;
+}
+
+.iptv-admin-reset {
+    min-height: 48px;
+}
+
+.iptv-admin-live-status {
+    padding: 0.5rem 0.8rem;
+    color: #c9ffd8;
+    background: rgba(65, 217, 111, 0.1);
+    border: 1px solid rgba(65, 217, 111, 0.16);
+    border-radius: 999px;
+}
+
+.iptv-admin-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.iptv-admin-header-actions .button {
+    min-height: 42px;
+}
+
+.iptv-admin-feedback {
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem;
+    color: #c9ffd8;
+    background: rgba(65, 217, 111, 0.1);
+    border: 1px solid rgba(65, 217, 111, 0.18);
+    border-radius: 14px;
+}
+
+.iptv-admin-feedback.is-error {
+    color: #ffd3d8;
+    background: rgba(255, 97, 104, 0.1);
+    border-color: rgba(255, 97, 104, 0.2);
+}
+
+.iptv-admin-table-shell {
+    transition: opacity 160ms ease;
+}
+
+.iptv-admin-catalog.is-loading .iptv-admin-table-shell {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.iptv-admin-table {
+    min-width: 1380px;
+}
+
+.iptv-admin-table tr {
+    transition: opacity 160ms ease, background 160ms ease;
+}
+
+.iptv-admin-table tr.is-hidden-publicly {
+    background: rgba(255, 255, 255, 0.015);
+    opacity: 0.7;
+}
+
+.iptv-admin-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    min-width: 240px;
+}
+
+.iptv-admin-item img {
+    width: 48px;
+    height: 48px;
+    padding: 0.25rem;
+    object-fit: contain;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 12px;
+}
+
+.iptv-admin-item span,
+.iptv-admin-item small {
+    display: block;
+}
+
+.iptv-admin-item small {
+    margin-top: 0.2rem;
+    color: var(--muted);
+}
+
+.iptv-admin-type {
+    display: inline-flex;
+    padding: 0.4rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(18, 164, 255, 0.12);
+    color: #cdefff;
+}
+
+.iptv-admin-type--movie {
+    color: #fff0be;
+    background: rgba(240, 215, 66, 0.1);
+}
+
+.iptv-admin-type--series {
+    color: #e7d7ff;
+    background: rgba(157, 105, 255, 0.12);
+}
+
+.iptv-public-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-width: 108px;
+    color: #dce6f0;
+    cursor: pointer;
+}
+
+.iptv-public-toggle__track {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    background: rgba(255, 97, 104, 0.24);
+    border: 1px solid rgba(255, 97, 104, 0.3);
+    border-radius: 999px;
+    transition: background 160ms ease, border-color 160ms ease;
+}
+
+.iptv-public-toggle__track i {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 16px;
+    height: 16px;
+    background: #f5f8fb;
+    border-radius: 50%;
+    transition: transform 180ms ease;
+}
+
+.iptv-public-toggle.is-public .iptv-public-toggle__track {
+    background: rgba(65, 217, 111, 0.28);
+    border-color: rgba(65, 217, 111, 0.38);
+}
+
+.iptv-public-toggle.is-public .iptv-public-toggle__track i {
+    transform: translateX(18px);
+}
+
+.iptv-public-toggle.is-saving {
+    opacity: 0.6;
+}
+
+@media (max-width: 1180px) {
+    .iptv-admin-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .iptv-admin-search {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 760px) {
+    .iptv-admin-stats,
+    .iptv-admin-filters {
+        grid-template-columns: 1fr;
+    }
+
+    .iptv-admin-search {
+        grid-column: auto;
+    }
+
+    .iptv-admin-search > div {
+        flex-direction: column;
+    }
+
+    .iptv-admin-header-actions {
+        width: 100%;
+        justify-content: stretch;
+    }
+
+    .iptv-admin-header-actions .button {
+        flex: 1 1 140px;
+    }
+
+    .iptv-admin-live-status {
+        width: 100%;
+        text-align: center;
+    }
 }
 
 .pagination-shell {
@@ -7219,6 +7485,663 @@ html:has(.rm-body) {
         animation-duration: 0.001ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.001ms !important;
+    }
+}
+
+/* Premium Live TV receiver */
+.rm-receiver {
+    --receiver-accent: #38f2b0;
+    --receiver-blue: #52a8ff;
+    display: grid;
+    gap: clamp(1rem, 2vw, 1.5rem);
+    padding-block: clamp(0.75rem, 2vw, 1.5rem) 3rem;
+    color: #f8fafc;
+}
+
+.rm-receiver-player,
+.rm-receiver-browser {
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: clamp(1rem, 2vw, 1.6rem);
+    background: linear-gradient(145deg, rgba(7, 12, 25, 0.96), rgba(15, 25, 45, 0.88));
+    box-shadow: 0 26px 80px rgba(0, 0, 0, 0.42);
+    overflow: hidden;
+}
+
+.rm-receiver-player {
+    position: relative;
+}
+
+.rm-receiver-player__screen {
+    position: relative;
+    min-height: min(70vh, 760px);
+    aspect-ratio: 16 / 9;
+    background:
+        radial-gradient(circle at 50% 30%, rgba(82, 168, 255, 0.16), transparent 34%),
+        #02050b;
+    overflow: hidden;
+}
+
+.rm-receiver-player__screen video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    background: #000;
+}
+
+.rm-receiver-player__shade {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, transparent 50%, rgba(0, 0, 0, 0.76));
+}
+
+.rm-receiver-player__identity {
+    position: absolute;
+    z-index: 2;
+    left: clamp(1rem, 3vw, 2.5rem);
+    right: clamp(1rem, 3vw, 2.5rem);
+    bottom: clamp(1rem, 3vw, 2rem);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    pointer-events: none;
+}
+
+.rm-receiver-player__identity img {
+    width: clamp(58px, 8vw, 90px);
+    aspect-ratio: 1;
+    object-fit: contain;
+    padding: 0.55rem;
+    border-radius: 1.1rem;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.3);
+}
+
+.rm-receiver-player__identity span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--receiver-accent);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.rm-receiver-player__identity span i,
+.rm-receiver-count i {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: var(--receiver-accent);
+    box-shadow: 0 0 16px var(--receiver-accent);
+}
+
+.rm-receiver-player__identity h1 {
+    margin: 0.2rem 0 0;
+    color: #fff;
+    font-size: clamp(1.35rem, 3vw, 2.65rem);
+    line-height: 1.05;
+    text-shadow: 0 3px 18px #000;
+}
+
+.rm-receiver-player__identity p {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin: 0.5rem 0 0;
+    color: #dbeafe;
+}
+
+.rm-receiver-player__identity p > * {
+    font-style: normal;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.rm-receiver-player__identity p strong {
+    color: #04110d;
+    padding: 0.12rem 0.45rem;
+    border-radius: 0.35rem;
+    background: var(--receiver-accent);
+}
+
+.rm-receiver-quality {
+    position: absolute;
+    z-index: 4;
+    top: 1rem;
+    right: 1rem;
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.35rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 0.8rem;
+    background: rgba(2, 6, 15, 0.76);
+    backdrop-filter: blur(16px);
+}
+
+.rm-receiver-quality button,
+.rm-receiver-card__qualities button,
+.rm-receiver-table__qualities button {
+    min-width: 42px;
+    min-height: 34px;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 0.55rem;
+    color: #cbd5e1;
+    background: rgba(15, 23, 42, 0.78);
+    font-size: 0.72rem;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.rm-receiver-quality button.is-active,
+.rm-receiver-card__qualities button:hover,
+.rm-receiver-table__qualities button:hover {
+    color: #02140e;
+    border-color: var(--receiver-accent);
+    background: var(--receiver-accent);
+    box-shadow: 0 0 20px rgba(56, 242, 176, 0.24);
+}
+
+.rm-receiver-loading,
+.rm-receiver-error {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: #fff;
+    background: rgba(2, 6, 15, 0.76);
+    backdrop-filter: blur(8px);
+}
+
+.rm-receiver-loading span {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    background: var(--receiver-accent);
+    animation: rm-receiver-bounce 900ms ease-in-out infinite alternate;
+}
+
+.rm-receiver-loading span:nth-child(2) { animation-delay: 160ms; }
+.rm-receiver-loading span:nth-child(3) { animation-delay: 320ms; }
+.rm-receiver-loading p { margin-left: 0.6rem; font-weight: 800; }
+
+.rm-receiver-error {
+    flex-direction: column;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.rm-receiver-error .rm-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+    color: #fb7185;
+}
+
+.rm-receiver-error strong {
+    max-width: 34rem;
+    font-size: clamp(1rem, 2vw, 1.3rem);
+}
+
+.rm-receiver-error div {
+    display: flex;
+    gap: 0.6rem;
+}
+
+.rm-receiver-error button,
+.rm-receiver-controls button,
+.rm-receiver-view-toggle button,
+.rm-receiver-categories button,
+.rm-receiver-watch-btn {
+    min-height: 44px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 0.75rem;
+    color: #e2e8f0;
+    background: rgba(30, 41, 59, 0.72);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.rm-receiver-controls {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.rm-receiver-controls button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.7rem;
+}
+
+.rm-receiver-controls button:hover,
+.rm-receiver-controls button.is-active,
+.rm-receiver-view-toggle button.is-active,
+.rm-receiver-categories button.is-active {
+    color: #03130e;
+    border-color: var(--receiver-accent);
+    background: var(--receiver-accent);
+}
+
+.rm-receiver-controls button:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+}
+
+.rm-receiver-controls .rm-icon {
+    width: 1.05rem;
+    height: 1.05rem;
+}
+
+.rm-receiver-browser {
+    padding: clamp(0.8rem, 2vw, 1.25rem);
+}
+
+.rm-receiver-toolbar {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) auto auto;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.rm-receiver-search {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0 0.9rem;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 0.9rem;
+    background: rgba(2, 8, 20, 0.72);
+}
+
+.rm-receiver-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    color: #fff;
+    background: transparent;
+    box-shadow: none;
+}
+
+.rm-receiver-search input:focus {
+    outline: 0;
+    box-shadow: none;
+}
+
+.rm-receiver-search kbd {
+    padding: 0.15rem 0.4rem;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 0.35rem;
+    color: #94a3b8;
+    background: rgba(30, 41, 59, 0.75);
+}
+
+.rm-receiver-view-toggle {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.rm-receiver-view-toggle button {
+    padding-inline: 0.9rem;
+}
+
+.rm-receiver-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: #94a3b8;
+    white-space: nowrap;
+}
+
+.rm-receiver-count i.is-loading {
+    animation: rm-live-pulse 1s ease-in-out infinite;
+}
+
+.rm-receiver-categories {
+    display: flex;
+    gap: 0.55rem;
+    margin-top: 0.85rem;
+    padding-bottom: 0.35rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.rm-receiver-categories::-webkit-scrollbar { display: none; }
+
+.rm-receiver-categories button {
+    flex: 0 0 auto;
+    padding-inline: 1rem;
+    border-radius: 999px;
+}
+
+.rm-receiver-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 0.85rem;
+    margin-top: 1rem;
+}
+
+.rm-receiver-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 0.85rem;
+    min-height: 142px;
+    padding: 0.85rem;
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 1rem;
+    background: linear-gradient(145deg, rgba(30, 41, 59, 0.72), rgba(9, 16, 30, 0.84));
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.rm-receiver-card:hover,
+.rm-receiver-card:focus-visible,
+.rm-receiver-card.is-playing {
+    transform: translateY(-3px);
+    border-color: var(--receiver-accent);
+    box-shadow: 0 0 0 2px rgba(56, 242, 176, 0.12), 0 18px 35px rgba(0, 0, 0, 0.3);
+}
+
+.rm-receiver-card__watch {
+    position: relative;
+    width: 76px;
+    height: 76px;
+    padding: 0.55rem;
+    border: 0;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.94);
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.rm-receiver-card__watch img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.rm-receiver-card__watch > span {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: rgba(2, 8, 20, 0.56);
+    opacity: 0;
+    transition: opacity 160ms ease;
+}
+
+.rm-receiver-card:hover .rm-receiver-card__watch > span,
+.rm-receiver-card:focus-within .rm-receiver-card__watch > span {
+    opacity: 1;
+}
+
+.rm-receiver-card__copy {
+    min-width: 0;
+}
+
+.rm-receiver-card__copy small {
+    color: var(--receiver-accent);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.rm-receiver-card__copy h2 {
+    display: -webkit-box;
+    margin: 0.3rem 0;
+    overflow: hidden;
+    color: #f8fafc;
+    font-size: 1rem;
+    line-height: 1.25;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.rm-receiver-card__copy p {
+    margin: 0;
+    color: #94a3b8;
+    font-size: 0.78rem;
+}
+
+.rm-receiver-card__qualities {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-self: end;
+}
+
+.rm-receiver-table-wrap {
+    margin-top: 1rem;
+    overflow-x: auto;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 1rem;
+}
+
+.rm-receiver-table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+    color: #e2e8f0;
+}
+
+.rm-receiver-table th,
+.rm-receiver-table td {
+    padding: 0.8rem 1rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    text-align: left;
+}
+
+.rm-receiver-table th {
+    color: #94a3b8;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.rm-receiver-table td:first-child {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.rm-receiver-table td img {
+    width: 42px;
+    height: 42px;
+    object-fit: contain;
+    padding: 0.25rem;
+    border-radius: 0.55rem;
+    background: #fff;
+}
+
+.rm-receiver-table tr.is-playing {
+    background: rgba(56, 242, 176, 0.08);
+}
+
+.rm-receiver-table__qualities {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.rm-receiver-watch-btn {
+    padding-inline: 1rem;
+    color: #03130e;
+    border-color: var(--receiver-accent);
+    background: var(--receiver-accent);
+}
+
+.rm-receiver-empty {
+    min-height: 220px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 0.8rem;
+    color: #94a3b8;
+    text-align: center;
+}
+
+.rm-receiver-empty .rm-icon {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.rm-receiver-toast {
+    position: fixed;
+    z-index: 100;
+    right: 1rem;
+    bottom: 1rem;
+    max-width: min(92vw, 420px);
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(56, 242, 176, 0.38);
+    border-radius: 0.8rem;
+    color: #eafff7;
+    background: rgba(4, 20, 16, 0.94);
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.45), 0 0 28px rgba(56, 242, 176, 0.12);
+    font-weight: 800;
+    backdrop-filter: blur(14px);
+}
+
+@keyframes rm-receiver-bounce {
+    to { transform: translateY(-0.65rem); opacity: 0.45; }
+}
+
+@media (min-width: 1180px) {
+    .rm-receiver {
+        grid-template-columns: minmax(0, 1.5fr) minmax(370px, 0.72fr);
+        align-items: start;
+    }
+
+    .rm-receiver-player {
+        position: sticky;
+        top: 86px;
+    }
+
+    .rm-receiver-player__screen {
+        min-height: 0;
+    }
+
+    .rm-receiver-browser {
+        max-height: calc(100vh - 102px);
+        overflow-y: auto;
+    }
+
+    .rm-receiver-toolbar {
+        grid-template-columns: 1fr auto;
+    }
+
+    .rm-receiver-count {
+        grid-column: 1 / -1;
+    }
+
+    .rm-receiver-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 767px) {
+    .rm-receiver {
+        gap: 0.75rem;
+        padding-top: 0.25rem;
+    }
+
+    .rm-receiver-player,
+    .rm-receiver-browser {
+        border-radius: 1rem;
+    }
+
+    .rm-receiver-player__screen {
+        min-height: 0;
+        aspect-ratio: 16 / 10;
+    }
+
+    .rm-receiver-player__identity {
+        align-items: flex-end;
+        bottom: 0.75rem;
+    }
+
+    .rm-receiver-player__identity img {
+        width: 52px;
+        border-radius: 0.75rem;
+    }
+
+    .rm-receiver-player__identity h1 {
+        max-width: 65vw;
+        overflow: hidden;
+        font-size: 1rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .rm-receiver-player__identity p,
+    .rm-receiver-player__identity span {
+        font-size: 0.62rem;
+    }
+
+    .rm-receiver-quality {
+        top: 0.55rem;
+        right: 0.55rem;
+        max-width: 58%;
+        overflow-x: auto;
+    }
+
+    .rm-receiver-controls {
+        position: sticky;
+        z-index: 5;
+        top: 0;
+        grid-template-columns: repeat(6, minmax(58px, 1fr));
+        overflow-x: auto;
+    }
+
+    .rm-receiver-controls button {
+        flex-direction: column;
+        min-width: 64px;
+        padding: 0.45rem;
+        font-size: 0.65rem;
+    }
+
+    .rm-receiver-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .rm-receiver-count {
+        grid-column: 1 / -1;
+    }
+
+    .rm-receiver-view-toggle {
+        width: 100%;
+    }
+
+    .rm-receiver-view-toggle button {
+        flex: 1;
+    }
+
+    .rm-receiver-search kbd {
+        display: none;
+    }
+
+    .rm-receiver-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .rm-receiver-card {
+        min-height: 128px;
+    }
+
+    .rm-receiver-toast {
+        right: 0.75rem;
+        bottom: 5.5rem;
     }
 }
 

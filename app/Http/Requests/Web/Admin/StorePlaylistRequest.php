@@ -2,10 +2,11 @@
 
 namespace App\Http\Requests\Web\Admin;
 
+use App\Rules\AllowedStreamingUrl;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Validator;
-use Illuminate\Validation\Rules\File;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\File;
+use Illuminate\Validation\Validator;
 
 class StorePlaylistRequest extends FormRequest
 {
@@ -35,6 +36,7 @@ class StorePlaylistRequest extends FormRequest
                 'nullable',
                 'url:http,https',
                 'max:2048',
+                new AllowedStreamingUrl(playlist: true),
                 Rule::unique('playlists', 'source_url'),
             ],
             'server_url' => [
@@ -42,6 +44,7 @@ class StorePlaylistRequest extends FormRequest
                 'nullable',
                 'url:http,https',
                 'max:2048',
+                new AllowedStreamingUrl(playlist: true),
             ],
             'username' => [
                 Rule::requiredIf($this->input('input_type') === 'xtream'),
@@ -59,7 +62,8 @@ class StorePlaylistRequest extends FormRequest
             'playlist_file' => [
                 Rule::requiredIf(in_array($this->input('input_type'), ['upload', 'upload_file'], true)),
                 'nullable',
-                File::types(['m3u', 'm3u8', 'txt'])->max(10 * 1024),
+                File::types(config('streaming.allowed_upload_types', ['m3u', 'm3u8', 'txt']))
+                    ->max((int) config('streaming.max_file_size_kb', 10240)),
             ],
             'active_code' => [
                 Rule::requiredIf($this->input('input_type') === 'active_code'),

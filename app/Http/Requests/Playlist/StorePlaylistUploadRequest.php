@@ -16,7 +16,11 @@ class StorePlaylistUploadRequest extends FormRequest
     {
         return [
             'name' => ['nullable', 'string', 'max:120'],
-            'playlist_file' => ['required', File::types(['txt', 'm3u', 'm3u8'])->max(50 * 1024)],
+            'playlist_file' => [
+                'required',
+                File::types(config('streaming.allowed_upload_types', ['txt', 'm3u', 'm3u8']))
+                    ->max((int) config('streaming.max_file_size_kb', 10240)),
+            ],
             'is_public' => ['nullable', 'boolean'],
         ];
     }

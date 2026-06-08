@@ -42,7 +42,7 @@ M3U;
     expect($playlist->last_synced_at)->not->toBeNull();
 });
 
-it('imports and parses a playlist url for the authenticated user', function () {
+it('blocks remote playlist url imports for non-admin users', function () {
     Http::fake([
         'https://example.com/demo.m3u' => Http::response(<<<'M3U'
 #EXTM3U playlist-name="Remote Demo"
@@ -61,17 +61,9 @@ M3U),
         'is_public' => false,
     ]);
 
-    $response
-        ->assertCreated()
-        ->assertJsonPath('playlist.name', 'Remote Playlist')
-        ->assertJsonPath('playlist.channels.0.name', 'Remote News');
+    $response->assertForbidden();
 
-    $playlist = Playlist::query()->first();
-
-    expect($playlist)->not->toBeNull();
-    expect($playlist->channels()->count())->toBe(2);
-    expect($playlist->status)->toBe('completed');
-    expect($playlist->last_synced_at)->not->toBeNull();
+    expect(Playlist::query()->count())->toBe(0);
 });
 
 it('groups duplicate channel names into one channel with multiple server sources', function () {

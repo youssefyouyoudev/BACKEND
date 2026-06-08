@@ -7,6 +7,7 @@ use App\Models\Favorite;
 use App\Models\IptvCategory;
 use App\Models\IptvItem;
 use App\Models\WatchHistory;
+use App\Support\StreamUrl;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,6 +45,7 @@ class WatchController extends Controller
 
         $items = $category->items()
             ->visible()
+            ->published()
             ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.$request->string('q')->toString().'%'))
             ->latest('updated_at')
             ->paginate(48)
@@ -57,10 +59,13 @@ class WatchController extends Controller
 
     public function item(Request $request, IptvItem $item): View
     {
+        abort_unless($item->is_active && $item->is_public, 404);
         abort_if($item->is_adult && ! $this->adultUnlocked($request), 403);
+        abort_unless(filled($item->stream_url), 404);
 
         $siblings = IptvItem::query()
             ->visible()
+            ->published()
             ->where('type', $item->type)
             ->when($item->category_id, fn ($query) => $query->where('category_id', $item->category_id))
             ->orderBy('name')
@@ -70,6 +75,7 @@ class WatchController extends Controller
         return view('watch.item', [
             'item' => $item->load('category'),
             'siblings' => $siblings,
+            'browserUrl' => StreamUrl::iptvItemBridge($item->id),
         ]);
     }
 
@@ -77,6 +83,7 @@ class WatchController extends Controller
     {
         $items = IptvItem::query()
             ->visible()
+            ->published()
             ->with('category')
             ->when($request->filled('q'), fn ($query) => $query->where('name', 'like', '%'.$request->string('q')->toString().'%'))
             ->where(function ($query) use ($request): void {
@@ -145,7 +152,8 @@ class WatchController extends Controller
     {
         return IptvCategory::query()
             ->where('type', $type)
-            ->withCount(['items' => fn ($query) => $query->visible()])
+            ->whereHas('items', fn ($query) => $query->visible()->published())
+            ->withCount(['items' => fn ($query) => $query->visible()->published()])
             ->orderBy('sort_order')
             ->orderBy('name')
             ->limit($limit)
@@ -166,7 +174,7 @@ class WatchController extends Controller
             ->limit(12)
             ->get()
             ->pluck('iptvItem')
-            ->filter();
+            ->filter(fn (?IptvItem $item) => $item?->is_active && $item->is_public);
     }
 
     private function isLockedAdultCategory(Request $request, IptvCategory $category): bool

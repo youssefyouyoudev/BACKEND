@@ -1,21 +1,22 @@
 <?php
 
-use App\Http\Controllers\FootballController;
 use App\Http\Controllers\ComingSoonController;
+use App\Http\Controllers\FootballController;
 use App\Http\Controllers\SportsController;
+use App\Http\Controllers\StreamBridgeController;
+use App\Http\Controllers\StreamProxyController;
 use App\Http\Controllers\Web\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Web\Admin\ChannelManagementController as AdminChannelController;
 use App\Http\Controllers\Web\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Web\Admin\IptvItemController as AdminIptvItemController;
 use App\Http\Controllers\Web\Admin\PlaylistController as AdminPlaylistController;
 use App\Http\Controllers\Web\Admin\ProgramController as AdminProgramController;
 use App\Http\Controllers\Web\ChannelController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\LiveTvController;
-use App\Http\Controllers\Web\WatchController;
 use App\Http\Controllers\Web\SportsPageController;
-use App\Http\Controllers\StreamBridgeController;
-use App\Http\Controllers\StreamProxyController;
+use App\Http\Controllers\Web\WatchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
@@ -61,7 +62,7 @@ Route::get('/teams/{slug}', [SportsPageController::class, 'team'])->name('teams.
 Route::get('/matches/{slug}', [SportsPageController::class, 'match'])->name('matches.show');
 Route::get('/standings', [SportsPageController::class, 'standings'])->name('standings');
 Route::get('/highlights', [SportsPageController::class, 'highlights'])->name('highlights');
-Route::get('/search', [SportsPageController::class, 'search'])->name('search');
+Route::get('/search', [SportsPageController::class, 'search'])->middleware('throttle:search')->name('search');
 Route::get('/about', [SportsPageController::class, 'staticPage'])->defaults('page', 'about')->name('about');
 Route::get('/contact', [SportsPageController::class, 'staticPage'])->defaults('page', 'contact')->name('contact');
 Route::get('/privacy-policy', [SportsPageController::class, 'staticPage'])->defaults('page', 'privacy-policy')->name('privacy');
@@ -95,6 +96,9 @@ Route::get('/bridge/{encodedUrl}', StreamBridgeController::class)
 Route::get('/bridge-channel/{channel}', [StreamBridgeController::class, 'playChannel'])
     ->middleware(['signed', 'throttle:streams'])
     ->name('stream.bridge.channel');
+Route::get('/play/iptv/{item}', [StreamBridgeController::class, 'playIptvItem'])
+    ->middleware(['signed', 'throttle:streams'])
+    ->name('stream.bridge.iptv-item');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/admin/login', [AdminAuthController::class, 'create'])->name('admin.login');
@@ -106,6 +110,12 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
     Route::get('/', AdminDashboardController::class)->name('admin.dashboard');
     Route::post('/logout', [AdminAuthController::class, 'destroy'])->name('admin.logout');
+    Route::get('/iptv-items', [AdminIptvItemController::class, 'index'])
+        ->name('admin.iptv-items.index');
+    Route::patch('/iptv-items/visibility', [AdminIptvItemController::class, 'updateAllVisibility'])
+        ->name('admin.iptv-items.visibility.all');
+    Route::patch('/iptv-items/{item}/visibility', [AdminIptvItemController::class, 'updateVisibility'])
+        ->name('admin.iptv-items.visibility');
     Route::resource('categories', AdminCategoryController::class)
         ->except(['create', 'show'])
         ->names('admin.categories');

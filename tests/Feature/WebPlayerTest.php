@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Channel;
+use App\Models\IptvItem;
 use App\Models\Playlist;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -26,6 +27,26 @@ it('renders the public home page with stored channels', function () {
         ->assertOk()
         ->assertSee('RiFi Sports Central')
         ->assertSee('Categories');
+});
+
+it('uses the public iptv catalog count on the homepage', function () {
+    $playlist = Playlist::factory()->create([
+        'status' => 'ready',
+        'is_public' => true,
+        'approved_at' => now(),
+    ]);
+
+    IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'beIN Sports Catalog Live',
+        'stream_url' => 'https://streams.example.com/catalog.m3u8',
+        'is_active' => true,
+    ]);
+
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('<strong data-live-channel-count>1</strong> live channels', false);
 });
 
 it('requires authentication for the admin dashboard', function () {

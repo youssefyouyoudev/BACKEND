@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\ChannelStream;
 use App\Models\StreamServerStatus;
+use App\Services\StreamingPolicy;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -17,7 +18,7 @@ class CheckStreamHealthCommand extends Command
 
     protected $description = 'Check IPTV stream health with short non-blocking probes and store status metadata.';
 
-    public function handle(): int
+    public function handle(StreamingPolicy $streamingPolicy): int
     {
         $limit = max(1, (int) $this->option('limit'));
 
@@ -41,14 +42,17 @@ class CheckStreamHealthCommand extends Command
             return self::SUCCESS;
         }
 
-        $this->withProgressBar($streams, fn (ChannelStream $stream) => $this->checkStream($stream));
+        $this->withProgressBar(
+            $streams,
+            fn (ChannelStream $stream) => $this->checkStream($stream, $streamingPolicy)
+        );
         $this->newLine();
         $this->info("Checked {$streams->count()} stream sources.");
 
         return self::SUCCESS;
     }
 
-    private function checkStream(ChannelStream $stream): void
+    private function checkStream(ChannelStream $stream, StreamingPolicy $streamingPolicy): void
     {
         $started = microtime(true);
         $status = 'offline';
@@ -57,6 +61,8 @@ class CheckStreamHealthCommand extends Command
         $message = null;
 
         try {
+            $streamingPolicy->assertStreamUrlAllowed($stream->stream_url);
+
             $response = Http::connectTimeout(3)
                 ->timeout(5)
                 ->retry(1, 200)

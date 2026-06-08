@@ -20,7 +20,7 @@
             <div class="iptv-video-shell">
                 <video
                     data-iptv-player
-                    data-stream-url="{{ $item->stream_url }}"
+                    data-stream-url="{{ $browserUrl }}"
                     data-history-url="{{ route('watch.history', $item) }}"
                     data-stream-type="{{ $item->extension }}"
                     controls

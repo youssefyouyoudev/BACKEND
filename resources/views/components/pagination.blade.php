@@ -1,12 +1,13 @@
 @if ($paginator->hasPages())
     @php
         $total = method_exists($paginator, 'total') ? $paginator->total() : $paginator->count();
+        $resultLabel = request()->routeIs('admin.iptv-items.*') ? 'items' : 'channels';
     @endphp
     <nav class="pagination-shell" role="navigation" aria-label="Pagination Navigation">
         <div class="pagination-shell__meta">
             Showing
             <strong>{{ $paginator->firstItem() ?? 0 }}–{{ $paginator->lastItem() ?? 0 }}</strong>
-            of <strong>{{ number_format($total) }}</strong> channels
+            of <strong>{{ number_format($total) }}</strong> {{ $resultLabel }}
         </div>
 
         <div class="pagination-shell__links">

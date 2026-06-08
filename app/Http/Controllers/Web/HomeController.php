@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Article;
 use App\Models\Channel;
+use App\Models\IptvItem;
 use App\Services\TheSportsDbService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,6 +26,9 @@ class HomeController extends Controller
             ->where('is_active', true)
             ->canonical()
             ->whereHas('playlist', $publicPlaylistScope);
+        $liveChannelCount = IptvItem::query()
+            ->publicLive()
+            ->count();
 
         $categories = Cache::remember('public-dashboard:categories', now()->addMinutes(10), fn () => $baseQuery()
             ->whereNotNull('group_title')
@@ -95,6 +99,7 @@ class HomeController extends Controller
             'channels' => $channels,
             'liveChannels' => $liveChannels,
             'recommendedChannels' => $recommendedChannels,
+            'liveChannelCount' => $liveChannelCount,
             'footballMatches' => $footballMatches,
             'articles' => $articles,
         ]);

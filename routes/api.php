@@ -23,11 +23,11 @@ use App\Http\Controllers\Api\WatchController as ApiWatchController;
 use App\Http\Controllers\FootballController as PublicFootballController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('auth')->middleware('throttle:auth')->group(function (): void {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::prefix('auth')->group(function (): void {
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:registration');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:auth');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:password-reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
 });
 
 Route::middleware('throttle:api')->group(function (): void {
@@ -38,7 +38,7 @@ Route::middleware('throttle:api')->group(function (): void {
     Route::get('/watch/categories', [ApiWatchController::class, 'categories']);
     Route::get('/watch/items', [ApiWatchController::class, 'items']);
     Route::get('/watch/items/{item}', [ApiWatchController::class, 'show']);
-    Route::get('/watch/search', [ApiWatchController::class, 'search']);
+    Route::get('/watch/search', [ApiWatchController::class, 'search'])->middleware('throttle:search');
     Route::post('/watch/items/{item}/favorite', [ApiWatchController::class, 'favorite'])->middleware('auth:sanctum');
     Route::post('/watch/items/{item}/history', [ApiWatchController::class, 'history'])->middleware('auth:sanctum');
 });
@@ -104,7 +104,7 @@ Route::middleware('throttle:api')->group(function (): void {
     Route::get('/channels/{channel}/streams', [ChannelController::class, 'streams']);
 
     // Live TV split-screen: channels (paginated) + category counts
-    Route::prefix('tv')->group(function (): void {
+    Route::prefix('tv')->middleware('throttle:channel-catalog')->group(function (): void {
         Route::get('/channels', [PublicTvController::class, 'channels']);
         Route::get('/channels/{item}', [PublicTvController::class, 'show']);
         Route::get('/categories', [PublicTvController::class, 'categories']);

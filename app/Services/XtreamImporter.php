@@ -16,8 +16,7 @@ class XtreamImporter
     public function __construct(
         private readonly PlaylistUrlBuilder $urlBuilder,
         private readonly UrlSafetyService $urlSafetyService,
-    ) {
-    }
+    ) {}
 
     public function import(Playlist $playlist): Playlist
     {
@@ -73,6 +72,12 @@ class XtreamImporter
         $counts = ['live' => 0, 'movie' => 0, 'series' => 0];
 
         DB::transaction(function () use ($playlist, $data, $now, &$counts): void {
+            $publicationChoices = $playlist->iptvItems()
+                ->get(['type', 'external_id', 'is_public'])
+                ->mapWithKeys(fn (IptvItem $item): array => [
+                    $item->type.'|'.$item->external_id => $item->is_public,
+                ]);
+
             $playlist->iptvItems()->delete();
             $playlist->iptvCategories()->delete();
 
@@ -119,6 +124,7 @@ class XtreamImporter
                             'year' => isset($item['year']) ? (string) $item['year'] : null,
                             'is_adult' => IptvItem::isAdultName(($item['name'] ?? '').' '.($item['category_name'] ?? '')),
                             'is_active' => true,
+                            'is_public' => $publicationChoices->get($type.'|'.$externalId, true),
                             'raw_data' => json_encode($item),
                             'created_at' => $now,
                             'updated_at' => $now,

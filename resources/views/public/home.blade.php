@@ -21,7 +21,7 @@
                 <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-secondary"><x-icon name="scores" />View Scores</a>
             </div>
             <div class="rm-trust-strip" aria-label="RifiMedia highlights">
-                <span><x-icon name="tv" /><strong>{{ number_format($recommendedChannels->count()) }}</strong> live channels</span>
+                <span><x-icon name="tv" /><strong data-live-channel-count>{{ number_format($liveChannelCount) }}</strong> live channels</span>
                 <span><x-icon name="trophy" /><strong>{{ count(config('football_leagues.top_leagues', [])) }}</strong> competitions</span>
                 <span><x-icon name="signal" /><strong>Live</strong> match updates</span>
             </div>

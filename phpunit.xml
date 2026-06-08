@@ -32,5 +32,11 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="STREAMING_ENABLE_EXTERNAL_STREAMS" value="true"/>
+        <env name="STREAMING_RESOLVE_DNS" value="false"/>
+        <env name="STREAMING_BRIDGE_ENABLED" value="true"/>
+        <env name="RIFIMEDIA_STREAM_BRIDGE_ENABLED" value="true"/>
+        <env name="STREAMING_ALLOWED_DOMAINS" value="example.com,domain.com"/>
+        <env name="STREAMING_ALLOWED_PLAYLIST_DOMAINS" value="example.com,domain.com"/>
     </php>
 </phpunit>

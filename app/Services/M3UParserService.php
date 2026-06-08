@@ -13,8 +13,8 @@ class M3UParserService
 {
     public function __construct(
         private readonly UrlSafetyService $urlSafetyService,
-    ) {
-    }
+        private readonly StreamingPolicy $streamingPolicy,
+    ) {}
 
     public function parsePlaylist(Playlist $playlist): array
     {
@@ -61,9 +61,9 @@ class M3UParserService
                 ->accept('application/x-mpegURL, application/vnd.apple.mpegurl, text/plain, */*')
                 ->withOptions([
                     'allow_redirects' => [
-                        'max'             => 5,
-                        'strict'          => false,
-                        'referer'         => true,
+                        'max' => 5,
+                        'strict' => false,
+                        'referer' => true,
                         'track_redirects' => false,
                     ],
                 ])
@@ -85,7 +85,7 @@ class M3UParserService
             }
 
             return [
-                'content'  => $body,
+                'content' => $body,
                 'base_url' => $sourceUrl,
             ];
         }
@@ -99,13 +99,13 @@ class M3UParserService
     {
         // Normalise line endings and strip BOM
         $content = ltrim($content, "\xEF\xBB\xBF");
-        $lines   = preg_split('/\r\n|\r|\n/', $content) ?: [];
+        $lines = preg_split('/\r\n|\r|\n/', $content) ?: [];
 
-        $entries        = [];
-        $groups         = [];
-        $currentExtInf  = null;
-        $fallbackGroup  = null;
-        $playlistTitle  = null;
+        $entries = [];
+        $groups = [];
+        $currentExtInf = null;
+        $fallbackGroup = null;
+        $playlistTitle = null;
 
         foreach ($lines as $rawLine) {
             $line = trim($rawLine);
@@ -117,12 +117,14 @@ class M3UParserService
             // ── Header ──────────────────────────────────────────────────────
             if (str_starts_with($line, '#EXTM3U')) {
                 $playlistTitle = $this->sanitizeString($this->extractHeaderTitle($line));
+
                 continue;
             }
 
             // ── Fallback group directive ─────────────────────────────────────
             if (str_starts_with($line, '#EXTGRP:')) {
                 $fallbackGroup = $this->sanitizeString(substr($line, 8));
+
                 continue;
             }
 
@@ -147,9 +149,10 @@ class M3UParserService
                 continue;
             }
 
-            $streamUrl  = trim($this->resolveUrl($line, $baseUrl));
+            $streamUrl = trim($this->resolveUrl($line, $baseUrl));
             if (! $this->isSafeStreamUrl($streamUrl)) {
                 $currentExtInf = null;
+
                 continue;
             }
 
@@ -161,14 +164,14 @@ class M3UParserService
             }
 
             $entries[] = [
-                'tvg_id'      => $this->sanitizeString($currentExtInf['tvg_id'] ?? null),
-                'name'        => $this->sanitizeString($currentExtInf['name'] ?? null) ?: 'Untitled Channel',
-                'logo'        => $this->resolveOptionalUrl($currentExtInf['logo'] ?? null, $baseUrl),
+                'tvg_id' => $this->sanitizeString($currentExtInf['tvg_id'] ?? null),
+                'name' => $this->sanitizeString($currentExtInf['name'] ?? null) ?: 'Untitled Channel',
+                'logo' => $this->resolveOptionalUrl($currentExtInf['logo'] ?? null, $baseUrl),
                 'group_title' => $groupTitle,
-                'stream_url'  => $streamUrl,
+                'stream_url' => $streamUrl,
                 'stream_type' => $this->detectStreamType($streamUrl),
                 'stream_hash' => $streamHash,
-                'metadata'    => Arr::only($currentExtInf, ['duration', 'raw_attributes']),
+                'metadata' => Arr::only($currentExtInf, ['duration', 'raw_attributes']),
             ];
 
             $currentExtInf = null;
@@ -185,9 +188,9 @@ class M3UParserService
         }
 
         return [
-            'title'   => $playlistTitle ?: null,
+            'title' => $playlistTitle ?: null,
             'entries' => $entries,
-            'groups'  => array_keys($groups),
+            'groups' => array_keys($groups),
         ];
     }
 
@@ -207,11 +210,11 @@ class M3UParserService
         $name = $this->extractChannelName($line, $attributes);
 
         return [
-            'duration'       => isset($durationMatch[1]) ? (float) $durationMatch[1] : null,
-            'tvg_id'         => $attributes['tvg-id'] ?? null,
-            'name'           => $attributes['tvg-name'] ?? $name,
-            'logo'           => $attributes['tvg-logo'] ?? null,
-            'group_title'    => $attributes['group-title'] ?? null,
+            'duration' => isset($durationMatch[1]) ? (float) $durationMatch[1] : null,
+            'tvg_id' => $attributes['tvg-id'] ?? null,
+            'name' => $attributes['tvg-name'] ?? $name,
+            'logo' => $attributes['tvg-logo'] ?? null,
+            'group_title' => $attributes['group-title'] ?? null,
             'raw_attributes' => $attributes,
         ];
     }
@@ -302,7 +305,7 @@ class M3UParserService
             return $base['scheme'].':'.$candidate;
         }
 
-        $basePath  = $base['path'] ?? '/';
+        $basePath = $base['path'] ?? '/';
         $directory = (string) preg_replace('#/[^/]*$#', '/', $basePath) ?: '/';
 
         $resolvedPath = str_starts_with($candidate, '/')
@@ -325,8 +328,8 @@ class M3UParserService
 
     private function detectStreamType(string $streamUrl): string
     {
-        $urlPath  = strtolower((string) parse_url($streamUrl, PHP_URL_PATH));
-        $query    = strtolower((string) parse_url($streamUrl, PHP_URL_QUERY));
+        $urlPath = strtolower((string) parse_url($streamUrl, PHP_URL_PATH));
+        $query = strtolower((string) parse_url($streamUrl, PHP_URL_QUERY));
 
         // HLS variants
         if (
@@ -370,38 +373,14 @@ class M3UParserService
             str_ends_with($urlPath, '.mkv'),
             str_ends_with($urlPath, '.avi') => 'mp4',
             str_ends_with($urlPath, '.ts'),
-            str_ends_with($urlPath, '/ts')  => 'mpegts',
-            default                          => 'stream',
+            str_ends_with($urlPath, '/ts') => 'mpegts',
+            default => 'stream',
         };
     }
 
     private function isSafeStreamUrl(string $url): bool
     {
-        if (! filter_var($url, FILTER_VALIDATE_URL)) {
-            return false;
-        }
-
-        $parts = parse_url($url);
-        $scheme = strtolower($parts['scheme'] ?? '');
-        $host = strtolower($parts['host'] ?? '');
-
-        if (! in_array($scheme, ['http', 'https'], true) || $host === '') {
-            return false;
-        }
-
-        if (isset($parts['user']) || isset($parts['pass'])) {
-            return false;
-        }
-
-        if ($host === 'localhost' || str_ends_with($host, '.local') || str_ends_with($host, '.internal')) {
-            return false;
-        }
-
-        if (filter_var($host, FILTER_VALIDATE_IP)) {
-            return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
-        }
-
-        return true;
+        return $this->streamingPolicy->allowsStreamUrl($url);
     }
 
     private function extractHeaderTitle(string $line): ?string

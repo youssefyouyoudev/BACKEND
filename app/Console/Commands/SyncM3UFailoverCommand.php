@@ -7,6 +7,7 @@ use App\Models\FailoverLog;
 use App\Models\Playlist;
 use App\Models\StreamServerStatus;
 use App\Services\PlaylistImportService;
+use App\Services\StreamingPolicy;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
@@ -20,8 +21,10 @@ class SyncM3UFailoverCommand extends Command
 
     protected $description = 'Parse M3U playlists, refresh source metadata, probe server health, and write failover events.';
 
-    public function handle(PlaylistImportService $playlistImportService): int
-    {
+    public function handle(
+        PlaylistImportService $playlistImportService,
+        StreamingPolicy $streamingPolicy
+    ): int {
         $playlistId = $this->argument('playlist_id');
 
         $playlists = Playlist::query()
@@ -41,11 +44,12 @@ class SyncM3UFailoverCommand extends Command
                 $playlistImportService->process($playlist);
             } catch (Throwable $exception) {
                 $this->error("Playlist {$playlist->id} failed: {$exception->getMessage()}");
+
                 continue;
             }
 
             if ($this->option('probe') && Schema::hasTable('stream_server_statuses')) {
-                $this->probePlaylistStreams($playlist->fresh());
+                $this->probePlaylistStreams($playlist->fresh(), $streamingPolicy);
             }
         }
 
@@ -54,7 +58,7 @@ class SyncM3UFailoverCommand extends Command
         return self::SUCCESS;
     }
 
-    private function probePlaylistStreams(Playlist $playlist): void
+    private function probePlaylistStreams(Playlist $playlist, StreamingPolicy $streamingPolicy): void
     {
         $streams = ChannelStream::query()
             ->whereHas('channel', fn ($query) => $query->where('playlist_id', $playlist->id))
@@ -63,7 +67,7 @@ class SyncM3UFailoverCommand extends Command
             ->orderBy('priority')
             ->get();
 
-        $this->withProgressBar($streams, function (ChannelStream $stream): void {
+        $this->withProgressBar($streams, function (ChannelStream $stream) use ($streamingPolicy): void {
             $started = microtime(true);
             $status = 'active';
             $httpStatus = null;
@@ -71,6 +75,8 @@ class SyncM3UFailoverCommand extends Command
             $message = 'Source reachable.';
 
             try {
+                $streamingPolicy->assertStreamUrlAllowed($stream->stream_url);
+
                 $response = Http::connectTimeout(3)
                     ->timeout(5)
                     ->retry(1, 200)

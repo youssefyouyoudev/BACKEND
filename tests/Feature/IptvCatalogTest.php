@@ -142,21 +142,21 @@ it('blocks adult categories without parental unlock', function () {
         ->assertForbidden();
 });
 
-it('builds live tv from public approved iptv items and categories', function () {
+it('builds live tv from active public IPTV items without requiring a sports category or approved playlist', function () {
     $playlist = Playlist::factory()->create([
-        'is_public' => true,
-        'approved_at' => now(),
+        'is_public' => false,
+        'approved_at' => null,
     ]);
     $category = IptvCategory::query()->create([
         'playlist_id' => $playlist->id,
         'type' => IptvCategory::TYPE_LIVE,
-        'name' => 'IPTV Sports',
+        'name' => 'Documentary',
     ]);
     $item = IptvItem::query()->create([
         'playlist_id' => $playlist->id,
         'category_id' => $category->id,
         'type' => IptvItem::TYPE_LIVE,
-        'name' => 'IPTV Sports HD',
+        'name' => 'Nature World HD',
         'stream_url' => 'https://streams.example.com/live.m3u8',
         'extension' => 'm3u8',
         'is_active' => true,
@@ -164,28 +164,126 @@ it('builds live tv from public approved iptv items and categories', function () 
 
     $this->get('/live-tv')
         ->assertSuccessful()
-        ->assertSee('IPTV Sports')
-        ->assertSee('IPTV Sports HD')
-        ->assertSee(route('watch.item', $item));
+        ->assertSee('Documentary')
+        ->assertSee('Nature World HD')
+        ->assertSee('fifa_world_cup_2026_tease.png')
+        ->assertSee('2026-06-11T20:00:00+01:00')
+        ->assertSee('Reconnecting...');
 
-    $this->getJson('/api/tv/channels?category=IPTV%20Sports')
+    $this->getJson('/api/tv/channels?category=Documentary')
         ->assertSuccessful()
-        ->assertJsonPath('data.0.id', $item->id)
-        ->assertJsonPath('data.0.group_title', 'IPTV Sports')
-        ->assertJsonPath('data.0.watch_url', route('watch.item', $item))
-        ->assertJsonPath('meta.total', 1);
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('count', 1)
+        ->assertJsonPath('channels.0.id', $item->id)
+        ->assertJsonPath('channels.0.category', 'Documentary')
+        ->assertJsonPath('channels.0.quality', 'HD')
+        ->assertJsonPath('channels.0.watch_url', route('watch.item', $item))
+        ->assertJsonPath('channels.0.playback_status.playable', true);
+
+    $response = $this->getJson("/api/tv/channels/{$item->id}")
+        ->assertSuccessful()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('channel.name', 'Nature World HD')
+        ->assertJsonPath('channel.playback_status.playable', true)
+        ->assertJsonPath('channel.playback_status.code', 'ready');
+
+    expect($response->json('channel.public_play_url'))
+        ->toContain("/play/iptv/{$item->id}")
+        ->not->toContain('streams.example.com')
+        ->and($response->content())->not->toContain($item->stream_url);
+});
+
+it('uses a local logo fallback without returning the provider source URL', function () {
+    $playlist = Playlist::factory()->create([
+        'is_public' => true,
+        'approved_at' => now(),
+    ]);
+    $item = IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'Arryadia HD',
+        'stream_url' => 'http://unapproved.example/live.ts',
+        'logo' => 'http://images.example/arryadia.png',
+        'extension' => 'mpegts',
+        'is_active' => true,
+    ]);
 
     $this->getJson("/api/tv/channels/{$item->id}")
         ->assertSuccessful()
-        ->assertJsonPath('data.name', 'IPTV Sports HD')
-        ->assertJsonCount(1, 'data.sources');
+        ->assertJsonPath('channel.logo', asset('brand/rifi-logo.png'))
+        ->assertJsonPath('channel.playback_status.playable', true)
+        ->assertJsonMissing(['source_url' => $item->stream_url]);
 });
 
-it('does not expose private or non-live iptv items on live tv', function () {
-    $privatePlaylist = Playlist::factory()->create([
-        'is_public' => false,
-        'approved_at' => null,
+it('exposes public live channels from every category', function () {
+    $playlist = Playlist::factory()->create([
+        'is_public' => true,
+        'approved_at' => now(),
     ]);
+
+    $bein = IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'beIN Sports 2 HD',
+        'stream_url' => 'https://streams.example.com/bein.m3u8',
+        'is_active' => true,
+    ]);
+    $arryadia = IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'Arryadia HD',
+        'stream_url' => 'https://streams.example.com/arryadia.m3u8',
+        'is_active' => true,
+    ]);
+    $abuDhabi = IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'Abu Dhabi Sports 1',
+        'stream_url' => 'https://streams.example.com/ad-sports.m3u8',
+        'is_active' => true,
+    ]);
+    $other = IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'Other Sports HD',
+        'stream_url' => 'https://streams.example.com/other.m3u8',
+        'is_active' => true,
+    ]);
+
+    $this->getJson('/api/tv/channels')
+        ->assertSuccessful()
+        ->assertJsonPath('count', 4)
+        ->assertJsonFragment(['id' => $bein->id])
+        ->assertJsonFragment(['id' => $arryadia->id])
+        ->assertJsonFragment(['id' => $abuDhabi->id])
+        ->assertJsonFragment(['id' => $other->id]);
+
+    $this->getJson("/api/tv/channels/{$other->id}")
+        ->assertSuccessful();
+});
+
+it('searches the public live TV catalog without sports-only matching', function () {
+    $playlist = Playlist::factory()->create([
+        'is_public' => true,
+        'approved_at' => now(),
+    ]);
+
+    IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'History Documentary HD',
+        'stream_url' => 'https://streams.example.com/history.m3u8',
+        'is_active' => true,
+    ]);
+
+    $this->getJson('/api/tv/channels?search=Documentary')
+        ->assertSuccessful()
+        ->assertJsonPath('count', 1)
+        ->assertJsonPath('channels.0.name', 'History Documentary HD');
+});
+
+it('does not expose inactive private or non-live IPTV items on live TV', function () {
+    $privatePlaylist = Playlist::factory()->create();
     $publicPlaylist = Playlist::factory()->create([
         'is_public' => true,
         'approved_at' => now(),
@@ -197,6 +295,7 @@ it('does not expose private or non-live iptv items on live tv', function () {
         'name' => 'Private Live',
         'stream_url' => 'https://streams.example.com/private.m3u8',
         'is_active' => true,
+        'is_public' => false,
     ]);
     IptvItem::query()->create([
         'playlist_id' => $publicPlaylist->id,
@@ -208,8 +307,63 @@ it('does not expose private or non-live iptv items on live tv', function () {
 
     $this->getJson('/api/tv/channels')
         ->assertSuccessful()
-        ->assertJsonPath('meta.total', 0);
+        ->assertJsonPath('count', 0);
 
     $this->getJson("/api/tv/channels/{$privateLiveItem->id}")
         ->assertNotFound();
+});
+
+it('uses an item-based protected play URL for raw HTTP MPEG-TS streams', function () {
+    $playlist = Playlist::factory()->create([
+        'is_public' => true,
+        'approved_at' => now(),
+    ]);
+    $item = IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'beIN Sports 1 HD',
+        'stream_url' => 'http://streams.example.com/live/channel.ts',
+        'extension' => 'mpegts',
+        'is_active' => true,
+    ]);
+
+    $channel = $this->getJson("/api/tv/channels/{$item->id}")
+        ->assertSuccessful()
+        ->json('channel');
+
+    expect($channel['public_play_url'])
+        ->toContain("/play/iptv/{$item->id}")
+        ->not->toContain('streams.example.com');
+});
+
+it('returns current iptv items after the catalog changes', function () {
+    $playlist = Playlist::factory()->create([
+        'is_public' => true,
+        'approved_at' => now(),
+    ]);
+    $old = IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'Arryadia HD',
+        'stream_url' => 'https://streams.example.com/old.m3u8',
+        'is_active' => true,
+    ]);
+
+    $this->getJson('/api/tv/channels')
+        ->assertSuccessful()
+        ->assertJsonPath('channels.0.name', 'Arryadia HD');
+
+    $old->delete();
+    IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'Arryadia FHD',
+        'stream_url' => 'https://streams.example.com/new.m3u8',
+        'is_active' => true,
+    ]);
+
+    $this->getJson('/api/tv/channels')
+        ->assertSuccessful()
+        ->assertJsonPath('count', 1)
+        ->assertJsonPath('channels.0.name', 'Arryadia FHD');
 });

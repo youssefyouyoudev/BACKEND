@@ -6,12 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Admin\StorePlaylistRequest;
 use App\Http\Requests\Web\Admin\UpdatePlaylistRequest;
 use App\Models\Playlist;
-use App\Services\PlaylistImportService;
 use App\Services\PlaylistImporter;
+use App\Services\PlaylistImportService;
 use App\Services\UrlSafetyService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Throwable;
@@ -22,8 +23,7 @@ class PlaylistController extends Controller
         private readonly UrlSafetyService $urlSafetyService,
         private readonly PlaylistImportService $playlistImportService,
         private readonly PlaylistImporter $iptvImporter,
-    ) {
-    }
+    ) {}
 
     public function index(): View
     {
@@ -293,5 +293,10 @@ class PlaylistController extends Controller
         }
 
         $this->iptvImporter->import($playlist->refresh());
+
+        Cache::forget('public-live:iptv-total-count');
+        Cache::forget('public-live:iptv-category-counts');
+        Cache::forget('public-live:iptv-initial-items');
+        Cache::forget('api-tv:categories');
     }
 }

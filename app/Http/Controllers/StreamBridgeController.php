@@ -4,24 +4,51 @@ namespace App\Http\Controllers;
 
 use App\Models\Channel;
 use App\Models\ChannelStream;
+use App\Models\IptvItem;
+use App\Services\StreamingPolicy;
 use App\Support\StreamUrl;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class StreamBridgeController extends Controller
 {
+    public function __construct(
+        private readonly StreamingPolicy $streamingPolicy,
+    ) {}
+
     public function __invoke(Request $request, string $encodedUrl): Response
     {
         $url = StreamUrl::decodeProxyUrl($encodedUrl);
 
-        $this->abortUnlessBridgeEnabled();
         $this->abortUnlessAllowedStreamUrl($url);
         $this->logBridgeAttempt($request, $url);
 
         return $this->bridge($url);
+    }
+
+    public function playIptvItem(Request $request, IptvItem $item): Response
+    {
+        abort_unless(
+            IptvItem::query()->publicLive()->whereKey($item->getKey())->exists(),
+            Response::HTTP_NOT_FOUND
+        );
+
+        $this->abortUnlessAllowedStreamUrl($item->stream_url);
+
+        if (app()->isLocal()) {
+            Log::debug('live-tv.play', [
+                'route' => 'stream.bridge.iptv-item',
+                'channel_id' => $item->id,
+                'channel_name' => $item->name,
+                'stream_type' => $item->extension ?: 'stream',
+            ]);
+        }
+
+        return $this->bridge($item->stream_url);
     }
 
     public function playChannel(Request $request, Channel $channel): Response
@@ -48,6 +75,7 @@ class StreamBridgeController extends Controller
         $url = $stream?->stream_url ?: $channel->stream_url;
 
         $this->abortUnlessAllowedStreamUrl($url);
+        $this->abortUnlessPolicyAllows($url);
         $this->logBridgeAttempt($request, $url, $channel, $stream);
 
         return $this->bridge($url);
@@ -177,7 +205,11 @@ class StreamBridgeController extends Controller
 
     private function abortUnlessBridgeEnabled(): void
     {
-        abort_unless((bool) config('rifimedia.stream_bridge.enabled'), Response::HTTP_NOT_FOUND);
+        abort_unless(
+            (bool) config('rifimedia.stream_bridge.enabled')
+            && (bool) config('streaming.bridge_enabled'),
+            Response::HTTP_NOT_FOUND
+        );
     }
 
     private function abortUnlessAllowedStreamUrl(?string $url): void
@@ -206,6 +238,15 @@ class StreamBridgeController extends Controller
 
         if ($ip !== null && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
             abort(Response::HTTP_FORBIDDEN, 'Stream source not allowed.');
+        }
+    }
+
+    private function abortUnlessPolicyAllows(string $url): void
+    {
+        try {
+            $this->streamingPolicy->assertStreamUrlAllowed($url);
+        } catch (ValidationException) {
+            abort(Response::HTTP_FORBIDDEN, 'Stream source is not approved.');
         }
     }
 

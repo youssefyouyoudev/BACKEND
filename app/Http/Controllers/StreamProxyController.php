@@ -4,24 +4,32 @@ namespace App\Http\Controllers;
 
 use App\Models\Channel;
 use App\Models\ChannelStream;
+use App\Services\StreamingPolicy;
 use App\Support\StreamUrl;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class StreamProxyController extends Controller
 {
-    public function __invoke(Request $request, string $encodedUrl): \Illuminate\Http\RedirectResponse
+    public function __construct(
+        private readonly StreamingPolicy $streamingPolicy,
+    ) {}
+
+    public function __invoke(Request $request, string $encodedUrl): RedirectResponse
     {
-        $url = $this->decodeUrl($encodedUrl);
+        $url = StreamUrl::decodeProxyUrl($encodedUrl);
 
         $this->abortUnlessAllowedStreamUrl($url);
+        $this->abortUnlessPolicyAllows($url);
         $this->logRedirectAttempt($request, $url);
 
         return redirect()->away($url);
     }
 
-    public function playChannel(Request $request, Channel $channel): \Illuminate\Http\RedirectResponse
+    public function playChannel(Request $request, Channel $channel): RedirectResponse
     {
         abort_unless(
             $channel->is_active
@@ -43,6 +51,7 @@ class StreamProxyController extends Controller
         $url = $stream?->stream_url ?: $channel->stream_url;
 
         $this->abortUnlessAllowedStreamUrl($url);
+        $this->abortUnlessPolicyAllows($url);
         $this->logRedirectAttempt($request, $url, $channel, $stream);
 
         return redirect()->away($url);
@@ -77,6 +86,15 @@ class StreamProxyController extends Controller
         }
     }
 
+    private function abortUnlessPolicyAllows(string $url): void
+    {
+        try {
+            $this->streamingPolicy->assertStreamUrlAllowed($url);
+        } catch (ValidationException) {
+            abort(Response::HTTP_FORBIDDEN, 'Stream source is not approved.');
+        }
+    }
+
     private function logRedirectAttempt(Request $request, string $url, ?Channel $channel = null, ?ChannelStream $stream = null): void
     {
         Log::info('stream.redirect', [
@@ -86,20 +104,5 @@ class StreamProxyController extends Controller
             'ip_hash' => hash('sha256', (string) $request->ip()),
             'user_agent_hash' => hash('sha256', (string) $request->userAgent()),
         ]);
-    }
-
-    private function decodeUrl(string $encodedUrl): ?string
-    {
-        $normalized = strtr($encodedUrl, '-_', '+/');
-
-        $padding = strlen($normalized) % 4;
-
-        if ($padding > 0) {
-            $normalized .= str_repeat('=', 4 - $padding);
-        }
-
-        $decoded = base64_decode($normalized, true);
-
-        return $decoded !== false ? $decoded : null;
     }
 }

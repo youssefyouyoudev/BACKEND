@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\URL;
 
 class StreamUrl
@@ -73,9 +75,18 @@ class StreamUrl
         );
     }
 
+    public static function iptvItemBridge(int $itemId, int $minutes = 30): string
+    {
+        return URL::temporarySignedRoute(
+            'stream.bridge.iptv-item',
+            now()->addMinutes($minutes),
+            ['item' => $itemId]
+        );
+    }
+
     public static function encodeProxyUrl(string $url): string
     {
-        return rtrim(strtr(base64_encode($url), '+/', '-_'), '=');
+        return rtrim(strtr(base64_encode(Crypt::encryptString($url)), '+/', '-_'), '=');
     }
 
     public static function decodeProxyUrl(string $encodedUrl): ?string
@@ -87,9 +98,17 @@ class StreamUrl
             $normalized .= str_repeat('=', 4 - $padding);
         }
 
-        $decoded = base64_decode($normalized, true);
+        $encrypted = base64_decode($normalized, true);
 
-        return $decoded === false ? null : $decoded;
+        if ($encrypted === false) {
+            return null;
+        }
+
+        try {
+            return Crypt::decryptString($encrypted);
+        } catch (DecryptException) {
+            return null;
+        }
     }
 
     public static function isPlaylist(string $url, string $contentType, string $body): bool
@@ -112,12 +131,24 @@ class StreamUrl
             || str_contains($query, 'm3u8');
     }
 
+    public static function canBridgeInBrowser(?string $url, ?string $type = null): bool
+    {
+        if ($url === null || trim($url) === '') {
+            return false;
+        }
+
+        return self::isLikelyPlaylistUrl($url)
+            || self::isLikelyMpegTsUrl($url)
+            || in_array(strtolower((string) $type), ['hls', 'm3u', 'm3u8', 'mpegts', 'ts'], true);
+    }
+
     public static function isLikelyMpegTsUrl(string $url, ?string $contentType = null): bool
     {
         $path = strtolower((string) parse_url($url, PHP_URL_PATH));
         $contentType = strtolower((string) $contentType);
 
         return str_ends_with($path, '.ts')
+            || str_ends_with($path, '.mpegts')
             || str_ends_with($path, '/ts')
             || str_contains($contentType, 'video/mp2t')
             || str_contains($contentType, 'mpegts');
@@ -214,5 +245,4 @@ class StreamUrl
 
         return $base['scheme'].'://'.$base['host'].$port.$resolvedPath;
     }
-
 }

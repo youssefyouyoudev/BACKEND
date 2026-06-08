@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'RiFi Media TV Admin' }}</title>
     <meta name="description" content="RiFi Media TV administration dashboard for playlist management.">
     <link rel="icon" type="image/png" href="{{ asset('brand/rifi-logo.png') }}">
@@ -28,6 +29,10 @@
                 <a href="#playlist-table" class="sidebar__link">
                     <span class="sidebar__icon">☰</span>
                     <span>Playlists</span>
+                </a>
+                <a href="{{ route('admin.iptv-items.index') }}" class="sidebar__link {{ request()->routeIs('admin.iptv-items.*') ? 'is-active' : '' }}">
+                    <span class="sidebar__icon">TV</span>
+                    <span>IPTV Items</span>
                 </a>
                 <a href="{{ route('home') }}" class="sidebar__link">
                     <span class="sidebar__icon">↗</span>

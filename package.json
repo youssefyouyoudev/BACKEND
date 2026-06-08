@@ -16,6 +16,7 @@
     },
     "dependencies": {
         "alpinejs": "^3.15.12",
+        "hls.js": "^1.6.15",
         "mpegts.js": "^1.8.0",
         "video.js": "^8.23.7"
     }

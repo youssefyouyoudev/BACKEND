@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Web\Admin;
 
+use App\Rules\AllowedStreamingUrl;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -23,7 +24,7 @@ class StoreChannelRequest extends FormRequest
             'logo' => ['nullable', 'url', 'max:2048'],
             'country' => ['nullable', 'string', 'max:120'],
             'aliases' => ['nullable', 'string', 'max:2000'],
-            'stream_url' => ['required', 'url', 'max:4096'],
+            'stream_url' => ['required', 'url:http,https', 'max:4096', new AllowedStreamingUrl],
             'stream_type' => ['required', Rule::in(['hls', 'dash', 'mp4', 'mpegts', 'stream'])],
             'is_active' => ['nullable', 'boolean'],
             'is_live' => ['nullable', 'boolean'],

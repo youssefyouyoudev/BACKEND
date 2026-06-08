@@ -1,12 +1,17 @@
 import './bootstrap';
 import Alpine from 'alpinejs';
+import Hls from 'hls.js';
 import mpegts from 'mpegts.js';
 import { initFocusNavigation } from './iptv/focus-navigation';
 import { initIptvPlayer } from './iptv/player';
 import { initIptvSearch } from './iptv/search';
 import { initPlaylistForms } from './iptv/playlist-form';
+import { initAdminIptvItems } from './iptv/admin-items';
+import { groupChannelVariants } from './iptv/live-tv';
+import { initCountdowns } from './countdown';
 
 window.Alpine = Alpine;
+window.Hls = Hls;
 window.mpegts = mpegts;
 
 const applyThemeLabel = () => {
@@ -35,6 +40,21 @@ const setTheme = (theme, persist = true) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    initCountdowns();
+
+    document.querySelectorAll('[data-live-channel-count]').forEach((element) => {
+        try {
+            const cached = JSON.parse(localStorage.getItem('rifi-live-tv-catalog-v4'));
+            const groupedCount = groupChannelVariants(cached?.channels || []).length;
+            const serverCount = Number(String(element.textContent || '').replace(/[^\d]/g, '')) || 0;
+            if (groupedCount > 0 && (serverCount === 0 || groupedCount !== serverCount)) {
+                element.textContent = groupedCount.toLocaleString();
+            }
+        } catch (error) {
+            console.debug('[RifiLiveTV] Saved homepage count is unavailable.', error);
+        }
+    });
+
     const stored = localStorage.getItem('rifi-theme');
     if (! stored) {
         setTheme(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark', false);
@@ -69,6 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     initPlaylistForms();
+    initAdminIptvItems();
     initFocusNavigation();
     initIptvPlayer();
     initIptvSearch();

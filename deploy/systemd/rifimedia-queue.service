@@ -1,0 +1,20 @@
+[Unit]
+Description=RifiMedia Laravel queue worker
+After=network.target mysql.service redis-server.service
+
+[Service]
+User=www-data
+Group=www-data
+Restart=always
+RestartSec=5
+WorkingDirectory=/var/www/rifimedia/current
+ExecStart=/usr/bin/php artisan queue:work --sleep=3 --tries=3 --timeout=60 --max-time=3600
+StandardOutput=append:/var/www/rifimedia/current/storage/logs/queue.log
+StandardError=append:/var/www/rifimedia/current/storage/logs/queue-error.log
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/www/rifimedia/current/storage /var/www/rifimedia/current/bootstrap/cache
+
+[Install]
+WantedBy=multi-user.target

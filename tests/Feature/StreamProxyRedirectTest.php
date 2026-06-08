@@ -1,9 +1,10 @@
 <?php
 
-use App\Support\StreamUrl;
 use App\Models\Channel;
 use App\Models\ChannelStream;
+use App\Models\IptvItem;
 use App\Models\Playlist;
+use App\Support\StreamUrl;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
@@ -98,4 +99,75 @@ it('generates https bridge urls when production https forcing is enabled', funct
     $url = StreamUrl::channelBridge(383, 383);
 
     expect($url)->toStartWith('https://');
+});
+
+it('bridges hls and mpegts sources in the browser', function () {
+    expect(StreamUrl::canBridgeInBrowser('http://example.com/live/master.m3u8', 'm3u8'))->toBeTrue()
+        ->and(StreamUrl::canBridgeInBrowser('http://example.com/live/channel.ts', 'mpegts'))->toBeTrue()
+        ->and(StreamUrl::canBridgeInBrowser('http://example.com/live/channel.mpegts'))->toBeTrue()
+        ->and(StreamUrl::canBridgeInBrowser('http://example.com/live/channel', 'stream'))->toBeFalse();
+});
+
+it('streams mpegts bytes through the same origin bridge', function () {
+    $url = 'http://example.com/live/channel.mpegts';
+
+    Http::fake([
+        $url => Http::response('mpegts-bytes', 200, ['Content-Type' => 'video/mp2t']),
+    ]);
+
+    $this->get(StreamUrl::signedBridge($url))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'video/mp2t')
+        ->assertHeader('Access-Control-Allow-Origin', '*')
+        ->assertStreamedContent('mpegts-bytes');
+});
+
+it('plays public IPTV items through a protected item route without exposing the source', function () {
+    $playlist = Playlist::factory()->create();
+    $sourceUrl = 'https://example.com/live/protected.m3u8';
+    $item = IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'Protected Live HD',
+        'stream_url' => $sourceUrl,
+        'extension' => 'm3u8',
+        'is_active' => true,
+        'is_public' => true,
+    ]);
+
+    Http::fake([
+        $sourceUrl => Http::response("#EXTM3U\n#EXTINF:6,\nsegment.ts", 200, [
+            'Content-Type' => 'application/vnd.apple.mpegurl',
+        ]),
+    ]);
+
+    $playUrl = StreamUrl::iptvItemBridge($item->id);
+
+    expect($playUrl)
+        ->toContain("/play/iptv/{$item->id}")
+        ->not->toContain('example.com');
+
+    $content = $this->get($playUrl)
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/vnd.apple.mpegurl')
+        ->content();
+
+    expect($content)
+        ->toContain('/bridge/')
+        ->not->toContain('segment.ts')
+        ->not->toContain('example.com');
+});
+
+it('rejects protected playback for hidden IPTV items', function () {
+    $playlist = Playlist::factory()->create();
+    $item = IptvItem::query()->create([
+        'playlist_id' => $playlist->id,
+        'type' => IptvItem::TYPE_LIVE,
+        'name' => 'Hidden Live',
+        'stream_url' => 'https://example.com/live/hidden.m3u8',
+        'is_active' => true,
+        'is_public' => false,
+    ]);
+
+    $this->get(StreamUrl::iptvItemBridge($item->id))->assertNotFound();
 });

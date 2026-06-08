@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Playlist;
 
+use App\Rules\AllowedStreamingUrl;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePlaylistUrlRequest extends FormRequest
@@ -15,7 +16,7 @@ class StorePlaylistUrlRequest extends FormRequest
     {
         return [
             'name' => ['nullable', 'string', 'max:120'],
-            'source_url' => ['required', 'string', 'url:http,https', 'max:2048'],
+            'source_url' => ['required', 'string', 'url:http,https', 'max:2048', new AllowedStreamingUrl(playlist: true)],
             'is_public' => ['nullable', 'boolean'],
         ];
     }

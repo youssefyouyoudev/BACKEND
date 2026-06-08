@@ -6,11 +6,12 @@ use App\Models\AppSetting;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -34,30 +35,55 @@ class AppServiceProvider extends ServiceProvider
         Paginator::defaultView('components.pagination');
 
         RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+            return $this->limit(120, 'api', $request);
         });
 
         RateLimiter::for('mobile-api', function (Request $request) {
-            return Limit::perMinute(90)->by($request->user()?->id ?: $request->ip());
+            return $this->limit(90, 'mobile-api', $request);
         });
 
         RateLimiter::for('auth', function (Request $request) {
             $key = strtolower((string) $request->input('email')).'|'.$request->ip();
 
-            return Limit::perMinute(10)->by($key);
+            return Limit::perMinute(5)->by($key)->response(fn () => $this->rateLimitResponse('auth', $request));
         });
 
         RateLimiter::for('playlists', function (Request $request) {
-            return Limit::perMinute(15)->by($request->user()?->id ?: $request->ip());
+            return $this->limit(3, 'playlists', $request);
         });
 
         RateLimiter::for('streams', function (Request $request) {
-            return Limit::perMinute(90)->by($request->ip());
+            return $this->limit(20, 'streams', $request);
         });
+
+        RateLimiter::for('registration', fn (Request $request) => $this->limit(3, 'registration', $request));
+        RateLimiter::for('password-reset', fn (Request $request) => $this->limit(3, 'password-reset', $request));
+        RateLimiter::for('search', fn (Request $request) => $this->limit(30, 'search', $request));
+        RateLimiter::for('channel-catalog', fn (Request $request) => $this->limit(45, 'channel-catalog', $request));
 
         View::composer('*', function ($view): void {
             $view->with('appSettings', $this->resolveSharedSettings());
         });
+    }
+
+    private function limit(int $perMinute, string $name, Request $request): Limit
+    {
+        return Limit::perMinute($perMinute)
+            ->by($request->user()?->id ?: $request->ip())
+            ->response(fn () => $this->rateLimitResponse($name, $request));
+    }
+
+    private function rateLimitResponse(string $name, Request $request)
+    {
+        Log::warning('security.rate_limit_hit', [
+            'limiter' => $name,
+            'path' => $request->path(),
+            'ip_hash' => hash('sha256', (string) $request->ip()),
+        ]);
+
+        return response()->json([
+            'message' => 'Too many requests. Please wait a moment and try again.',
+        ], 429);
     }
 
     private function shouldForceHttps(): bool

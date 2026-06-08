@@ -1,0 +1,209 @@
+.rm-receiver-reconnect {
+    position: absolute;
+    z-index: 5;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 0.7rem;
+    padding: 1.5rem;
+    color: #fff;
+    text-align: center;
+    background: rgba(2, 6, 15, 0.7);
+    backdrop-filter: blur(8px);
+}
+
+.rm-receiver-reconnect i {
+    width: 42px;
+    height: 42px;
+    border: 3px solid rgba(255, 255, 255, 0.22);
+    border-top-color: var(--receiver-accent);
+    border-radius: 999px;
+    animation: rm-live-spin 800ms linear infinite;
+}
+
+.rm-receiver-reconnect strong {
+    font-size: clamp(1rem, 2vw, 1.25rem);
+}
+
+.rm-receiver-reconnect span {
+    color: #cbd5e1;
+    font-size: 0.85rem;
+}
+
+.rm-live-fallback {
+    position: absolute;
+    z-index: 6;
+    inset: 0;
+    display: grid;
+    grid-template-columns: minmax(220px, 0.82fr) minmax(300px, 1.18fr);
+    gap: clamp(1rem, 3vw, 2.5rem);
+    align-items: center;
+    padding: clamp(1rem, 4vw, 3rem);
+    color: #fff;
+    background:
+        radial-gradient(circle at 75% 25%, rgba(20, 114, 255, 0.3), transparent 35%),
+        linear-gradient(135deg, #020916 0%, #061832 55%, #02110d 100%);
+}
+
+.rm-live-fallback__poster {
+    align-self: stretch;
+    min-height: 0;
+    border: 1px solid rgba(82, 168, 255, 0.35);
+    border-radius: 1.25rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.48), 0 0 30px rgba(18, 164, 255, 0.14);
+    overflow: hidden;
+}
+
+.rm-live-fallback__poster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rm-live-fallback__content {
+    display: grid;
+    justify-items: start;
+    gap: 0.7rem;
+}
+
+.rm-live-fallback__eyebrow {
+    color: var(--receiver-accent);
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.rm-live-fallback h2 {
+    margin: 0;
+    font-size: clamp(1.7rem, 4vw, 3.4rem);
+    line-height: 1;
+}
+
+.rm-live-fallback h3 {
+    margin: 0.35rem 0 0;
+    font-size: clamp(1.45rem, 3vw, 2.4rem);
+}
+
+.rm-live-fallback p,
+.rm-live-fallback strong {
+    margin: 0;
+    color: #dbeafe;
+}
+
+.rm-live-fallback__status {
+    color: var(--receiver-accent);
+    font-size: 0.82rem;
+    font-weight: 900;
+}
+
+.rm-live-fallback p {
+    font-size: clamp(1rem, 2.2vw, 1.4rem);
+    font-weight: 800;
+}
+
+.rm-live-countdown {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(60px, 1fr));
+    gap: 0.55rem;
+    width: 100%;
+    max-width: 540px;
+    margin-top: 0.35rem;
+}
+
+.rm-live-countdown span {
+    display: grid;
+    place-items: center;
+    gap: 0.15rem;
+    min-height: 78px;
+    border: 1px solid rgba(82, 168, 255, 0.28);
+    border-radius: 0.85rem;
+    background: rgba(2, 8, 20, 0.72);
+}
+
+.rm-live-countdown b {
+    color: #fff;
+    font-size: clamp(1.25rem, 3vw, 2rem);
+}
+
+.rm-live-countdown small {
+    color: #93c5fd;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.rm-live-fallback__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
+}
+
+.rm-live-fallback__actions button {
+    min-height: 44px;
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--receiver-accent);
+    border-radius: 0.75rem;
+    color: #03130e;
+    background: var(--receiver-accent);
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.rm-live-fallback__actions button + button {
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.35);
+    background: rgba(30, 41, 59, 0.78);
+}
+
+.rm-live-fallback--compact {
+    position: relative;
+    grid-template-columns: 140px minmax(0, 1fr);
+    min-height: 250px;
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(82, 168, 255, 0.2);
+    border-radius: 1rem;
+}
+
+.rm-live-fallback--compact h2 {
+    font-size: clamp(1.25rem, 2vw, 1.8rem);
+}
+
+.rm-live-fallback--compact .rm-live-countdown span {
+    min-height: 58px;
+}
+
+@keyframes rm-live-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 767px) {
+    .rm-live-fallback,
+    .rm-live-fallback--compact {
+        grid-template-columns: 1fr;
+        align-content: start;
+        overflow-y: auto;
+    }
+
+    .rm-live-fallback__poster {
+        max-height: 42vh;
+    }
+
+    .rm-live-fallback--compact .rm-live-fallback__poster {
+        max-height: 220px;
+    }
+
+    .rm-live-countdown {
+        grid-template-columns: repeat(4, minmax(52px, 1fr));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .rm-receiver-reconnect i {
+        animation-duration: 1.8s;
+    }
+}

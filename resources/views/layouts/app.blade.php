@@ -75,7 +75,6 @@
     <link rel="icon" type="image/png" href="{{ asset('brand/rifi-logo.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
-    <script defer src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
 </head>
 <body class="app-body rm-body">
     @if (! empty($appSettings['maintenance_banner']))

@@ -10,7 +10,7 @@ class AppSettingsService
         'legal_notice' => 'Users are responsible for ensuring that every playlist, stream URL, and uploaded file they add to RiFiMedia is legal, licensed, and authorized for their use.',
         'homepage_featured_groups' => ['News', 'Sports', 'Kids'],
         'allow_public_playlists' => true,
-        'allow_url_imports' => true,
+        'allow_url_imports' => false,
         'brand_tagline' => 'Your legal live TV command center.',
         'maintenance_banner' => '',
     ];

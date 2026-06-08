@@ -20,8 +20,8 @@ class PlaylistImporter
         private readonly PlaylistUrlBuilder $urlBuilder,
         private readonly UrlSafetyService $urlSafetyService,
         private readonly XtreamImporter $xtreamImporter,
-    ) {
-    }
+        private readonly StreamingPolicy $streamingPolicy,
+    ) {}
 
     public function import(Playlist $playlist): Playlist
     {
@@ -72,10 +72,27 @@ class PlaylistImporter
      */
     public function saveParsedItems(Playlist $playlist, array $items): Playlist
     {
+        $items = array_values(array_filter(
+            $items,
+            fn (array $item): bool => $this->streamingPolicy->allowsStreamUrl($item['stream_url'] ?? null)
+        ));
+
+        if ($items === []) {
+            throw ValidationException::withMessages([
+                'playlist' => ['No stream entries matched the approved legal domain allowlist.'],
+            ]);
+        }
+
         $now = now();
         $counts = ['live' => 0, 'movie' => 0, 'series' => 0];
 
         DB::transaction(function () use ($playlist, $items, $now, &$counts): void {
+            $publicationChoices = $playlist->iptvItems()
+                ->get(['type', 'external_id', 'is_public'])
+                ->mapWithKeys(fn (IptvItem $item): array => [
+                    $item->type.'|'.$item->external_id => $item->is_public,
+                ]);
+
             $playlist->iptvItems()->delete();
             $playlist->iptvCategories()->delete();
 
@@ -100,6 +117,7 @@ class PlaylistImporter
 
                 foreach ($chunk as $item) {
                     $type = $item['type'] ?? 'live';
+                    $externalId = $item['external_id'] ?? sha1((string) ($item['stream_url'] ?? $item['name']));
                     $categoryKey = $type.'|'.($item['group_title'] ?? 'Uncategorized');
                     $counts[$type] = ($counts[$type] ?? 0) + 1;
 
@@ -107,7 +125,7 @@ class PlaylistImporter
                         'playlist_id' => $playlist->id,
                         'category_id' => $categoryIds[$categoryKey] ?? null,
                         'type' => $type,
-                        'external_id' => $item['external_id'] ?? sha1((string) ($item['stream_url'] ?? $item['name'])),
+                        'external_id' => $externalId,
                         'name' => $item['name'] ?? 'Untitled',
                         'stream_url' => $item['stream_url'] ?? null,
                         'logo' => $item['logo'] ?? $item['tvg_logo'] ?? null,
@@ -119,6 +137,7 @@ class PlaylistImporter
                         'year' => $item['year'] ?? null,
                         'is_adult' => (bool) ($item['is_adult'] ?? IptvItem::isAdultName($item['group_title'] ?? $item['name'] ?? null)),
                         'is_active' => true,
+                        'is_public' => $publicationChoices->get($type.'|'.$externalId, true),
                         'raw_data' => json_encode($item['raw_data'] ?? $item),
                         'created_at' => $now,
                         'updated_at' => $now,

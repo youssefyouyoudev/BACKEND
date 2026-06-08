@@ -20,20 +20,19 @@ class PlaylistImportService
     public function __construct(
         private readonly M3UParserService $parser,
         private readonly ActivityLogService $activityLogService,
-    ) {
-    }
+    ) {}
 
     public function importFromUrl(User $user, array $attributes): Playlist
     {
         $playlist = Playlist::query()->create([
-            'user_id'     => $user->id,
-            'name'        => $attributes['name'] ?: 'Imported Playlist',
-            'input_type'  => Playlist::INPUT_TYPE_REMOTE_URL,
+            'user_id' => $user->id,
+            'name' => $attributes['name'] ?: 'Imported Playlist',
+            'input_type' => Playlist::INPUT_TYPE_REMOTE_URL,
             'source_type' => Playlist::SOURCE_TYPE_URL,
-            'm3u_url'     => $attributes['source_url'],
-            'source_url'  => $attributes['source_url'],
-            'status'      => 'pending',
-            'is_public'   => (bool) ($attributes['is_public'] ?? false),
+            'm3u_url' => $attributes['source_url'],
+            'source_url' => $attributes['source_url'],
+            'status' => 'pending',
+            'is_public' => false,
         ]);
 
         return $this->process($playlist);
@@ -44,15 +43,15 @@ class PlaylistImportService
         $storedPath = $this->storePlaylistFile($file);
 
         $playlist = Playlist::query()->create([
-            'user_id'           => $user->id,
-            'name'              => $attributes['name'] ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
-            'input_type'        => Playlist::INPUT_TYPE_UPLOAD_FILE,
-            'source_type'       => Playlist::SOURCE_TYPE_FILE,
-            'file_path'         => $storedPath,
+            'user_id' => $user->id,
+            'name' => $attributes['name'] ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+            'input_type' => Playlist::INPUT_TYPE_UPLOAD_FILE,
+            'source_type' => Playlist::SOURCE_TYPE_FILE,
+            'file_path' => $storedPath,
             'original_filename' => $file->getClientOriginalName(),
-            'stored_path'       => $storedPath,
-            'status'            => 'pending',
-            'is_public'         => (bool) ($attributes['is_public'] ?? false),
+            'stored_path' => $storedPath,
+            'status' => 'pending',
+            'is_public' => false,
         ]);
 
         return $this->process($playlist);
@@ -76,8 +75,8 @@ class PlaylistImportService
             // Entries with the same normalized channel name are the same channel on multiple servers.
             $groupedByIdentity = $this->groupEntriesByIdentity($parsed['entries'], $playlist->id);
 
-            $totalChannels  = 0;
-            $totalStreams    = 0;
+            $totalChannels = 0;
+            $totalStreams = 0;
 
             DB::transaction(function () use ($playlist, $parsed, $groupedByIdentity, $now, &$totalChannels, &$totalStreams): void {
                 // Wipe existing channels + cascade to channel_streams
@@ -94,22 +93,22 @@ class PlaylistImportService
                         $primary = $entries[0];
 
                         $channelRows[] = [
-                            'playlist_id'           => $playlist->id,
-                            'tvg_id'                => $primary['tvg_id'],
-                            'name'                  => $primary['name'],
-                            'normalized_name'       => Channel::normalizeName($primary['name']),
-                            'logo'                  => $primary['logo'],
-                            'group_title'           => $primary['group_title'],
+                            'playlist_id' => $playlist->id,
+                            'tvg_id' => $primary['tvg_id'],
+                            'name' => $primary['name'],
+                            'normalized_name' => Channel::normalizeName($primary['name']),
+                            'logo' => $primary['logo'],
+                            'group_title' => $primary['group_title'],
                             // Keep stream_url pointing to the primary URL for backward compatibility
-                            'stream_url'            => $primary['stream_url'],
-                            'stream_type'           => $primary['stream_type'],
-                            'stream_hash'           => $primary['stream_hash'],
+                            'stream_url' => $primary['stream_url'],
+                            'stream_type' => $primary['stream_type'],
+                            'stream_hash' => $primary['stream_hash'],
                             'channel_identity_hash' => $identityHash,
-                            'is_active'             => true,
-                            'sort_order'            => $sortOrder++,
-                            'metadata'              => json_encode($primary['metadata']),
-                            'created_at'            => $now,
-                            'updated_at'            => $now,
+                            'is_active' => true,
+                            'sort_order' => $sortOrder++,
+                            'metadata' => json_encode($primary['metadata']),
+                            'created_at' => $now,
+                            'updated_at' => $now,
                         ];
 
                         $totalChannels++;
@@ -138,20 +137,20 @@ class PlaylistImportService
                             $serverLabel = 'Server '.$serverNumber;
 
                             $streamRows[] = [
-                                'channel_id'  => $channelId,
-                                'stream_url'  => $entry['stream_url'],
+                                'channel_id' => $channelId,
+                                'stream_url' => $entry['stream_url'],
                                 'stream_hash' => $entry['stream_hash'],
                                 'stream_type' => $entry['stream_type'],
-                                'priority'    => $serverNumber,
-                                'is_active'   => true,
-                                'label'       => $serverLabel,
+                                'priority' => $serverNumber,
+                                'is_active' => true,
+                                'label' => $serverLabel,
                                 'source_code' => 'S'.$serverNumber,
                                 'server_name' => $serverLabel,
                                 'server_region' => null,
                                 'quality' => '1080p',
                                 'health_status' => 'unknown',
-                                'created_at'  => $now,
-                                'updated_at'  => $now,
+                                'created_at' => $now,
+                                'updated_at' => $now,
                             ];
                             $totalStreams++;
                         }
@@ -164,15 +163,15 @@ class PlaylistImportService
                 }
 
                 $playlist->forceFill([
-                    'name'           => $playlist->name ?: ($parsed['title'] ?: 'Imported Playlist'),
-                    'status'         => 'completed',
+                    'name' => $playlist->name ?: ($parsed['title'] ?: 'Imported Playlist'),
+                    'status' => 'completed',
                     'last_synced_at' => now(),
                     'import_summary' => [
-                        'imported'       => $totalChannels,
+                        'imported' => $totalChannels,
                         'stream_sources' => $totalStreams,
-                        'updated'        => 0,
-                        'removed'        => 0,
-                        'groups'         => $parsed['groups'],
+                        'updated' => 0,
+                        'removed' => 0,
+                        'groups' => $parsed['groups'],
                         'total_channels' => $totalChannels,
                     ],
                 ])->save();
@@ -185,10 +184,10 @@ class PlaylistImportService
                 'playlist.imported',
                 $playlist,
                 [
-                    'status'         => $playlist->status,
-                    'channels'       => $totalChannels,
+                    'status' => $playlist->status,
+                    'channels' => $totalChannels,
                     'stream_sources' => $totalStreams,
-                    'source_type'    => $playlist->source_type,
+                    'source_type' => $playlist->source_type,
                 ]
             );
 
@@ -265,18 +264,18 @@ class PlaylistImportService
     private function markImportFailed(Playlist $playlist, User $user, Throwable $exception, string $action): void
     {
         $playlist->forceFill([
-            'status'         => 'failed',
+            'status' => 'failed',
             'import_summary' => [
-                'error'          => $exception->getMessage(),
-                'groups'         => [],
+                'error' => $exception->getMessage(),
+                'groups' => [],
                 'total_channels' => 0,
             ],
         ])->save();
 
         Log::warning('Playlist import failed', [
             'playlist_id' => $playlist->id,
-            'user_id'     => $user->id,
-            'message'     => $exception->getMessage(),
+            'user_id' => $user->id,
+            'message' => $exception->getMessage(),
         ]);
 
         $this->activityLogService->log($user, $action, $playlist, [

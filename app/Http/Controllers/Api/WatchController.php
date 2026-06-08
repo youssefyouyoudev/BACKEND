@@ -16,7 +16,8 @@ class WatchController extends Controller
     {
         $categories = IptvCategory::query()
             ->when($request->filled('type'), fn ($query) => $query->where('type', $request->string('type')->toString()))
-            ->withCount(['items' => fn ($query) => $query->visible()])
+            ->whereHas('items', fn ($query) => $query->visible()->published())
+            ->withCount(['items' => fn ($query) => $query->visible()->published()])
             ->orderBy('type')
             ->orderBy('sort_order')
             ->paginate(min(100, max(1, $request->integer('per_page', 50))));
@@ -34,6 +35,7 @@ class WatchController extends Controller
 
     public function show(IptvItem $item): JsonResponse
     {
+        abort_unless($item->is_active && $item->is_public, 404);
         abort_if($item->is_adult, 403);
 
         return response()->json($item->load('category'));
@@ -91,6 +93,7 @@ class WatchController extends Controller
     {
         return IptvItem::query()
             ->visible()
+            ->published()
             ->with('category')
             ->where('is_adult', false)
             ->when($request->filled('type'), fn ($query) => $query->where('type', $request->string('type')->toString()))
