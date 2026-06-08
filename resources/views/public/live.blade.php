@@ -1,14 +1,28 @@
 @extends('layouts.app')
 
-@section('title', 'Live TV Receiver | RifiMedia')
-@section('description', 'Open RifiMedia Live TV and start watching approved public channels instantly in a premium receiver interface.')
+@section('title', 'World Cup 2026 Live TV Receiver | RiFi Media TV')
+@section('description', 'Watch public live TV channels in the RiFi Media TV World Cup 2026 inspired receiver with search, quality selection, and automatic reconnect.')
+@section('image', asset('assets/images/fifa_world_cup_2026_tease.png'))
 
 @section('content')
+<header class="wc-live-page-header">
+    <div>
+        <span class="wc-badge wc-live-badge"><i></i> Live TV · مباشر</span>
+        <h1 class="wc-title">Your Matchday Receiver</h1>
+        <p>Choose a channel, select the best quality, and enjoy a smooth broadcast experience.</p>
+    </div>
+    <div dir="rtl">
+        <strong>جهاز استقبال يوم المباراة</strong>
+        <span>اختر القناة والجودة واستمتع بالبث</span>
+    </div>
+</header>
+
 <div
-    class="rm-receiver"
+    class="rm-receiver wc-live-receiver"
     x-data="liveTvPage({
         initialChannels: @js($initialChannels),
         initialChannelId: @js(request()->integer('channel') ?: null),
+        initialCategory: @js(request()->string('category')->toString()),
         fallbackLogo: @js(asset('brand/rifi-logo.png')),
     })"
     x-init="init"
@@ -22,7 +36,7 @@
                 <img :src="activeGroup?.logo || fallbackLogo" alt="" x-on:error="$event.target.src = fallbackLogo">
                 <div>
                     <span><i></i> Live now</span>
-                    <h1 x-text="activeGroup?.name"></h1>
+                    <h2 x-text="activeGroup?.name"></h2>
                     <p>
                         <b x-text="activeGroup?.category"></b>
                         <template x-if="activeGroup?.country"><em x-text="activeGroup.country"></em></template>
@@ -46,7 +60,7 @@
                 <x-icon name="signal" />
                 <strong x-text="playerErrorMessage"></strong>
                 <div>
-                    <button type="button" @click="refreshStream">Try again</button>
+                    <button type="button" @click="refreshStream">Try Again / حاول مرة أخرى</button>
                     <button type="button" x-show="externalPlayerUrl" @click="openExternalPlayer">External player</button>
                 </div>
             </div>
@@ -77,11 +91,11 @@
         </div>
     </section>
 
-    <section class="rm-receiver-browser" aria-label="Channel browser">
+    <section class="rm-receiver-browser" id="channels" aria-label="Channel browser">
         <div class="rm-receiver-toolbar">
             <label class="rm-receiver-search">
                 <x-icon name="search" />
-                <input x-ref="search" type="search" x-model="search" placeholder="Search live TV channels..." aria-label="Search live TV channels">
+                <input x-ref="search" type="search" x-model="search" placeholder="Search channels / ابحث عن قناة" aria-label="Search live TV channels">
                 <kbd>/</kbd>
             </label>
             <div class="rm-receiver-view-toggle" aria-label="Channel view">
@@ -102,7 +116,7 @@
                     :aria-selected="activeCategory === category"
                     :class="{ 'is-active': activeCategory === category }"
                     @click="setCategory(category)"
-                    x-text="category"
+                    x-text="categoryLabel(category)"
                 ></button>
             </template>
         </div>

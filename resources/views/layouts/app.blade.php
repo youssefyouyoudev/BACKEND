@@ -23,7 +23,7 @@
         $seoDescription = html_entity_decode(trim($__env->yieldContent('description')), ENT_QUOTES, 'UTF-8') ?: ($description ?? 'RifiMedia brings football scores, live TV channels, sports updates, and entertainment into one clean platform.');
         $seoRobots = trim($__env->yieldContent('robots')) ?: ($robots ?? 'index,follow');
         $seoCanonical = preg_replace('/^http:\/\//i', 'https://', $canonical ?? url()->current());
-        $seoImage = $image ?? asset('brand/rifi-logo.png');
+        $seoImage = trim($__env->yieldContent('image')) ?: ($image ?? asset('brand/rifi-logo.png'));
         $baseSchema = [
             '@context' => 'https://schema.org',
             '@graph' => [
@@ -95,6 +95,7 @@
                 </nav>
 
                 <div class="rm-navbar__actions">
+                    <span class="wc-nav-live"><i></i> Live <b>مباشر</b></span>
                     <a href="{{ route('search') }}" class="rm-icon-btn" aria-label="Search">
                         <x-icon name="search" />
                     </a>
@@ -109,6 +110,7 @@
                     @else
                         <a href="{{ route('admin.login') }}" class="rm-profile-btn rm-cta-btn"><x-icon name="login" />Login</a>
                     @endauth
+                    <a href="{{ route('live-tv') }}" class="wc-nav-watch"><x-icon name="play" /> Watch Live</a>
                     <button
                         type="button"
                         class="rm-mobile-nav"
@@ -124,9 +126,14 @@
             </div>
 
             <nav class="rm-navbar__drawer" x-show="mobileNavOpen" x-transition.opacity.origin.top @click.outside="mobileNavOpen = false" aria-label="Mobile menu">
+                <div class="wc-nav-drawer__header">
+                    <span class="wc-nav-live"><i></i> Live / مباشر</span>
+                    <strong>World Cup 2026</strong>
+                </div>
                 @foreach($mainNav as $item)
                         <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}"><x-icon :name="$item['icon']" />{{ $item['label'] }}</a>
                 @endforeach
+                <a href="{{ route('live-tv') }}" class="wc-nav-drawer__watch"><x-icon name="play" /> Watch Live / شاهد الآن</a>
                 @auth
                     @if(auth()->user()?->isAdmin())
                         <a href="{{ route('admin.dashboard') }}">Admin</a>

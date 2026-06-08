@@ -26,7 +26,11 @@ it('renders the public home page with stored channels', function () {
     $this->get('/')
         ->assertOk()
         ->assertSee('RiFi Sports Central')
-        ->assertSee('Categories');
+        ->assertSee('World Cup 2026')
+        ->assertSee('Live Experience')
+        ->assertSee('Explore categories')
+        ->assertSee('fifa_world_cup_2026_tease.png')
+        ->assertSee('2026-06-11T20:00:00+01:00');
 });
 
 it('uses the public iptv catalog count on the homepage', function () {
@@ -46,7 +50,9 @@ it('uses the public iptv catalog count on the homepage', function () {
 
     $this->get('/')
         ->assertOk()
-        ->assertSee('<strong data-live-channel-count>1</strong> live channels', false);
+        ->assertSee('<strong data-live-channel-count>1</strong>', false)
+        ->assertSee('RiFi Media TV - World Cup 2026 Live TV Experience')
+        ->assertSee('og:image', false);
 });
 
 it('requires authentication for the admin dashboard', function () {

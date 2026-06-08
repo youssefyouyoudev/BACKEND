@@ -177,7 +177,7 @@ const destroyPlayer = (state) => {
     state.stallTimer = null;
 };
 
-window.liveTvPage = ({ initialChannels = [], initialChannelId = null, fallbackLogo = '' }) => ({
+window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCategory = '', fallbackLogo = '' }) => ({
     rawChannels: initialChannels,
     channelGroups: [],
     activeGroup: null,
@@ -244,6 +244,9 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, fallbackLo
             this.toast('Using saved channel list. Refreshing in background.');
         }
         this.rebuildGroups();
+        if (initialCategory && this.categories.includes(initialCategory)) {
+            this.activeCategory = initialCategory;
+        }
 
         const requestedGroup = initialChannelId
             ? this.channelGroups.find((group) => group.variants.some((variant) => Number(variant.id) === Number(initialChannelId)))
@@ -513,6 +516,18 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, fallbackLo
     setCategory(category) {
         this.activeCategory = category;
         this.focusedIndex = 0;
+    },
+
+    categoryLabel(category) {
+        const labels = {
+            'All Channels': 'All / الكل',
+            Sports: 'Sports / رياضة',
+            News: 'News / أخبار',
+            Kids: 'Kids / أطفال',
+            Movies: 'Movies / أفلام',
+        };
+
+        return labels[category] || category;
     },
 
     openExternalPlayer() {

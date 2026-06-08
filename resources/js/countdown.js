@@ -1,4 +1,5 @@
 const pad = (value) => String(Math.max(0, value)).padStart(2, '0');
+const countdownTimers = new WeakMap();
 
 export function initCountdown(containerSelector, targetDate = null) {
     const element = typeof containerSelector === 'string'
@@ -6,14 +7,16 @@ export function initCountdown(containerSelector, targetDate = null) {
         : containerSelector;
     targetDate ??= element?.dataset.countdownTarget;
 
-    if (!(element instanceof HTMLElement) || element.dataset.countdownReady === 'true') {
+    if (!(element instanceof HTMLElement)) {
         return () => {};
     }
+
+    const existingTimer = countdownTimers.get(element);
+    if (existingTimer) window.clearInterval(existingTimer);
 
     const target = new Date(targetDate).getTime();
     if (!Number.isFinite(target)) return () => {};
 
-    element.dataset.countdownReady = 'true';
     const fields = {
         days: element.querySelector('[data-countdown-days]'),
         hours: element.querySelector('[data-countdown-hours]'),
@@ -38,6 +41,7 @@ export function initCountdown(containerSelector, targetDate = null) {
 
         if (remaining > 0) return;
         window.clearInterval(timer);
+        countdownTimers.delete(element);
         timer = null;
         const status = element.querySelector('[data-countdown-status]');
         if (status) status.textContent = 'Starting now / ينطلق الآن';
@@ -45,10 +49,11 @@ export function initCountdown(containerSelector, targetDate = null) {
 
     update();
     timer = window.setInterval(update, 1000);
+    countdownTimers.set(element, timer);
 
     return () => {
         window.clearInterval(timer);
-        element.dataset.countdownReady = 'false';
+        countdownTimers.delete(element);
     };
 }
 

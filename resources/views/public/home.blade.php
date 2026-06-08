@@ -1,109 +1,161 @@
 @extends('layouts.app')
 
-@section('title', 'RifiMedia | Live TV, Football Scores & Sports Streaming')
-@section('description', 'Watch live TV channels, follow football scores, discover sports news, and browse premium entertainment coverage on RifiMedia.')
+@section('title', 'RiFi Media TV - World Cup 2026 Live TV Experience')
+@section('description', 'Watch live TV channels and enjoy a smooth World Cup 2026 inspired broadcast experience on RiFi Media TV.')
+@section('image', asset('assets/images/fifa_world_cup_2026_tease.png'))
 
 @section('content')
 @php
     $homeCategories = $categories
         ->reject(fn ($category) => in_array(strtolower((string) $category), ['movies', 'movie', 'tv shows', 'tv-shows', 'anime'], true))
         ->take(8);
+
+    $readyFeatures = [
+        ['icon' => 'signal', 'title' => 'Fast streaming', 'arabic' => 'بث سريع', 'copy' => 'Protected playback links and automatic recovery keep the experience moving.'],
+        ['icon' => 'search', 'title' => 'Clean browsing', 'arabic' => 'تصفح سهل', 'copy' => 'Find channels quickly with search, categories, and grouped quality options.'],
+        ['icon' => 'tv', 'title' => 'Mobile friendly', 'arabic' => 'متوافق مع الهاتف', 'copy' => 'A responsive receiver designed for phones, tablets, laptops, and large screens.'],
+        ['icon' => 'play', 'title' => 'Auto reconnect', 'arabic' => 'إعادة اتصال تلقائية', 'copy' => 'The player watches for interruptions and reconnects without refreshing the page.'],
+    ];
 @endphp
 
-<div class="rm-page rm-media-platform-page">
-    <section class="rm-platform-hero rm-cinematic-hero" aria-labelledby="rm-home-hero-title" style="--rm-hero-photo: url('{{ config('rifimedia_visuals.images.stadium_night') }}')">
-        <div class="rm-hero-copy" data-reveal>
-            <span class="rm-kicker"><x-icon name="signal" /> RifiMedia Live</span>
-            <h1 id="rm-home-hero-title">Football scores, live TV, and sports stories in one premium hub.</h1>
-            <p>RifiMedia brings live football, channels, scores, and match updates into one clean premium platform.</p>
-            <div class="rm-hero-actions">
-                <a href="{{ route('live-tv') }}" class="rm-btn rm-btn-primary"><x-icon name="play" />Watch Live</a>
-                <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-secondary"><x-icon name="scores" />View Scores</a>
-            </div>
-            <div class="rm-trust-strip" aria-label="RifiMedia highlights">
-                <span><x-icon name="tv" /><strong data-live-channel-count>{{ number_format($liveChannelCount) }}</strong> live channels</span>
-                <span><x-icon name="trophy" /><strong>{{ count(config('football_leagues.top_leagues', [])) }}</strong> competitions</span>
-                <span><x-icon name="signal" /><strong>Live</strong> match updates</span>
-            </div>
-        </div>
+<div class="wc-page">
+    @include('partials.worldcup-hero', ['liveChannelCount' => $liveChannelCount])
 
-        <div class="rm-media-wall" aria-hidden="true">
-            <div class="rm-media-wall__rail rm-media-wall__rail--left"></div>
-            <div class="rm-media-wall__rail rm-media-wall__rail--right"></div>
-            <div class="rm-media-wall__screen">
-                <span class="rm-live-badge"><i></i> Now playing</span>
-                <img src="{{ config('rifimedia_visuals.images.stadium_night') }}" alt="" loading="eager">
-                <strong>RifiMedia Live</strong>
-                <small>Channels, fixtures, and match updates</small>
+    <section class="wc-section" aria-labelledby="wc-ready-title">
+        <div class="wc-section__heading">
+            <div>
+                <span class="wc-badge">Tournament ready · جاهزون</span>
+                <h2 id="wc-ready-title" class="wc-title">World Cup Ready</h2>
+                <p class="wc-subtitle">Everything you need for a simple, fast football broadcast experience.</p>
             </div>
-            <div class="rm-media-wall__card rm-media-wall__card--match">
-                <x-icon name="football" />
-                <span>Today</span>
-                <strong>Fixtures & scores</strong>
-            </div>
-            <div class="rm-media-wall__card rm-media-wall__card--channel">
-                <x-icon name="tv" />
-                <span>Channels</span>
-                <strong>Browse by category</strong>
-            </div>
-            <div class="rm-media-wall__card rm-media-wall__card--news">
-                <x-icon name="trending" />
-                <span>Updates</span>
-                <strong>Latest sports stories</strong>
-            </div>
+            <p class="wc-section__arabic" dir="rtl">جاهزون لكأس العالم</p>
+        </div>
+        <div class="wc-feature-grid">
+            @foreach($readyFeatures as $feature)
+                <article class="wc-card wc-feature-card" data-reveal>
+                    <span class="wc-feature-card__icon"><x-icon :name="$feature['icon']" /></span>
+                    <strong>{{ $feature['title'] }}</strong>
+                    <b dir="rtl">{{ $feature['arabic'] }}</b>
+                    <p>{{ $feature['copy'] }}</p>
+                </article>
+            @endforeach
         </div>
     </section>
 
-    <section class="rm-section">
-        <x-section-header eyebrow="Live now" title="Featured live channels" description="Fast access to approved public channels with a premium player experience." href="{{ route('live-tv') }}" action="Open Live TV" />
-        @if($recommendedChannels->count())
-            <div class="rm-carousel-shell">
-                <button type="button" class="rm-carousel-arrow rm-carousel-arrow--prev" data-carousel-prev aria-label="Scroll featured channels left"><x-icon name="chevron-right" /></button>
-                <div class="rm-match-row rm-premium-channel-grid" data-carousel>
-                    @foreach($recommendedChannels->take(8) as $channel)
-                        <x-channel-card :channel="$channel" />
-                    @endforeach
+    <section class="wc-section wc-experience" id="channels" aria-labelledby="wc-experience-title">
+        <div class="wc-section__heading">
+            <div>
+                <span class="wc-badge wc-live-badge"><i></i> Live TV</span>
+                <h2 id="wc-experience-title" class="wc-title">Live TV Experience</h2>
+                <p class="wc-subtitle">A cinematic player, clean search, and one-tap channel switching.</p>
+            </div>
+            <a href="{{ route('live-tv') }}" class="wc-button wc-button--primary">Open Live TV <x-icon name="arrow-up-right" /></a>
+        </div>
+
+        <div class="wc-experience__layout">
+            <a href="{{ route('live-tv') }}" class="wc-player-shell wc-experience__player">
+                <div class="wc-experience__screen">
+                    <img src="{{ asset('assets/images/fifa_world_cup_2026_tease.png') }}" alt="" loading="lazy">
+                    <span class="wc-live-badge"><i></i> Live receiver</span>
+                    <div>
+                        <x-icon name="play" />
+                        <strong>Start watching</strong>
+                        <small>اختر القناة وابدأ المشاهدة</small>
+                    </div>
                 </div>
-                <button type="button" class="rm-carousel-arrow rm-carousel-arrow--next" data-carousel-next aria-label="Scroll featured channels right"><x-icon name="chevron-right" /></button>
+                <footer>
+                    <span><x-icon name="signal" /> Automatic reconnect</span>
+                    <span><x-icon name="search" /> Fast channel search</span>
+                </footer>
+            </a>
+
+            <div class="wc-experience__channels wc-glass">
+                <header>
+                    <div><span class="wc-live-badge"><i></i> On air</span><strong>Featured channels</strong></div>
+                    <a href="{{ route('live-tv') }}">View all</a>
+                </header>
+                @if($recommendedChannels->count())
+                    <div class="wc-channel-preview">
+                        @foreach($recommendedChannels->take(4) as $channel)
+                            <x-channel-card :channel="$channel" />
+                        @endforeach
+                    </div>
+                @else
+                    <x-empty-state title="Coming soon" message="Public live channels will appear here when available." action="Open Live TV" :href="route('live-tv')" />
+                @endif
             </div>
-        @else
-            <x-empty-state title="No live channels right now" message="Approved channels will appear here as soon as they are available." action="Open Live TV" :href="route('live-tv')" />
-        @endif
+        </div>
     </section>
 
-    <section class="rm-section">
-        <x-section-header eyebrow="Today's football" title="Live scores and fixtures" description="Follow today's fixtures and find where to watch when channels are available." href="{{ route('sports.football') }}" action="All scores" />
+    <section class="wc-section wc-upcoming" aria-labelledby="wc-upcoming-title">
+        <div class="wc-upcoming__poster wc-card" data-reveal>
+            <img
+                src="{{ asset('assets/images/fifa_world_cup_2026_tease.png') }}"
+                alt="World Cup 2026 upcoming broadcast on RiFi Media TV"
+                loading="lazy"
+                width="1122"
+                height="1402"
+            >
+        </div>
+        <div class="wc-upcoming__copy" data-reveal>
+            <span class="wc-badge">Next broadcast · البث القادم</span>
+            <h2 id="wc-upcoming-title" class="wc-title">Upcoming Broadcast</h2>
+            <p class="wc-subtitle">The World Cup 2026 live experience begins on RiFi Media TV on June 11.</p>
+            <h3 dir="rtl">البث القادم</h3>
+            <p dir="rtl">تنطلق تجربة كأس العالم 2026 مباشرة على RiFi Media TV يوم 11 يونيو.</p>
+            @include('partials.worldcup-countdown')
+            <a href="{{ route('live-tv') }}" class="wc-button wc-button--primary"><x-icon name="play" /> Watch Live / شاهد الآن</a>
+        </div>
+    </section>
+
+    <section class="wc-section" aria-labelledby="wc-how-title">
+        <div class="wc-section__heading">
+            <div>
+                <span class="wc-badge">Three simple steps</span>
+                <h2 id="wc-how-title" class="wc-title">How It Works</h2>
+            </div>
+            <p class="wc-section__arabic" dir="rtl">كيف يعمل</p>
+        </div>
+        <div class="wc-steps">
+            <article class="wc-card"><b>01</b><x-icon name="search" /><strong>Choose a channel</strong><span dir="rtl">اختر قناة</span></article>
+            <article class="wc-card"><b>02</b><x-icon name="play" /><strong>Start watching</strong><span dir="rtl">ابدأ المشاهدة</span></article>
+            <article class="wc-card"><b>03</b><x-icon name="football" /><strong>Enjoy the match</strong><span dir="rtl">استمتع بالمباراة</span></article>
+        </div>
+    </section>
+
+    <section class="wc-section">
+        <x-section-header eyebrow="Matchday" title="Live scores and fixtures" description="Follow today's football and open match details without leaving RiFi Media TV." href="{{ route('sports.football') }}" action="All scores" />
         @if($footballMatches->count())
             <div class="football-match-grid">
                 @foreach($footballMatches as $match)
-                    <x-match-card :match="$match" />
+                    <x-match-card :match="$match" class="wc-card" />
                 @endforeach
             </div>
         @else
-            <x-empty-state title="No live matches right now" message="Check upcoming fixtures or try another date." action="Football Scores" :href="route('sports.football')" />
+            <x-empty-state title="No live matches right now" message="Upcoming fixtures will appear here as matchday approaches." action="Football Scores" :href="route('sports.football')" class="wc-empty-state" />
         @endif
     </section>
 
-    <section class="rm-section">
-        <x-section-header eyebrow="Channels" title="Categories" description="Browse live channels by category and jump straight into the player." href="{{ route('live-tv') }}" action="All categories" />
+    <section class="wc-section">
+        <x-section-header eyebrow="Channel zones" title="Explore categories" description="Jump straight into the type of channel you want." href="{{ route('live-tv') }}" action="All channels" />
         @if($homeCategories->count())
-            <div class="rm-home-category-grid">
+            <div class="wc-category-grid">
                 @foreach($homeCategories as $category)
-                    <a href="{{ route('live-tv', ['category' => $category]) }}" data-reveal>
+                    <a href="{{ route('live-tv', ['category' => $category]) }}" class="wc-card wc-category-card" data-reveal>
                         <span><x-icon name="tv" /></span>
                         <strong>{{ $category }}</strong>
-                        <small>Browse live channels</small>
+                        <small>Browse live channels <x-icon name="arrow-up-right" /></small>
                     </a>
                 @endforeach
             </div>
         @else
-            <x-empty-state title="No channel categories available" message="Browse Live TV while categories are being organized." action="Open Live TV" :href="route('live-tv')" />
+            <x-empty-state title="Channels are being prepared" message="Open Live TV to see every currently available channel." action="Open Live TV" :href="route('live-tv')" class="wc-empty-state" />
         @endif
     </section>
 
     @if($articles->count())
-        <section class="rm-section">
-            <x-section-header eyebrow="Latest sports updates" title="Football news" href="{{ route('news.index') }}" action="Newsroom" />
+        <section class="wc-section">
+            <x-section-header eyebrow="Tournament newsroom" title="Latest football stories" href="{{ route('news.index') }}" action="Newsroom" />
             <div class="rm-media-grid">
                 @foreach($articles as $article)
                     <x-media-card
@@ -117,22 +169,5 @@
             </div>
         </section>
     @endif
-
-    <section class="rm-section rm-seo-panel">
-        <x-section-header eyebrow="Why RifiMedia" title="A cleaner way to follow live sports and TV" />
-        <div class="rm-feature-grid">
-            <article data-reveal><x-icon name="scores" /><strong>Live scores</strong><p>Follow today's fixtures, results, kickoff times, and match status without clutter.</p></article>
-            <article data-reveal><x-icon name="play" /><strong>Watch links</strong><p>Find available TV channels and jump straight into the player when a stream exists.</p></article>
-            <article data-reveal><x-icon name="tv" /><strong>Channel discovery</strong><p>Browse live channels by category with search, selected states, and fast switching.</p></article>
-        </div>
-    </section>
-
-    <section class="rm-section rm-home-copy-block">
-        <div>
-            <p class="rm-eyebrow">RifiMedia</p>
-            <h2>Live football, channels, scores, and match updates in one place.</h2>
-        </div>
-        <p>Open live channels, check today's football, browse useful categories, and read sports updates when the newsroom has published coverage. The homepage stays focused on what is available now, without fake previews or unfinished sections.</p>
-    </section>
 </div>
 @endsection
