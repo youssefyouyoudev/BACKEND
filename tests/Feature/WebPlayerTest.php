@@ -1,9 +1,9 @@
 <?php
 
 use App\Models\Channel;
-use App\Models\IptvItem;
 use App\Models\Playlist;
 use App\Models\User;
+use App\Models\WorldCupMatch;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -22,37 +22,49 @@ it('renders the public home page with stored channels', function () {
         'stream_hash' => sha1('https://streams.example.com/sports.m3u8'),
         'is_active' => true,
     ]);
+    WorldCupMatch::query()->create([
+        'home_team' => 'Morocco',
+        'away_team' => 'Brazil',
+        'stage' => 'Group Stage',
+        'kickoff_at' => now()->addDay(),
+        'morocco_kickoff_at' => now()->addDay(),
+    ]);
 
     $this->get('/')
         ->assertOk()
         ->assertSee('RiFi Sports Central')
-        ->assertSee('World Cup 2026')
-        ->assertSee('Live Experience')
-        ->assertSee('Explore categories')
-        ->assertSee('fifa_world_cup_2026_tease.png')
-        ->assertSee('2026-06-11T20:00:00+01:00');
+        ->assertSee('Your Match Day Starts Here')
+        ->assertSee('World Cup 2026 Coverage')
+        ->assertSee('Morocco')
+        ->assertSee('Brazil')
+        ->assertSee('images/flags/ma.svg', false)
+        ->assertSee('images/flags/br.svg', false);
 });
 
-it('uses the public iptv catalog count on the homepage', function () {
+it('renders localized landing metadata and rtl Arabic', function () {
     $playlist = Playlist::factory()->create([
         'status' => 'ready',
         'is_public' => true,
         'approved_at' => now(),
     ]);
 
-    IptvItem::query()->create([
-        'playlist_id' => $playlist->id,
-        'type' => IptvItem::TYPE_LIVE,
-        'name' => 'beIN Sports Catalog Live',
-        'stream_url' => 'https://streams.example.com/catalog.m3u8',
-        'is_active' => true,
-    ]);
+    $this->get('/')
+        ->assertOk()
+        ->assertSee('RiFiTV - Match Schedules, Channels and World Cup 2026')
+        ->assertSee('og:image', false);
+
+    $this->get(route('language.switch', 'ar'))
+        ->assertRedirect();
 
     $this->get('/')
         ->assertOk()
-        ->assertSee('<strong data-live-channel-count>1</strong>', false)
-        ->assertSee('RiFi Media TV - World Cup 2026 Live TV Experience')
-        ->assertSee('og:image', false);
+        ->assertSee('dir="rtl"', false)
+        ->assertSee('يوم المباراة يبدأ من هنا')
+        ->assertSee('تغطية كأس العالم 2026');
+});
+
+it('rejects unsupported locales', function () {
+    $this->get('/lang/fr')->assertNotFound();
 });
 
 it('requires authentication for the admin dashboard', function () {

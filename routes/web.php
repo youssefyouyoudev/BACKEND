@@ -12,15 +12,23 @@ use App\Http\Controllers\Web\Admin\DashboardController as AdminDashboardControll
 use App\Http\Controllers\Web\Admin\IptvItemController as AdminIptvItemController;
 use App\Http\Controllers\Web\Admin\PlaylistController as AdminPlaylistController;
 use App\Http\Controllers\Web\Admin\ProgramController as AdminProgramController;
+use App\Http\Controllers\Web\Admin\WorldCupMatchController as AdminWorldCupMatchController;
 use App\Http\Controllers\Web\ChannelController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\LiveTvController;
+use App\Http\Controllers\Web\LocaleController;
 use App\Http\Controllers\Web\SportsPageController;
 use App\Http\Controllers\Web\WatchController;
+use App\Http\Controllers\Web\WorldCupController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', HomeController::class)->name('home');
+Route::get('/lang/{locale}', LocaleController::class)
+    ->whereIn('locale', ['en', 'ar'])
+    ->name('language.switch');
 Route::get('/sports', SportsController::class)->name('sports.index');
+Route::get('/world-cup', [WorldCupController::class, 'index'])->name('world-cup.index');
+Route::get('/world-cup/group-stage', [WorldCupController::class, 'index'])->name('world-cup.group-stage');
 Route::get('/sports/football', [FootballController::class, 'index'])->name('sports.football');
 Route::get('/sports/football/event/{eventId}', [FootballController::class, 'event'])
     ->whereNumber('eventId')
@@ -125,6 +133,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
     Route::resource('programs', AdminProgramController::class)
         ->except(['create', 'show'])
         ->names('admin.programs');
+    Route::patch('/world-cup-matches/{world_cup_match}/quick-update', [AdminWorldCupMatchController::class, 'quickUpdate'])
+        ->name('admin.world-cup-matches.quick-update');
+    Route::get('/world-cup-matches/iptv-items/search', [AdminWorldCupMatchController::class, 'iptvItems'])
+        ->name('admin.world-cup-matches.iptv-items');
+    Route::patch('/world-cup-matches/{world_cup_match}/iptv-item', [AdminWorldCupMatchController::class, 'assignIptvItem'])
+        ->name('admin.world-cup-matches.assign-iptv-item');
+    Route::resource('world-cup-matches', AdminWorldCupMatchController::class)
+        ->except('show')
+        ->parameters(['world-cup-matches' => 'world_cup_match'])
+        ->names('admin.world-cup-matches');
     Route::get('/playlists', [AdminPlaylistController::class, 'index'])
         ->name('admin.playlists.index');
     Route::get('/playlists/create', [AdminPlaylistController::class, 'create'])

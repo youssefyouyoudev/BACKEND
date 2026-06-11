@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class IptvItem extends Model
 {
@@ -66,6 +67,12 @@ class IptvItem extends Model
     public function watchHistories(): HasMany
     {
         return $this->hasMany(WatchHistory::class);
+    }
+
+    public function worldCupMatches(): BelongsToMany
+    {
+        return $this->belongsToMany(WorldCupMatch::class, 'world_cup_match_iptv_item')
+            ->withTimestamps();
     }
 
     public function scopeVisible(Builder $query): Builder

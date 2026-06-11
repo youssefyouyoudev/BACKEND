@@ -122,6 +122,11 @@ class Channel extends Model
         return $this->hasMany(Program::class);
     }
 
+    public function worldCupMatches(): HasMany
+    {
+        return $this->hasMany(WorldCupMatch::class, 'selected_channel_id');
+    }
+
     public function currentProgram()
     {
         return $this->hasOne(Program::class)

@@ -34,6 +34,18 @@
                     <span class="sidebar__icon">TV</span>
                     <span>IPTV Items</span>
                 </a>
+                <a href="{{ route('admin.world-cup-matches.index') }}" class="sidebar__link {{ request()->routeIs('admin.world-cup-matches.*') ? 'is-active' : '' }}">
+                    <span class="sidebar__icon">WC</span>
+                    <span>World Cup Matches</span>
+                </a>
+                <a href="{{ route('admin.world-cup-matches.index', ['missing_channel' => 1]) }}" class="sidebar__link">
+                    <span class="sidebar__icon">?</span>
+                    <span>Missing Channels</span>
+                </a>
+                <a href="{{ route('admin.world-cup-matches.index', ['missing_commentator' => 1]) }}" class="sidebar__link">
+                    <span class="sidebar__icon">Mic</span>
+                    <span>Missing Commentators</span>
+                </a>
                 <a href="{{ route('home') }}" class="sidebar__link">
                     <span class="sidebar__icon">↗</span>
                     <span>Open Player</span>

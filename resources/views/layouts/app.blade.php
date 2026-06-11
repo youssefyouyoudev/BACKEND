@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->isLocale('ar') ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,8 +19,8 @@
         })();
     </script>
     @php
-        $seoTitle = html_entity_decode(trim($__env->yieldContent('title')), ENT_QUOTES, 'UTF-8') ?: ($title ?? 'RifiMedia - Live TV, Football Scores & Sports Streaming');
-        $seoDescription = html_entity_decode(trim($__env->yieldContent('description')), ENT_QUOTES, 'UTF-8') ?: ($description ?? 'RifiMedia brings football scores, live TV channels, sports updates, and entertainment into one clean platform.');
+        $seoTitle = html_entity_decode(trim($__env->yieldContent('title')), ENT_QUOTES, 'UTF-8') ?: ($title ?? __('landing.meta.title'));
+        $seoDescription = html_entity_decode(trim($__env->yieldContent('description')), ENT_QUOTES, 'UTF-8') ?: ($description ?? __('landing.meta.description'));
         $seoRobots = trim($__env->yieldContent('robots')) ?: ($robots ?? 'index,follow');
         $seoCanonical = preg_replace('/^http:\/\//i', 'https://', $canonical ?? url()->current());
         $seoImage = trim($__env->yieldContent('image')) ?: ($image ?? asset('brand/rifi-logo.png'));
@@ -30,7 +30,7 @@
                 [
                     '@type' => 'Organization',
                     '@id' => url('/').'#organization',
-                    'name' => 'RifiMedia',
+                    'name' => 'RiFiTV',
                     'url' => url('/'),
                     'logo' => asset('brand/rifi-logo.png'),
                 ],
@@ -38,8 +38,8 @@
                     '@type' => 'WebSite',
                     '@id' => url('/').'#website',
                     'url' => url('/'),
-                    'name' => 'RifiMedia',
-                    'description' => 'Football scores, live TV channels, sports updates, and entertainment.',
+                    'name' => 'RiFiTV',
+                    'description' => __('landing.meta.description'),
                     'publisher' => ['@id' => url('/').'#organization'],
                     'potentialAction' => [
                         '@type' => 'SearchAction',
@@ -50,19 +50,13 @@
             ],
         ];
         $mainNav = [
-            ['label' => 'Scores', 'icon' => 'scores', 'href' => route('sports.football'), 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores', 'fixtures')],
-            ['label' => 'Live TV', 'icon' => 'tv', 'href' => route('live-tv'), 'active' => request()->routeIs('live', 'live-tv')],
-            ['label' => 'News', 'icon' => 'news', 'href' => route('news.index'), 'active' => request()->routeIs('news.*')],
-            ['label' => 'Leagues', 'icon' => 'trophy', 'href' => route('leagues.index'), 'active' => request()->routeIs('leagues.*')],
-            ['label' => 'Search', 'icon' => 'search', 'href' => route('search'), 'active' => request()->routeIs('search')],
+            ['label' => __('landing.nav.home'), 'icon' => 'home', 'href' => route('home'), 'active' => request()->routeIs('home')],
+            ['label' => __('landing.nav.matches'), 'icon' => 'scores', 'href' => route('sports.football'), 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores', 'fixtures')],
+            ['label' => __('landing.nav.world_cup'), 'icon' => 'trophy', 'href' => route('world-cup.index'), 'active' => request()->routeIs('world-cup.*')],
+            ['label' => __('landing.nav.channels'), 'icon' => 'tv', 'href' => route('live-tv'), 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
+            ['label' => __('landing.nav.contact'), 'icon' => 'message', 'href' => route('contact'), 'active' => request()->routeIs('contact')],
         ];
-        $mobileQuickNav = [
-            ['label' => 'Home', 'href' => route('home'), 'icon' => 'home', 'active' => request()->routeIs('home')],
-            ['label' => 'Scores', 'href' => route('sports.football'), 'icon' => 'scores', 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores', 'fixtures')],
-            ['label' => 'Live', 'href' => route('live-tv'), 'icon' => 'tv', 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
-            ['label' => 'Leagues', 'href' => route('leagues.index'), 'icon' => 'trophy', 'active' => request()->routeIs('leagues.*')],
-            ['label' => 'News', 'href' => route('news.index'), 'icon' => 'news', 'active' => request()->routeIs('news.*')],
-        ];
+        $mobileQuickNav = $mainNav;
     @endphp
     <x-seo
         :title="$seoTitle"
@@ -95,26 +89,30 @@
                 </nav>
 
                 <div class="rm-navbar__actions">
-                    <span class="wc-nav-live"><i></i> Live <b>مباشر</b></span>
-                    <a href="{{ route('search') }}" class="rm-icon-btn" aria-label="Search">
+                    <span class="wc-nav-live"><i></i> {{ __('landing.hero.live') }}</span>
+                    <a href="{{ route('search') }}" class="rm-icon-btn" aria-label="{{ __('landing.nav.search') }}">
                         <x-icon name="search" />
                     </a>
+                    <div class="rtv-language-switcher" aria-label="{{ __('landing.nav.language') }}">
+                        <a href="{{ route('language.switch', 'en') }}" class="{{ app()->isLocale('en') ? 'is-active' : '' }}" lang="en">EN</a>
+                        <a href="{{ route('language.switch', 'ar') }}" class="{{ app()->isLocale('ar') ? 'is-active' : '' }}" lang="ar">AR</a>
+                    </div>
                     <button type="button" class="rm-icon-btn rm-theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
                         <span class="rm-theme-icon rm-theme-icon--moon" aria-hidden="true"><x-icon name="moon" /></span>
                         <span class="rm-theme-icon rm-theme-icon--sun" aria-hidden="true"><x-icon name="sun" /></span>
                     </button>
                     @auth
                         @if(auth()->user()?->isAdmin())
-                            <a href="{{ route('admin.dashboard') }}" class="rm-profile-btn rm-cta-btn">Admin</a>
+                            <a href="{{ route('admin.dashboard') }}" class="rm-profile-btn rm-cta-btn">{{ __('landing.nav.admin') }}</a>
                         @endif
                     @else
-                        <a href="{{ route('admin.login') }}" class="rm-profile-btn rm-cta-btn"><x-icon name="login" />Login</a>
+                        <a href="{{ route('admin.login') }}" class="rm-profile-btn rm-cta-btn"><x-icon name="login" />{{ __('landing.nav.login') }}</a>
                     @endauth
-                    <a href="{{ route('live-tv') }}" class="wc-nav-watch"><x-icon name="play" /> Watch Live</a>
+                    <a href="{{ route('sports.football') }}" class="wc-nav-watch"><x-icon name="play" /> {{ __('landing.nav.explore') }}</a>
                     <button
                         type="button"
                         class="rm-mobile-nav"
-                        aria-label="Open navigation"
+                        aria-label="{{ __('landing.nav.open_menu') }}"
                         :aria-expanded="mobileNavOpen.toString()"
                         @click="mobileNavOpen = ! mobileNavOpen"
                     >
@@ -127,19 +125,23 @@
 
             <nav class="rm-navbar__drawer" x-show="mobileNavOpen" x-transition.opacity.origin.top @click.outside="mobileNavOpen = false" aria-label="Mobile menu">
                 <div class="wc-nav-drawer__header">
-                    <span class="wc-nav-live"><i></i> Live / مباشر</span>
-                    <strong>World Cup 2026</strong>
+                    <span class="wc-nav-live"><i></i> {{ __('landing.hero.live') }}</span>
+                    <strong>{{ __('landing.world_cup.trophy_label') }}</strong>
                 </div>
                 @foreach($mainNav as $item)
                         <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}"><x-icon :name="$item['icon']" />{{ $item['label'] }}</a>
                 @endforeach
-                <a href="{{ route('live-tv') }}" class="wc-nav-drawer__watch"><x-icon name="play" /> Watch Live / شاهد الآن</a>
+                <div class="rtv-language-switcher rtv-language-switcher--drawer" aria-label="{{ __('landing.nav.language') }}">
+                    <a href="{{ route('language.switch', 'en') }}" class="{{ app()->isLocale('en') ? 'is-active' : '' }}" lang="en">English</a>
+                    <a href="{{ route('language.switch', 'ar') }}" class="{{ app()->isLocale('ar') ? 'is-active' : '' }}" lang="ar">{{ __('landing.nav.arabic') }}</a>
+                </div>
+                <a href="{{ route('sports.football') }}" class="wc-nav-drawer__watch"><x-icon name="play" /> {{ __('landing.nav.explore') }}</a>
                 @auth
                     @if(auth()->user()?->isAdmin())
-                        <a href="{{ route('admin.dashboard') }}">Admin</a>
+                        <a href="{{ route('admin.dashboard') }}">{{ __('landing.nav.admin') }}</a>
                     @endif
                 @else
-                    <a href="{{ route('admin.login') }}"><x-icon name="login" />Login</a>
+                    <a href="{{ route('admin.login') }}"><x-icon name="login" />{{ __('landing.nav.login') }}</a>
                 @endauth
             </nav>
         </header>
@@ -167,40 +169,37 @@
             <div class="rm-footer__inner">
                 <div class="rm-footer__brand">
                     <x-logo />
-                    <p>RifiMedia brings football scores, live TV channels, sports updates, and entertainment into one clean platform.</p>
+                    <p>{{ __('landing.footer.description') }}</p>
                 </div>
                 <nav aria-label="Footer navigation" class="rm-footer__groups">
                     <span>
-                        <strong>Football</strong>
-                        <a href="{{ route('sports.football') }}">Football Scores</a>
-                        <a href="{{ route('sports.football') }}">Fixtures</a>
-                        <a href="{{ route('leagues.index') }}">Leagues</a>
-                        <a href="{{ route('news.index') }}">News</a>
+                        <strong>{{ __('landing.footer.football') }}</strong>
+                        <a href="{{ route('sports.football') }}">{{ __('landing.footer.scores') }}</a>
+                        <a href="{{ route('sports.football') }}">{{ __('landing.footer.fixtures') }}</a>
+                        <a href="{{ route('world-cup.index') }}">{{ __('landing.footer.world_cup') }}</a>
+                        <a href="{{ route('live-tv') }}">{{ __('landing.footer.channels') }}</a>
                     </span>
                     <span>
-                        <strong>Legal</strong>
-                        <a href="{{ route('privacy') }}">Privacy</a>
-                        <a href="{{ route('terms') }}">Terms</a>
-                        <a href="{{ route('copyright') }}">Copyright</a>
-                        <a href="{{ route('copyright') }}">DMCA</a>
+                        <strong>{{ __('landing.footer.company') }}</strong>
+                        <a href="{{ route('about') }}">{{ __('landing.footer.about') }}</a>
+                        <a href="{{ route('contact') }}">{{ __('landing.footer.contact') }}</a>
+                        <a href="{{ route('news.index') }}">{{ __('landing.footer.news') }}</a>
                     </span>
                     <span>
-                        <strong>Support</strong>
-                        <a href="{{ route('contact') }}">Contact</a>
-                        <a href="{{ route('advertise') }}">Advertise</a>
-                        <a href="{{ route('contact') }}">Help Center</a>
-                        <a href="{{ route('editorial-policy') }}">Editorial Policy</a>
+                        <strong>{{ __('landing.footer.legal') }}</strong>
+                        <a href="{{ route('privacy') }}">{{ __('landing.footer.privacy') }}</a>
+                        <a href="{{ route('terms') }}">{{ __('landing.footer.terms') }}</a>
+                        <a href="{{ route('copyright') }}">{{ __('landing.footer.copyright') }}</a>
                     </span>
                 </nav>
                 <div class="rm-footer__bottom">
-                    <p>&copy; {{ date('Y') }} RifiMedia. All rights reserved.</p>
-                    <span class="rm-social-links" aria-label="Social links">
-                        <a href="{{ route('news.index') }}">Newsroom</a>
-                        <a href="{{ route('live-tv') }}">Live TV</a>
-                        <a href="{{ route('contact') }}">Contact</a>
+                    <p>&copy; {{ date('Y') }} RiFiTV. {{ __('landing.footer.rights') }}</p>
+                    <span class="rm-social-links" aria-label="{{ __('landing.nav.language') }}">
+                        <a href="{{ route('language.switch', 'en') }}" lang="en">English</a>
+                        <a href="{{ route('language.switch', 'ar') }}" lang="ar">العربية</a>
                     </span>
                 </div>
-                <p class="rm-footer__legal">RifiMedia is a media discovery platform. Channel availability, scores, fixtures, and match information may change. Users are responsible for ensuring they have rights to submitted playlist or stream sources.</p>
+                <p class="rm-footer__legal">{{ __('landing.footer.notice') }}</p>
             </div>
         </footer>
     </div>

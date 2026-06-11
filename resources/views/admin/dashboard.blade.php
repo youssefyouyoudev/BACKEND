@@ -49,6 +49,47 @@
             <span class="stat-card__label">Unknown streams</span>
             <strong>{{ number_format($stats['unknown_streams']) }}</strong>
         </article>
+        <article class="stat-card">
+            <span class="stat-card__label">World Cup matches</span>
+            <strong>{{ number_format($stats['world_cup_matches']) }}</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">Matches with channel</span>
+            <strong>{{ number_format($stats['world_cup_with_channel']) }}</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">Missing channel</span>
+            <strong>{{ number_format($stats['world_cup_missing_channel']) }}</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">Missing commentator</span>
+            <strong>{{ number_format($stats['world_cup_missing_commentator']) }}</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">Live links enabled</span>
+            <strong>{{ number_format($stats['world_cup_live_enabled']) }}</strong>
+        </article>
+    </section>
+
+    <section class="surface-card">
+        <div class="surface-card__header">
+            <div>
+                <p class="surface-card__eyebrow">World Cup 2026</p>
+                <h2>Next group-stage matches</h2>
+            </div>
+            <a class="button button--primary" href="{{ route('admin.world-cup-matches.index') }}">Manage matches</a>
+        </div>
+        <div class="wc-dashboard-list">
+            @forelse($nextWorldCupMatches as $match)
+                <a href="{{ route('admin.world-cup-matches.edit', $match) }}">
+                    <span>{{ $match->group_name }}</span>
+                    <strong>{{ $match->home_team }} vs {{ $match->away_team }}</strong>
+                    <small>{{ $match->morocco_kickoff_at?->format('M d, H:i') }} Morocco · {{ $match->public_channel_name }}</small>
+                </a>
+            @empty
+                <p>No upcoming matches are currently stored.</p>
+            @endforelse
+        </div>
     </section>
 
     <section class="admin-grid">

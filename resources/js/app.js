@@ -9,6 +9,8 @@ import { initPlaylistForms } from './iptv/playlist-form';
 import { initAdminIptvItems } from './iptv/admin-items';
 import { groupChannelVariants } from './iptv/live-tv';
 import { initCountdowns } from './countdown';
+import { initWorldCupAdmin } from './world-cup-admin';
+import { initWatchUnlocks } from './watch-unlock';
 
 window.Alpine = Alpine;
 window.Hls = Hls;
@@ -41,6 +43,43 @@ const setTheme = (theme, persist = true) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     initCountdowns();
+
+    document.querySelectorAll('[data-channel-picker]').forEach((picker) => {
+        const search = picker.querySelector('[data-channel-search]');
+        const select = picker.querySelector('[data-channel-select]');
+        const preview = picker.querySelector('[data-channel-preview]');
+        if (! search || ! select) return;
+
+        const options = [...select.options];
+        const renderPreview = () => {
+            if (! preview) return;
+            const option = select.selectedOptions[0];
+            if (! option?.value) {
+                preview.replaceChildren();
+                return;
+            }
+
+            const image = document.createElement('img');
+            image.src = option.dataset.logo || '/brand/rifi-logo.png';
+            image.alt = '';
+            image.dataset.fallbackSrc = '/brand/rifi-logo.png';
+
+            const content = document.createElement('span');
+            const name = document.createElement('strong');
+            name.textContent = option.textContent.trim();
+            content.append(name);
+            preview.replaceChildren(image, content);
+        };
+
+        search.addEventListener('input', () => {
+            const query = search.value.trim().toLowerCase();
+            options.forEach((option) => {
+                option.hidden = Boolean(query) && ! (option.dataset.search || option.textContent.toLowerCase()).includes(query);
+            });
+        });
+        select.addEventListener('change', renderPreview);
+        renderPreview();
+    });
 
     document.querySelectorAll('[data-live-channel-count]').forEach((element) => {
         try {
@@ -90,6 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initPlaylistForms();
     initAdminIptvItems();
+    initWorldCupAdmin();
+    initWatchUnlocks();
     initFocusNavigation();
     initIptvPlayer();
     initIptvSearch();
