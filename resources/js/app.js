@@ -11,15 +11,17 @@ import { groupChannelVariants } from './iptv/live-tv';
 import { initCountdowns } from './countdown';
 import { initWorldCupAdmin } from './world-cup-admin';
 import { initWatchUnlocks } from './watch-unlock';
+import { t } from './i18n';
 
 window.Alpine = Alpine;
 window.Hls = Hls;
 window.mpegts = mpegts;
+window.rifiT = t;
 
 const applyThemeLabel = () => {
     const isLight = document.documentElement.classList.contains('theme-light');
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
-        const label = isLight ? 'Switch to dark mode' : 'Switch to light mode';
+        const label = isLight ? t('Switch to dark mode') : t('Switch to light mode');
         button.dataset.themeState = isLight ? 'light' : 'dark';
         button.setAttribute('aria-label', label);
         button.setAttribute('title', label);

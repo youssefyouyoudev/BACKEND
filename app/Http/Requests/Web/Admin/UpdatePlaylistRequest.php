@@ -85,15 +85,15 @@ class UpdatePlaylistRequest extends FormRequest
             $hasFile = $this->hasFile('playlist_file');
 
             if (in_array($inputType, ['m3u_url', 'remote_url', 'xtream'], true) && $hasFile) {
-                $validator->errors()->add('playlist_file', 'File uploads are only available in Upload M3U File mode.');
+                $validator->errors()->add('playlist_file', __('File uploads are only available in Upload M3U File mode.'));
             }
 
             if (in_array($inputType, ['upload', 'upload_file'], true) && $hasUrl) {
-                $validator->errors()->add('m3u_url', 'Remote URLs are only available in Remote M3U URL or Active Code mode.');
+                $validator->errors()->add('m3u_url', __('Remote URLs are only available in Remote M3U URL or Active Code mode.'));
             }
 
             if ($inputType === 'active_code' && $hasFile) {
-                $validator->errors()->add('playlist_file', 'File uploads are not available in Active Code mode.');
+                $validator->errors()->add('playlist_file', __('File uploads are not available in Active Code mode.'));
             }
         });
     }

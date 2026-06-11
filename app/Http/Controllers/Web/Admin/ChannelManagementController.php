@@ -36,7 +36,7 @@ class ChannelManagementController extends Controller
         $data['group_title'] = Category::query()->find($data['category_id'] ?? null)?->name;
         $data['normalized_name'] = Channel::normalizeName($data['name']);
         $data['stream_hash'] = sha1(strtolower($data['stream_url']));
-        $data['channel_identity_hash'] = sha1($data['playlist_id'].'|'.$data['normalized_name']);
+        $data[__('channel_identity_hash')] = sha1($data['playlist_id'].'|'.$data['normalized_name']);
 
         DB::transaction(function () use ($data): void {
             $channel = Channel::query()->create($data);
@@ -52,7 +52,7 @@ class ChannelManagementController extends Controller
 
         $this->clearChannelCaches();
 
-        return back()->with('status', 'Channel created.');
+        return back()->with('status', __('Channel created.'));
     }
 
     public function edit(Channel $channel): View
@@ -70,7 +70,7 @@ class ChannelManagementController extends Controller
         $data['group_title'] = Category::query()->find($data['category_id'] ?? null)?->name;
         $data['normalized_name'] = Channel::normalizeName($data['name']);
         $data['stream_hash'] = sha1(strtolower($data['stream_url']));
-        $data['channel_identity_hash'] = sha1($data['playlist_id'].'|'.$data['normalized_name']);
+        $data[__('channel_identity_hash')] = sha1($data['playlist_id'].'|'.$data['normalized_name']);
         $data['slug'] = $data['slug'] ?: Str::slug($data['name']).'-'.$channel->id;
 
         DB::transaction(function () use ($channel, $data): void {
@@ -89,7 +89,7 @@ class ChannelManagementController extends Controller
 
         $this->clearChannelCaches();
 
-        return redirect()->route('admin.channels.index')->with('status', 'Channel updated.');
+        return redirect()->route('admin.channels.index')->with('status', __('Channel updated.'));
     }
 
     public function destroy(Channel $channel): RedirectResponse
@@ -97,7 +97,7 @@ class ChannelManagementController extends Controller
         $channel->delete();
         $this->clearChannelCaches();
 
-        return back()->with('status', 'Channel deleted.');
+        return back()->with('status', __('Channel deleted.'));
     }
 
     private function clearChannelCaches(): void

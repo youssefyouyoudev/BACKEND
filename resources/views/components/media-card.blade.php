@@ -10,7 +10,7 @@
         <p>{{ $description }}</p>
     @endif
     @if($href && ! $disabled)
-        <a href="{{ $href }}">Open</a>
+        <a href="{{ $href }}">{{ __("Open") }}</a>
     @elseif($label)
         <em>{{ $label }}</em>
     @endif

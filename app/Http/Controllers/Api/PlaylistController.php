@@ -20,8 +20,7 @@ class PlaylistController extends Controller
         private readonly PlaylistImportService $playlistImportService,
         private readonly ActivityLogService $activityLogService,
         private readonly AppSettingsService $settingsService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -39,7 +38,7 @@ class PlaylistController extends Controller
         $this->authorize('create', Playlist::class);
 
         if (! $this->settingsService->all()['allow_url_imports']) {
-            abort(JsonResponse::HTTP_FORBIDDEN, 'Playlist URL imports are currently disabled by the administrator.');
+            abort(JsonResponse::HTTP_FORBIDDEN, __('Playlist URL imports are currently disabled by the administrator.'));
         }
 
         $playlist = $this->playlistImportService->importFromUrl($request->user(), $request->validated());

@@ -16,8 +16,7 @@ class ChannelController extends Controller
     public function __construct(
         private readonly ActivityLogService $activityLogService,
         private readonly AppSettingsService $settingsService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -43,7 +42,7 @@ class ChannelController extends Controller
     public function featured(Request $request): JsonResponse
     {
         $user = $request->user();
-        $groups = $this->settingsService->all()['homepage_featured_groups'] ?? [];
+        $groups = $this->settingsService->all()[__('homepage_featured_groups')] ?? [];
 
         $channels = Channel::query()
             ->visibleTo($user)
@@ -147,9 +146,9 @@ class ChannelController extends Controller
         );
 
         return response()->json([
-            'id'      => $channel->id,
-            'name'    => $channel->name,
-            'logo'    => $channel->logo,
+            'id' => $channel->id,
+            'name' => $channel->name,
+            'logo' => $channel->logo,
             'sources' => $streamService->sourcesFor($channel),
         ]);
     }

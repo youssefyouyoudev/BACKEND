@@ -92,7 +92,7 @@ class WorldCupMatchController extends Controller
     {
         $match = WorldCupMatch::query()->create($request->validated());
 
-        return redirect()->route('admin.world-cup-matches.edit', $match)->with('status', 'World Cup match created.');
+        return redirect()->route('admin.world-cup-matches.edit', $match)->with('status', __('World Cup match created.'));
     }
 
     public function edit(WorldCupMatch $worldCupMatch): View
@@ -109,14 +109,14 @@ class WorldCupMatchController extends Controller
     {
         $worldCupMatch->update($request->validated());
 
-        return back()->with('status', 'World Cup match updated.');
+        return back()->with('status', __('World Cup match updated.'));
     }
 
     public function destroy(WorldCupMatch $worldCupMatch): RedirectResponse
     {
         $worldCupMatch->delete();
 
-        return redirect()->route('admin.world-cup-matches.index')->with('status', 'World Cup match deleted.');
+        return redirect()->route('admin.world-cup-matches.index')->with('status', __('World Cup match deleted.'));
     }
 
     public function quickUpdate(Request $request, WorldCupMatch $worldCupMatch): RedirectResponse
@@ -136,7 +136,7 @@ class WorldCupMatchController extends Controller
             ]),
         };
 
-        return back()->with('status', 'Match updated.');
+        return back()->with('status', __('Match updated.'));
     }
 
     public function iptvItems(Request $request): JsonResponse

@@ -13,8 +13,7 @@ class UserManagementController extends Controller
 {
     public function __construct(
         private readonly ActivityLogService $activityLogService,
-    ) {
-    }
+    ) {}
 
     public function index(Request $request)
     {
@@ -37,7 +36,7 @@ class UserManagementController extends Controller
     public function toggle(User $user): JsonResponse
     {
         if ($user->is(request()->user())) {
-            abort(JsonResponse::HTTP_UNPROCESSABLE_ENTITY, 'You cannot deactivate your own account.');
+            abort(JsonResponse::HTTP_UNPROCESSABLE_ENTITY, __('You cannot deactivate your own account.'));
         }
 
         $user->update([

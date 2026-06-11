@@ -52,7 +52,7 @@ class PlaylistImporter
 
             if ($items === []) {
                 throw ValidationException::withMessages([
-                    'playlist' => ['The playlist did not contain any importable IPTV items.'],
+                    'playlist' => [__('The playlist did not contain any importable IPTV items.')],
                 ]);
             }
 
@@ -79,7 +79,7 @@ class PlaylistImporter
 
         if ($items === []) {
             throw ValidationException::withMessages([
-                'playlist' => ['No stream entries matched the approved legal domain allowlist.'],
+                'playlist' => [__('No stream entries matched the approved legal domain allowlist.')],
             ]);
         }
 
@@ -171,7 +171,7 @@ class PlaylistImporter
 
         if (! $url) {
             throw ValidationException::withMessages([
-                'playlist' => ['This playlist needs an M3U URL or uploaded file before import.'],
+                'playlist' => [__('This playlist needs an M3U URL or uploaded file before import.')],
             ]);
         }
 
@@ -186,7 +186,7 @@ class PlaylistImporter
 
         if (! $response->successful()) {
             throw ValidationException::withMessages([
-                'playlist' => ['The playlist URL could not be fetched.'],
+                'playlist' => [__('The playlist URL could not be fetched.')],
             ]);
         }
 

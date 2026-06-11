@@ -1,6 +1,6 @@
 @props([
-    'title' => 'RifiMedia - Live TV, Football Scores & Sports Streaming',
-    'description' => 'Follow football news, live scores, fixtures, standings, match previews, live TV channels, and sports updates on RifiMedia.',
+    'title' => __('RifiMedia - Live TV, Football Scores & Sports Streaming'),
+    'description' => __('Follow football news, live scores, fixtures, standings, match previews, live TV channels, and sports updates on RifiMedia.'),
     'canonical' => url()->current(),
     'image' => asset('brand/rifi-logo.png'),
     'type' => 'website',

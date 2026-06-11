@@ -1,14 +1,14 @@
 @extends('layouts.app')
 
-@section('title', 'Football Fixtures, Match Calendar & Kickoff Times | RifiMedia')
-@section('description', 'Browse football fixtures, upcoming matches, league schedules, kickoff times, and match center links on RifiMedia.')
+@section('title', __("Football Fixtures, Match Calendar & Kickoff Times | RifiMedia"))
+@section('description', __("Browse football fixtures, upcoming matches, league schedules, kickoff times, and match center links on RifiMedia."))
 
 @section('content')
 <div class="rm-page rm-page--fixtures">
     <section class="rm-page-hero">
-        <span class="rm-kicker">Fixtures</span>
-        <h1>Football Fixtures & Match Calendar</h1>
-        <p>Calendar-ready layouts for upcoming matches, league filters, kickoff times, and match center previews.</p>
+        <span class="rm-kicker">{{ __("Fixtures") }}</span>
+        <h1>{{ __("Football Fixtures & Match Calendar") }}</h1>
+        <p>{{ __("Calendar-ready layouts for upcoming matches, league filters, kickoff times, and match center previews.") }}</p>
     </section>
 
     <x-ad-slot name="fixtures_leaderboard" size="leaderboard" />
@@ -23,8 +23,8 @@
 
             @if($fixtures->isEmpty())
                 <div class="rm-empty-state">
-                    <span>No fixtures loaded</span>
-                    <strong>Upcoming matches will appear here when a verified fixture feed is connected.</strong>
+                    <span>{{ __("No fixtures loaded") }}</span>
+                    <strong>{{ __("Upcoming matches will appear here when a verified fixture feed is connected.") }}</strong>
                 </div>
             @endif
         </div>
@@ -32,7 +32,7 @@
         <aside class="rm-side-rail">
             <x-ad-slot name="fixtures_sidebar_rectangle" size="rectangle" />
             <div class="rm-topic-card">
-                <h2>Competitions</h2>
+                <h2>{{ __("Competitions") }}</h2>
                 <div class="rm-topic-cloud">
                     @foreach($leagues as $league)
                         <a href="{{ route('leagues.show', $league['slug']) }}">{{ $league['name'] }}</a>

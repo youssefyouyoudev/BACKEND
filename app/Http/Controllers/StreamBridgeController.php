@@ -101,7 +101,7 @@ class StreamBridgeController extends Controller
                 ])
                 ->get($url);
         } catch (ConnectionException) {
-            abort(Response::HTTP_BAD_GATEWAY, 'Stream source could not be reached.');
+            abort(Response::HTTP_BAD_GATEWAY, __('Stream source could not be reached.'));
         }
 
         if (! $response->successful()) {
@@ -128,7 +128,7 @@ class StreamBridgeController extends Controller
                 ])
                 ->get($url);
         } catch (ConnectionException) {
-            abort(Response::HTTP_BAD_GATEWAY, 'Stream source could not be reached.');
+            abort(Response::HTTP_BAD_GATEWAY, __('Stream source could not be reached.'));
         }
 
         if (! $response->successful()) {
@@ -215,7 +215,7 @@ class StreamBridgeController extends Controller
     private function abortUnlessAllowedStreamUrl(?string $url): void
     {
         if (! $url || ! filter_var($url, FILTER_VALIDATE_URL)) {
-            abort(Response::HTTP_BAD_REQUEST, 'Invalid stream URL.');
+            abort(Response::HTTP_BAD_REQUEST, __('Invalid stream URL.'));
         }
 
         $parts = parse_url($url);
@@ -223,21 +223,21 @@ class StreamBridgeController extends Controller
         $host = strtolower($parts['host'] ?? '');
 
         if (! in_array($scheme, ['http', 'https'], true) || $host === '') {
-            abort(Response::HTTP_BAD_REQUEST, 'Unsupported stream URL scheme.');
+            abort(Response::HTTP_BAD_REQUEST, __('Unsupported stream URL scheme.'));
         }
 
         if (isset($parts['user']) || isset($parts['pass'])) {
-            abort(Response::HTTP_FORBIDDEN, 'Stream source not allowed.');
+            abort(Response::HTTP_FORBIDDEN, __('Stream source not allowed.'));
         }
 
         if ($host === 'localhost' || str_ends_with($host, '.local') || str_ends_with($host, '.internal')) {
-            abort(Response::HTTP_FORBIDDEN, 'Stream source not allowed.');
+            abort(Response::HTTP_FORBIDDEN, __('Stream source not allowed.'));
         }
 
         $ip = filter_var($host, FILTER_VALIDATE_IP) ? $host : null;
 
         if ($ip !== null && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
-            abort(Response::HTTP_FORBIDDEN, 'Stream source not allowed.');
+            abort(Response::HTTP_FORBIDDEN, __('Stream source not allowed.'));
         }
     }
 
@@ -246,7 +246,7 @@ class StreamBridgeController extends Controller
         try {
             $this->streamingPolicy->assertStreamUrlAllowed($url);
         } catch (ValidationException) {
-            abort(Response::HTTP_FORBIDDEN, 'Stream source is not approved.');
+            abort(Response::HTTP_FORBIDDEN, __('Stream source is not approved.'));
         }
     }
 

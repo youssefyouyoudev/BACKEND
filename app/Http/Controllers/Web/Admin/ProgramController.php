@@ -24,7 +24,7 @@ class ProgramController extends Controller
     {
         Program::query()->create($request->validated());
 
-        return back()->with('status', 'Program created.');
+        return back()->with('status', __('Program created.'));
     }
 
     public function edit(Program $program): View
@@ -39,13 +39,13 @@ class ProgramController extends Controller
     {
         $program->update($request->validated());
 
-        return redirect()->route('admin.programs.index')->with('status', 'Program updated.');
+        return redirect()->route('admin.programs.index')->with('status', __('Program updated.'));
     }
 
     public function destroy(Program $program): RedirectResponse
     {
         $program->delete();
 
-        return back()->with('status', 'Program deleted.');
+        return back()->with('status', __('Program deleted.'));
     }
 }

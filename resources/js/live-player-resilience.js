@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 const RETRY_DELAYS = [750, 1500, 3000, 6000, 10000, 15000];
 const STALL_TIMEOUT = 20000;
 let activePlayer = null;
@@ -9,7 +11,7 @@ const debug = (message, context = {}) => {
 
 export function initResilientPlayer(video, streamUrl, options = {}) {
     if (!(video instanceof HTMLVideoElement) || !streamUrl) {
-        throw new Error('A video element and protected stream URL are required.');
+        throw new Error(t('A video element and protected stream URL are required.'));
     }
 
     destroyResilientPlayer();
@@ -111,13 +113,13 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
 
                 if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsNetworkRecoveries < 2) {
                     hlsNetworkRecoveries += 1;
-                    notify('onReconnecting', 'Reconnecting to the live stream...');
+                    notify('onReconnecting', t('Reconnecting to the live stream...'));
                     hls.startLoad();
                     return;
                 }
                 if (data.type === Hls.ErrorTypes.MEDIA_ERROR && hlsMediaRecoveries < 2) {
                     hlsMediaRecoveries += 1;
-                    notify('onReconnecting', 'Repairing video playback...');
+                    notify('onReconnecting', t('Repairing video playback...'));
                     hls.recoverMediaError();
                     return;
                 }
@@ -169,17 +171,20 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
     const scheduleReconnect = (reason, immediate = false) => {
         if (destroyed || retryTimer) return;
         if (!navigator.onLine) {
-            notify('onReconnecting', 'No connection / لا يوجد اتصال');
+            notify('onReconnecting', t('No connection'));
             return;
         }
         if (retryCount >= RETRY_DELAYS.length) {
-            fatal('The stream could not be restored automatically. Try again or choose another channel.');
+            fatal(t('The stream could not be restored automatically. Try again or choose another channel.'));
             return;
         }
 
         const delay = immediate ? 0 : RETRY_DELAYS[retryCount];
         retryCount += 1;
-        notify('onReconnecting', `Reconnecting... attempt ${retryCount} of ${RETRY_DELAYS.length}`);
+        notify('onReconnecting', t('Reconnecting... attempt :attempt of :total', {
+            attempt: retryCount,
+            total: RETRY_DELAYS.length,
+        }));
         debug('Scheduling playback recovery.', { reason, attempt: retryCount, delay });
         clearTimeout(stableTimer);
         cleanupEngine();
@@ -196,7 +201,7 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         }
 
         nativeSoftRecoveries += 1;
-        notify('onReconnecting', 'Reconnecting...');
+        notify('onReconnecting', t('Reconnecting...'));
         debug('Trying native soft recovery.', { reason, attempt: nativeSoftRecoveries });
         video.load();
         play();
@@ -231,9 +236,9 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         notify('onCanPlay');
     });
     addListener(video, 'timeupdate', markProgress);
-    addListener(video, 'waiting', () => notify('onReconnecting', 'The live stream is buffering...'));
+    addListener(video, 'waiting', () => notify('onReconnecting', t('The live stream is buffering...')));
     addListener(video, 'stalled', () => {
-        notify('onReconnecting', 'Playback stalled. Recovering...');
+        notify('onReconnecting', t('Playback stalled. Recovering...'));
         recover('stalled event');
     });
     addListener(video, 'suspend', () => debug('Browser suspended media loading.'));
@@ -244,7 +249,7 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
     addListener(window, 'offline', () => {
         clearTimeout(retryTimer);
         retryTimer = null;
-        notify('onReconnecting', 'No connection / لا يوجد اتصال');
+        notify('onReconnecting', t('No connection'));
     });
     addListener(window, 'online', () => scheduleReconnect('connection restored', true));
     addListener(document, 'visibilitychange', () => {
@@ -268,7 +273,7 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
             retryCount = 0;
             scheduleReconnect(reason, true);
         },
-        showReconnectOverlay(message = 'Reconnecting...') {
+        showReconnectOverlay(message = t('Reconnecting...')) {
             notify('onReconnecting', message);
         },
         hideReconnectOverlay() {
@@ -303,7 +308,7 @@ export function reconnectPlayer(reason = 'manual retry') {
     activePlayer?.reconnect(reason);
 }
 
-export function showReconnectOverlay(message = 'Reconnecting...') {
+export function showReconnectOverlay(message = t('Reconnecting...')) {
     activePlayer?.showReconnectOverlay(message);
 }
 

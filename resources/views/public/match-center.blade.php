@@ -7,18 +7,18 @@
 @endphp
 
 @section('title', $pageName.' Match Center | RifiMedia')
-@section('description', $item['description'] ?? 'Match center coverage with previews, fixtures, stats, standings, and related sports updates.')
+@section('description', $item['description'] ?? __('Match center coverage with previews, fixtures, stats, standings, and related sports updates.'))
 
 @section('content')
 <div class="rm-page rm-page--match-center">
     <section class="rm-match-center-hero">
         <span class="rm-kicker">{{ ucfirst($mode) }} center</span>
         <h1>{{ $pageName }}</h1>
-        <p>{{ $item['description'] ?? 'Browse coverage, related channels, and match-day information in one premium sports hub.' }}</p>
+        <p>{{ $item['description'] ?? __('Browse coverage, related channels, and match-day information in one premium sports hub.') }}</p>
         <div class="rm-match-center-score">
-            <div><span>Home</span><strong>-</strong></div>
-            <div><span>Status</span><strong>Preview</strong></div>
-            <div><span>Away</span><strong>-</strong></div>
+            <div><span>{{ __("Home") }}</span><strong>-</strong></div>
+            <div><span>{{ __("Status") }}</span><strong>{{ __("Preview") }}</strong></div>
+            <div><span>{{ __("Away") }}</span><strong>-</strong></div>
         </div>
     </section>
 
@@ -26,23 +26,23 @@
 
     <section class="rm-section rm-match-tv" aria-labelledby="rm-match-tv-title">
         <div class="rm-section__header">
-            <span class="rm-kicker">Broadcasts</span>
-            <h2 id="rm-match-tv-title">Where to watch</h2>
+            <span class="rm-kicker">{{ __("Broadcasts") }}</span>
+            <h2 id="rm-match-tv-title">{{ __("Where to watch") }}</h2>
         </div>
 
         @if($tvChannels->isEmpty())
             <x-empty-state
                 class="rm-match-tv__empty"
-                title="Broadcast listings are being verified"
-                message="Open the live channel guide or check scores while broadcast data is refreshed."
-                action="Browse channels"
+                title="{{ __("Broadcast listings are being verified") }}"
+                message="{{ __("Open the live channel guide or check scores while broadcast data is refreshed.") }}"
+                action="{{ __("Browse channels") }}"
                 :href="route('live-tv')"
-                secondary-action="View live scores"
+                secondary-action="{{ __("View live scores") }}"
                 :secondary-href="route('sports.football')"
             />
         @else
             @if($availableTvChannels->isEmpty())
-                <p class="rm-match-tv__empty">Channels found, but not available in our playlist yet.</p>
+                <p class="rm-match-tv__empty">{{ __("Channels found, but not available in our playlist yet.") }}</p>
             @endif
 
             <div class="rm-match-tv__grid">
@@ -62,7 +62,7 @@
                                     <small>{{ $channel['country'] }}</small>
                                 @endif
                             </span>
-                            <span class="rm-match-tv-card__badge">Watch</span>
+                            <span class="rm-match-tv-card__badge">{{ __("Watch") }}</span>
                         </a>
                     @else
                         <div class="rm-match-tv-card rm-match-tv-card--unavailable" aria-disabled="true">
@@ -74,7 +74,7 @@
                                 @if($channel['country'])
                                     <small>{{ $channel['country'] }}</small>
                                 @endif
-                                <em>Not available in playlist</em>
+                                <em>{{ __("Not available in playlist") }}</em>
                             </span>
                         </div>
                     @endif
@@ -90,8 +90,8 @@
                     <h2>{{ $tab }}</h2>
                     <p>Verified {{ strtolower($tab) }} information will appear here when reliable match data is connected.</p>
                     <div class="rm-hero-actions">
-                        <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-secondary rm-btn-sm">View live scores</a>
-                        <a href="{{ route('live-tv') }}" class="rm-btn rm-btn-secondary rm-btn-sm">Browse channels</a>
+                        <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-secondary rm-btn-sm">{{ __("View live scores") }}</a>
+                        <a href="{{ route('live-tv') }}" class="rm-btn rm-btn-secondary rm-btn-sm">{{ __("Browse channels") }}</a>
                     </div>
                 </section>
             @endforeach
@@ -100,7 +100,7 @@
             <x-ad-slot name="match_center_sidebar" size="rectangle" />
             @if($relatedChannels->count())
                 <div class="rm-topic-card">
-                    <h2>Related media channels</h2>
+                    <h2>{{ __("Related media channels") }}</h2>
                     @foreach($relatedChannels as $channel)
                         <a href="{{ route('channels.show', $channel) }}">{{ $channel->clean_display_name }}</a>
                     @endforeach

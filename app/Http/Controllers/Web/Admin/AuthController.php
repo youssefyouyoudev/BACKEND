@@ -28,7 +28,7 @@ class AuthController extends Controller
             return back()
                 ->withInput($request->safe()->except('password'))
                 ->withErrors([
-                    'email' => 'The provided admin credentials are invalid.',
+                    'email' => __('The provided admin credentials are invalid.'),
                 ]);
         }
 
@@ -40,13 +40,13 @@ class AuthController extends Controller
             return back()
                 ->withInput($request->safe()->except('password'))
                 ->withErrors([
-                    'email' => 'This account does not have admin access.',
+                    'email' => __('This account does not have admin access.'),
                 ]);
         }
 
         return redirect()
             ->route('admin.dashboard')
-            ->with('status', 'Welcome back to the RiFi Media TV control center.');
+            ->with('status', __('Welcome back to the RiFi Media TV control center.'));
     }
 
     public function destroy(): RedirectResponse
@@ -57,6 +57,6 @@ class AuthController extends Controller
 
         return redirect()
             ->route('admin.login')
-            ->with('status', 'You have been signed out.');
+            ->with('status', __('You have been signed out.'));
     }
 }

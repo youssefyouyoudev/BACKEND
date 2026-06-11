@@ -16,14 +16,13 @@ class DashboardController extends Controller
 {
     public function __construct(
         private readonly AppSettingsService $settingsService,
-    ) {
-    }
+    ) {}
 
     public function __invoke(Request $request): JsonResponse
     {
         $user = $request->user();
         $settings = $this->settingsService->all();
-        $featuredGroups = $settings['homepage_featured_groups'] ?? [];
+        $featuredGroups = $settings[__('homepage_featured_groups')] ?? [];
 
         $featuredChannels = Channel::query()
             ->visibleTo($user)

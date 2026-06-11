@@ -1,3 +1,5 @@
+import { choice, t } from '../i18n';
+
 const formatNumber = (value) => Number(value || 0).toLocaleString();
 
 export function initAdminIptvItems() {
@@ -46,7 +48,7 @@ export function initAdminIptvItems() {
         const controller = new AbortController();
         listController = controller;
         root.classList.add('is-loading');
-        status.textContent = 'Loading...';
+        status.textContent = t('Loading...');
 
         try {
             const response = await fetch(url, {
@@ -59,7 +61,7 @@ export function initAdminIptvItems() {
             rows.innerHTML = payload.rows;
             pagination.innerHTML = payload.pagination;
             updateSummary(payload.summary);
-            status.textContent = `${formatNumber(payload.summary.filtered)} items`;
+            status.textContent = choice(':count item', ':count items', formatNumber(payload.summary.filtered));
 
             if (updateHistory) {
                 const browserUrl = new URL(url, window.location.origin);
@@ -67,8 +69,8 @@ export function initAdminIptvItems() {
             }
         } catch (error) {
             if (error.name === 'AbortError') return;
-            status.textContent = 'Could not load';
-            showFeedback('The IPTV item list could not be refreshed. Please try again.', true);
+            status.textContent = t('Could not load');
+            showFeedback(t('The IPTV item list could not be refreshed. Please try again.'), true);
         } finally {
             if (listController === controller) {
                 root.classList.remove('is-loading');
@@ -82,7 +84,7 @@ export function initAdminIptvItems() {
         button.dataset.isPublic = isPublic ? '1' : '0';
         button.setAttribute('aria-pressed', isPublic ? 'true' : 'false');
         button.classList.toggle('is-public', isPublic);
-        button.querySelector('[data-toggle-label]').textContent = isPublic ? 'Public' : 'Hidden';
+        button.querySelector('[data-toggle-label]').textContent = isPublic ? t('Public') : t('Hidden');
         row?.classList.toggle('is-hidden-publicly', !isPublic);
     };
 
@@ -124,12 +126,12 @@ export function initAdminIptvItems() {
     bulkButtons.forEach((button) => {
         button.addEventListener('click', async () => {
             const isPublic = button.dataset.bulkVisibility === '1';
-            const action = isPublic ? 'make every IPTV item public' : 'hide every IPTV item from the public website';
+            const action = isPublic ? t('make every IPTV item public') : t('hide every IPTV item from the public website');
 
-            if (!window.confirm(`Are you sure you want to ${action}?`)) return;
+            if (!window.confirm(t('Are you sure you want to :action?', { action }))) return;
 
             setBulkLoading(true);
-            status.textContent = isPublic ? 'Publishing all...' : 'Hiding all...';
+            status.textContent = isPublic ? t('Publishing all...') : t('Hiding all...');
 
             try {
                 const response = await fetch(root.dataset.bulkVisibilityEndpoint, {
@@ -147,8 +149,8 @@ export function initAdminIptvItems() {
                 showFeedback(payload.message);
                 await loadItems(currentUrl(), false);
             } catch {
-                status.textContent = 'Bulk update failed';
-                showFeedback('The catalog could not be updated. No display changes were applied.', true);
+                status.textContent = t('Bulk update failed');
+                showFeedback(t('The catalog could not be updated. No display changes were applied.'), true);
             } finally {
                 setBulkLoading(false);
             }
@@ -183,7 +185,7 @@ export function initAdminIptvItems() {
             await loadItems(currentUrl(), false);
         } catch {
             applyToggleState(button, previous);
-            showFeedback('Visibility could not be updated. The previous setting was restored.', true);
+            showFeedback(t('Visibility could not be updated. The previous setting was restored.'), true);
         } finally {
             button.disabled = false;
             button.classList.remove('is-saving');

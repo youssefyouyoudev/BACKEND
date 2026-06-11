@@ -1,5 +1,5 @@
 @props([
-    'title' => 'Nothing here yet',
+    'title' => __('Nothing here yet'),
     'message' => 'Content will appear here when it is available.',
     'action' => null,
     'href' => null,

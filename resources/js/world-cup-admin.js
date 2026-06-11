@@ -1,3 +1,5 @@
+import { choice, t } from './i18n';
+
 const jsonHeaders = (csrf) => ({
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -26,7 +28,7 @@ const resultButton = (item, selectedIds = []) => {
 
     const check = document.createElement('b');
     check.className = 'wc-iptv-result__check';
-    check.textContent = isSelected ? 'Selected' : 'Add';
+    check.textContent = isSelected ? t('Selected') : t('Add');
 
     button.append(logo, copy, check);
     return button;
@@ -81,7 +83,7 @@ export const initWorldCupAdmin = () => {
         const itemId = result ? Number(result.dataset.iptvResult) : null;
         const status = picker.querySelector('[data-iptv-status]');
         picker.classList.add('is-saving');
-        if (status) status.textContent = itemId ? 'Updating channels...' : 'Removing all channels...';
+        if (status) status.textContent = itemId ? t('Updating channels...') : t('Removing all channels...');
 
         try {
             const response = await fetch(card.dataset.assignIptvEndpoint, {
@@ -90,7 +92,7 @@ export const initWorldCupAdmin = () => {
                 body: JSON.stringify({ iptv_item_id: itemId }),
             });
             const payload = await response.json();
-            if (!response.ok) throw new Error(payload.message || 'Unable to update this match.');
+            if (!response.ok) throw new Error(payload.message || t('Unable to update this match.'));
 
             const assignments = payload.assignments || [];
             const selectedIds = assignments.map((assignment) => Number(assignment.id));
@@ -101,12 +103,12 @@ export const initWorldCupAdmin = () => {
             if (channelName) {
                 channelName.textContent = assignments.length
                     ? assignments.map((assignment) => assignment.name).join(' / ')
-                    : 'No IPTV channel assigned';
+                    : t('No IPTV channel assigned');
             }
             if (availability) {
                 availability.textContent = assignments.length
-                    ? (payload.is_watch_window_open ? 'Watch links are available now' : availability.dataset.scheduledText)
-                    : 'Choose one or more public IPTV channels';
+                    ? (payload.is_watch_window_open ? t('Watch links are available now') : availability.dataset.scheduledText)
+                    : t('Choose one or more public IPTV channels');
             }
             if (status) status.textContent = payload.message;
             picker.querySelector('[data-iptv-clear]')?.toggleAttribute('hidden', assignments.length === 0);
@@ -116,7 +118,7 @@ export const initWorldCupAdmin = () => {
                 button.classList.toggle('is-selected', selected);
                 button.setAttribute('aria-pressed', String(selected));
                 const check = button.querySelector('.wc-iptv-result__check');
-                if (check) check.textContent = selected ? 'Selected' : 'Add';
+                if (check) check.textContent = selected ? t('Selected') : t('Add');
             });
         } catch (error) {
             if (status) status.textContent = error.message;
@@ -138,21 +140,21 @@ export const initWorldCupAdmin = () => {
             if (!picker || !results || !searchEndpoint) return;
 
             picker.classList.add('is-loading');
-            if (status) status.textContent = 'Loading public channels...';
+            if (status) status.textContent = t('Loading public channels...');
 
             try {
                 const url = new URL(searchEndpoint, window.location.origin);
                 url.searchParams.set('q', input.value.trim());
                 const response = await fetch(url, { headers: { Accept: 'application/json' } });
                 const payload = await response.json();
-                if (!response.ok) throw new Error(payload.message || 'Unable to load IPTV channels.');
+                if (!response.ok) throw new Error(payload.message || t('Unable to load IPTV channels.'));
 
                 const selectedIds = selectedIdsFor(card);
                 results.replaceChildren(...payload.items.map((item) => resultButton(item, selectedIds)));
                 if (status) {
                     status.textContent = payload.items.length
-                        ? `${payload.items.length} public channels found`
-                        : 'No public active channels match this search.';
+                        ? choice(':count public channel found', ':count public channels found', payload.items.length)
+                        : t('No public active channels match this search.');
                 }
             } catch (error) {
                 results.replaceChildren();

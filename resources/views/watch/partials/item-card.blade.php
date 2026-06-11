@@ -6,7 +6,7 @@
             <strong>{{ str($item->name)->substr(0, 1)->upper() }}</strong>
         @endif
         @if($item->is_adult)
-            <em>Lock</em>
+            <em>{{ __("Lock") }}</em>
         @endif
     </span>
     <span class="iptv-item-card__body">

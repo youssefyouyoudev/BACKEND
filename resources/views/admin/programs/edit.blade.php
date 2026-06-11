@@ -3,7 +3,7 @@
 @section('content')
 <section class="page-header">
     <div>
-        <p class="page-header__eyebrow">Edit program</p>
+        <p class="page-header__eyebrow">{{ __("Edit program") }}</p>
         <h1>{{ $program->title }}</h1>
     </div>
 </section>
@@ -13,7 +13,7 @@
         @csrf
         @method('PUT')
         @include('admin.programs.partials.form')
-        <button class="button button--primary" type="submit">Save program</button>
+        <button class="button button--primary" type="submit">{{ __("Save program") }}</button>
     </form>
 </section>
 @endsection

@@ -91,8 +91,8 @@ class SportsPageController extends Controller
         return view('public.directory', [
             'kind' => 'leagues',
             'items' => $this->leagueDirectory(),
-            'title' => 'Football Leagues',
-            'description' => 'Follow football league pages, standings, fixtures, and match coverage on RifiMedia.',
+            'title' => __('Football Leagues'),
+            'description' => __('Follow football league pages, standings, fixtures, and match coverage on RifiMedia.'),
         ]);
     }
 
@@ -113,8 +113,8 @@ class SportsPageController extends Controller
         return view('public.directory', [
             'kind' => 'teams',
             'items' => $this->teamDirectory(),
-            'title' => 'Football Teams',
-            'description' => 'Browse football team pages for match updates, fixtures, team news, and coverage.',
+            'title' => __('Football Teams'),
+            'description' => __('Browse football team pages for match updates, fixtures, team news, and coverage.'),
         ]);
     }
 
@@ -140,7 +140,7 @@ class SportsPageController extends Controller
                 'name' => Str::headline(str_replace('-', ' ', $slug)),
                 'slug' => $slug,
                 'event_id' => $eventId,
-                'description' => 'Match center pages are ready for previews, lineups, timelines, stats, and related coverage when reliable match data is connected.',
+                'description' => __('Match center pages are ready for previews, lineups, timelines, stats, and related coverage when reliable match data is connected.'),
             ],
             'relatedChannels' => $this->sportsChannels(6),
             'tvChannels' => $eventId ? collect($sportsDb->tvChannelsForEvent($eventId)) : collect(),
@@ -196,39 +196,39 @@ class SportsPageController extends Controller
     {
         $pages = [
             'about' => [
-                'title' => 'About RifiMedia',
-                'description' => 'RifiMedia is a sports media platform for football news, fixtures, live score information, standings, and match updates.',
-                'body' => 'RifiMedia brings football scores, live TV channels, sports updates, and entertainment into one clean platform.',
+                'title' => __('About RifiMedia'),
+                'description' => __('RifiMedia is a sports media platform for football news, fixtures, live score information, standings, and match updates.'),
+                'body' => __('RifiMedia brings football scores, live TV channels, sports updates, and entertainment into one clean platform.'),
             ],
             'contact' => [
-                'title' => 'Contact RifiMedia',
-                'description' => 'Contact the RifiMedia team for editorial, partnership, and platform questions.',
-                'body' => 'For editorial, copyright, advertising, or technical questions, use the official contact channel configured for RifiMedia.',
+                'title' => __('Contact RifiMedia'),
+                'description' => __('Contact the RifiMedia team for editorial, partnership, and platform questions.'),
+                'body' => __('For editorial, copyright, advertising, or technical questions, use the official contact channel configured for RifiMedia.'),
             ],
             'privacy-policy' => [
-                'title' => 'Privacy Policy',
-                'description' => 'Read the RifiMedia privacy policy.',
-                'body' => 'This page explains the privacy principles for RifiMedia, including data minimization, account security, analytics, and communication preferences.',
+                'title' => __('Privacy Policy'),
+                'description' => __('Read the RifiMedia privacy policy.'),
+                'body' => __('This page explains the privacy principles for RifiMedia, including data minimization, account security, analytics, and communication preferences.'),
             ],
             'terms' => [
-                'title' => 'Terms of Use',
-                'description' => 'Read the RifiMedia terms of use.',
-                'body' => 'Users must use RifiMedia lawfully and are responsible for ensuring they have rights to any playlist, stream source, or content they submit.',
+                'title' => __('Terms of Use'),
+                'description' => __('Read the RifiMedia terms of use.'),
+                'body' => __('Users must use RifiMedia lawfully and are responsible for ensuring they have rights to any playlist, stream source, or content they submit.'),
             ],
             'copyright' => [
-                'title' => 'Copyright and DMCA',
-                'description' => 'Copyright and takedown information for RifiMedia.',
-                'body' => 'RifiMedia respects copyright. Rights holders can request review or removal of allegedly infringing user-submitted sources through the configured contact process.',
+                'title' => __('Copyright and DMCA'),
+                'description' => __('Copyright and takedown information for RifiMedia.'),
+                'body' => __('RifiMedia respects copyright. Rights holders can request review or removal of allegedly infringing user-submitted sources through the configured contact process.'),
             ],
             'advertise' => [
-                'title' => 'Advertise With RifiMedia',
-                'description' => 'Advertising and sponsorship opportunities across RifiMedia news, scores, fixtures, and match coverage.',
-                'body' => 'RifiMedia is prepared for responsible sponsorships across editorial pages, live scores, fixtures, league pages, and match center experiences.',
+                'title' => __('Advertise With RifiMedia'),
+                'description' => __('Advertising and sponsorship opportunities across RifiMedia news, scores, fixtures, and match coverage.'),
+                'body' => __('RifiMedia is prepared for responsible sponsorships across editorial pages, live scores, fixtures, league pages, and match center experiences.'),
             ],
             'editorial-policy' => [
-                'title' => 'Editorial Policy',
-                'description' => 'RifiMedia editorial standards for sports coverage.',
-                'body' => 'RifiMedia aims to publish accurate, clearly labeled, useful sports coverage. Articles should identify authors, dates, updates, sources, and corrections when needed.',
+                'title' => __('Editorial Policy'),
+                'description' => __('RifiMedia editorial standards for sports coverage.'),
+                'body' => __('RifiMedia aims to publish accurate, clearly labeled, useful sports coverage. Articles should identify authors, dates, updates, sources, and corrections when needed.'),
             ],
         ];
 
@@ -328,12 +328,12 @@ class SportsPageController extends Controller
     private function searchPages(string $query): Collection
     {
         $pages = collect([
-            ['title' => 'Live TV', 'description' => 'Browse approved live TV channels.', 'url' => route('live-tv')],
-            ['title' => 'Football Scores', 'description' => 'Today, upcoming, and recent football matches.', 'url' => route('sports.football')],
-            ['title' => 'Movies', 'description' => 'Entertainment discovery on RifiMedia.', 'url' => route('movies')],
-            ['title' => 'TV Shows', 'description' => 'Entertainment discovery on RifiMedia.', 'url' => route('tv-shows')],
-            ['title' => 'Anime', 'description' => 'Entertainment discovery on RifiMedia.', 'url' => route('anime')],
-            ['title' => 'News', 'description' => 'Published RifiMedia articles.', 'url' => route('news.index')],
+            ['title' => __('Live TV'), 'description' => __('Browse approved live TV channels.'), 'url' => route('live-tv')],
+            ['title' => __('Football Scores'), 'description' => __('Today, upcoming, and recent football matches.'), 'url' => route('sports.football')],
+            ['title' => __('Movies'), 'description' => __('Entertainment discovery on RifiMedia.'), 'url' => route('movies')],
+            ['title' => __('TV Shows'), 'description' => __('Entertainment discovery on RifiMedia.'), 'url' => route('tv-shows')],
+            ['title' => __('Anime'), 'description' => __('Entertainment discovery on RifiMedia.'), 'url' => route('anime')],
+            ['title' => __('News'), 'description' => __('Published RifiMedia articles.'), 'url' => route('news.index')],
         ]);
 
         if ($query === '') {

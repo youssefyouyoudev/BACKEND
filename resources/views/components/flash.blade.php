@@ -6,7 +6,7 @@
 
 @if ($errors->any())
     <div class="flash-banner flash-banner--error" role="alert">
-        <strong>We hit a problem.</strong>
+        <strong>{{ __("We hit a problem.") }}</strong>
         <ul class="flash-banner__list">
             @foreach ($errors->all() as $error)
                 <li>{{ $error }}</li>

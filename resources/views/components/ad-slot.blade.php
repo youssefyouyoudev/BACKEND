@@ -26,7 +26,7 @@
         ></ins>
     @else
         <p class="rm-ad-label" aria-hidden="true">{{ $label }}</p>
-        <strong>Reserved Media Placement</strong>
+        <strong>{{ __("Reserved Media Placement") }}</strong>
         <small>{{ ucwords(str_replace(['_', '-'], ' ', $size)) }} · Premium inventory</small>
     @endif
 </aside>

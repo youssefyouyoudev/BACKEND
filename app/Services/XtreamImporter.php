@@ -57,7 +57,7 @@ class XtreamImporter
 
         if (! $response->successful()) {
             throw ValidationException::withMessages([
-                'playlist' => ['The Xtream API could not be reached.'],
+                'playlist' => [__('The Xtream API could not be reached.')],
             ]);
         }
 

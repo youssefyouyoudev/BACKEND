@@ -22,7 +22,7 @@ class CategoryController extends Controller
     {
         Category::query()->create($request->validated());
 
-        return back()->with('status', 'Category created.');
+        return back()->with('status', __('Category created.'));
     }
 
     public function edit(Category $category): View
@@ -34,13 +34,13 @@ class CategoryController extends Controller
     {
         $category->update($request->validated());
 
-        return redirect()->route('admin.categories.index')->with('status', 'Category updated.');
+        return redirect()->route('admin.categories.index')->with('status', __('Category updated.'));
     }
 
     public function destroy(Category $category): RedirectResponse
     {
         $category->delete();
 
-        return back()->with('status', 'Category deleted.');
+        return back()->with('status', __('Category deleted.'));
     }
 }

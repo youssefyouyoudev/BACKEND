@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 export function initIptvPlayer() {
     document.querySelectorAll('[data-iptv-player]').forEach((video) => {
         if (video.dataset.playerReady) return;
@@ -22,7 +24,7 @@ export function initIptvPlayer() {
 
         const load = () => {
             if (!streamUrl) {
-                showState('This item does not have a playable stream URL.', false);
+                showState(t('This item does not have a playable stream URL.'), false);
                 return;
             }
 
@@ -34,7 +36,7 @@ export function initIptvPlayer() {
                 mpegtsPlayer.destroy();
                 mpegtsPlayer = null;
             }
-            showState('Loading stream...');
+            showState(t('Loading stream...'));
 
             const path = new URL(streamUrl, window.location.href).pathname.toLowerCase();
             const streamType = String(video.dataset.streamType || '').toLowerCase();
@@ -80,7 +82,7 @@ export function initIptvPlayer() {
 
                     hls.destroy();
                     hls = null;
-                    showState('The HLS stream could not be played in this browser.', true);
+                    showState(t('The HLS stream could not be played in this browser.'), true);
                 });
                 return;
             }
@@ -93,7 +95,7 @@ export function initIptvPlayer() {
                 video.load();
                 video.play().catch((error) => {
                     console.error('[RifiPlayer] Native HLS playback failed.', error);
-                    showState('The HLS stream could not be played in this browser.', true);
+                    showState(t('The HLS stream could not be played in this browser.'), true);
                 });
                 return;
             }
@@ -114,7 +116,7 @@ export function initIptvPlayer() {
                 });
                 mpegtsPlayer.attachMediaElement(video);
                 mpegtsPlayer.on(window.mpegts.Events.ERROR, () => {
-                    showState('The MPEG-TS stream could not be played in this browser.', true);
+                    showState(t('The MPEG-TS stream could not be played in this browser.'), true);
                 });
                 video.addEventListener('loadedmetadata', () => {
                     hideState();
@@ -131,7 +133,7 @@ export function initIptvPlayer() {
 
         retry?.addEventListener('click', load);
         video.addEventListener('canplay', hideState);
-        video.addEventListener('error', () => showState('The stream could not be played.', true));
+        video.addEventListener('error', () => showState(t('The stream could not be played.'), true));
         video.addEventListener('timeupdate', () => {
             if (!video.dataset.historyUrl || Math.floor(video.currentTime) % 15 !== 0) return;
 

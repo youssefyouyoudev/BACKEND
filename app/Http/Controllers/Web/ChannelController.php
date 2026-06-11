@@ -75,13 +75,16 @@ class ChannelController extends Controller
             'stream_url' => $source['url'] ?? StreamUrl::signedRedirect($channel->stream_url),
             'stream_type' => $source['type'] ?? $channel->stream_type ?? 'stream',
             'sources' => $streamService ? $streamService->sourcesFor($channel) : $channel->active_stream_sources->values()->all(),
-            'category' => $channel->category?->name ?? $channel->group_title ?: 'General',
+            'category' => $channel->category?->name ?? $channel->group_title ?: __('General'),
             'program' => $channel->currentProgram ? [
                 'title' => $channel->currentProgram->title,
                 'start_time' => $channel->currentProgram->start_time?->format('H:i'),
                 'end_time' => $channel->currentProgram->end_time?->format('H:i'),
             ] : null,
-            'description' => ($channel->group_title ?: 'Live TV').' stream from '.($channel->playlist?->name ?? 'approved playlist').'.',
+            'description' => __(':category stream from :playlist.', [
+                'category' => $channel->group_title ?: __('Live TV'),
+                'playlist' => $channel->playlist?->name ?? __('approved playlist'),
+            ]),
         ];
     }
 }

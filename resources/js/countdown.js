@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 const pad = (value) => String(Math.max(0, value)).padStart(2, '0');
 const countdownTimers = new WeakMap();
 
@@ -44,7 +46,7 @@ export function initCountdown(containerSelector, targetDate = null) {
         countdownTimers.delete(element);
         timer = null;
         const status = element.querySelector('[data-countdown-status]');
-        if (status) status.textContent = 'Starting now / ينطلق الآن';
+        if (status) status.textContent = t('Starting now');
     };
 
     update();

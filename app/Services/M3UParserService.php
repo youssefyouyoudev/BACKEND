@@ -46,7 +46,7 @@ class M3UParserService
             }
 
             throw ValidationException::withMessages([
-                'playlist' => ['The uploaded playlist file could not be found in storage.'],
+                'playlist' => [__('The uploaded playlist file could not be found in storage.')],
             ]);
         }
 
@@ -80,7 +80,7 @@ class M3UParserService
 
             if (strlen($body) > $maxBytes) {
                 throw ValidationException::withMessages([
-                    'playlist' => ['The playlist is too large to import safely.'],
+                    'playlist' => [__('The playlist is too large to import safely.')],
                 ]);
             }
 
@@ -91,7 +91,7 @@ class M3UParserService
         }
 
         throw ValidationException::withMessages([
-            'playlist' => ['This playlist does not have a valid URL or uploaded file source.'],
+            'playlist' => [__('This playlist does not have a valid URL or uploaded file source.')],
         ]);
     }
 
@@ -183,7 +183,7 @@ class M3UParserService
 
         if ($entries === []) {
             throw ValidationException::withMessages([
-                'playlist' => ['The playlist did not contain any valid channels.'],
+                'playlist' => [__('The playlist did not contain any valid channels.')],
             ]);
         }
 

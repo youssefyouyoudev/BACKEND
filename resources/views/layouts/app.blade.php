@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
         (() => {
             const storageKey = 'rifi-theme';
@@ -82,7 +82,7 @@
             <div class="rm-navbar__inner">
                 <x-logo />
 
-                <nav class="rm-navbar__links" aria-label="Main menu">
+                <nav class="rm-navbar__links" aria-label="{{ __("Main menu") }}">
                     @foreach($mainNav as $item)
                         <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}"><x-icon :name="$item['icon']" />{{ $item['label'] }}</a>
                     @endforeach
@@ -97,7 +97,7 @@
                         <a href="{{ route('language.switch', 'en') }}" class="{{ app()->isLocale('en') ? 'is-active' : '' }}" lang="en">EN</a>
                         <a href="{{ route('language.switch', 'ar') }}" class="{{ app()->isLocale('ar') ? 'is-active' : '' }}" lang="ar">AR</a>
                     </div>
-                    <button type="button" class="rm-icon-btn rm-theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
+                    <button type="button" class="rm-icon-btn rm-theme-toggle" data-theme-toggle aria-label="{{ __("Switch theme") }}" title="{{ __("Switch theme") }}">
                         <span class="rm-theme-icon rm-theme-icon--moon" aria-hidden="true"><x-icon name="moon" /></span>
                         <span class="rm-theme-icon rm-theme-icon--sun" aria-hidden="true"><x-icon name="sun" /></span>
                     </button>
@@ -123,7 +123,7 @@
                 </div>
             </div>
 
-            <nav class="rm-navbar__drawer" x-show="mobileNavOpen" x-transition.opacity.origin.top @click.outside="mobileNavOpen = false" aria-label="Mobile menu">
+            <nav class="rm-navbar__drawer" x-show="mobileNavOpen" x-transition.opacity.origin.top @click.outside="mobileNavOpen = false" aria-label="{{ __("Mobile menu") }}">
                 <div class="wc-nav-drawer__header">
                     <span class="wc-nav-live"><i></i> {{ __('landing.hero.live') }}</span>
                     <strong>{{ __('landing.world_cup.trophy_label') }}</strong>
@@ -132,7 +132,7 @@
                         <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}"><x-icon :name="$item['icon']" />{{ $item['label'] }}</a>
                 @endforeach
                 <div class="rtv-language-switcher rtv-language-switcher--drawer" aria-label="{{ __('landing.nav.language') }}">
-                    <a href="{{ route('language.switch', 'en') }}" class="{{ app()->isLocale('en') ? 'is-active' : '' }}" lang="en">English</a>
+                    <a href="{{ route('language.switch', 'en') }}" class="{{ app()->isLocale('en') ? 'is-active' : '' }}" lang="en">{{ __("English") }}</a>
                     <a href="{{ route('language.switch', 'ar') }}" class="{{ app()->isLocale('ar') ? 'is-active' : '' }}" lang="ar">{{ __('landing.nav.arabic') }}</a>
                 </div>
                 <a href="{{ route('sports.football') }}" class="wc-nav-drawer__watch"><x-icon name="play" /> {{ __('landing.nav.explore') }}</a>
@@ -151,7 +151,7 @@
             @yield('content')
         </main>
 
-        <nav class="rm-bottom-nav" aria-label="Mobile quick navigation">
+        <nav class="rm-bottom-nav" aria-label="{{ __("Mobile quick navigation") }}">
             @foreach($mobileQuickNav as $item)
                 <a href="{{ $item['href'] }}" class="{{ $item['active'] ? 'is-active' : '' }}">
                     <span aria-hidden="true"><x-icon :name="$item['icon']" /></span>
@@ -160,18 +160,18 @@
             @endforeach
         </nav>
 
-        <button type="button" class="rm-floating-theme-toggle" data-theme-toggle aria-label="Switch theme" title="Switch theme">
+        <button type="button" class="rm-floating-theme-toggle" data-theme-toggle aria-label="{{ __("Switch theme") }}" title="{{ __("Switch theme") }}">
             <span class="rm-theme-icon rm-theme-icon--moon" aria-hidden="true"><x-icon name="moon" /></span>
             <span class="rm-theme-icon rm-theme-icon--sun" aria-hidden="true"><x-icon name="sun" /></span>
         </button>
 
-        <footer class="rm-footer rm-premium-footer" aria-label="Site footer">
+        <footer class="rm-footer rm-premium-footer" aria-label="{{ __("Site footer") }}">
             <div class="rm-footer__inner">
                 <div class="rm-footer__brand">
                     <x-logo />
                     <p>{{ __('landing.footer.description') }}</p>
                 </div>
-                <nav aria-label="Footer navigation" class="rm-footer__groups">
+                <nav aria-label="{{ __("Footer navigation") }}" class="rm-footer__groups">
                     <span>
                         <strong>{{ __('landing.footer.football') }}</strong>
                         <a href="{{ route('sports.football') }}">{{ __('landing.footer.scores') }}</a>
@@ -195,8 +195,8 @@
                 <div class="rm-footer__bottom">
                     <p>&copy; {{ date('Y') }} RiFiTV. {{ __('landing.footer.rights') }}</p>
                     <span class="rm-social-links" aria-label="{{ __('landing.nav.language') }}">
-                        <a href="{{ route('language.switch', 'en') }}" lang="en">English</a>
-                        <a href="{{ route('language.switch', 'ar') }}" lang="ar">العربية</a>
+                        <a href="{{ route('language.switch', 'en') }}" lang="en">{{ __("English") }}</a>
+                        <a href="{{ route('language.switch', 'ar') }}" lang="ar">{{ __('landing.nav.arabic') }}</a>
                     </span>
                 </div>
                 <p class="rm-footer__legal">{{ __('landing.footer.notice') }}</p>

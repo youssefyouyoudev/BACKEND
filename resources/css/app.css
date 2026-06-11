@@ -20159,3 +20159,50 @@ textarea:focus-visible,
         transition-duration: 0.01ms !important;
     }
 }
+html[dir="rtl"] body {
+    font-family: "Noto Sans Arabic", Inter, sans-serif;
+}
+
+html[dir="rtl"] input,
+html[dir="rtl"] textarea,
+html[dir="rtl"] select,
+html[dir="rtl"] .main-content,
+html[dir="rtl"] .rm-main {
+    text-align: right;
+}
+
+html[dir="rtl"] .sidebar__nav,
+html[dir="rtl"] .rm-navbar__drawer,
+html[dir="rtl"] .rm-footer__groups,
+html[dir="rtl"] .dropdown-menu {
+    direction: rtl;
+}
+
+html[dir="rtl"] .pagination-shell__button,
+html[dir="rtl"] [rel="prev"],
+html[dir="rtl"] [rel="next"] {
+    direction: rtl;
+}
+
+html[dir="rtl"] .rm-navbar__links svg,
+html[dir="rtl"] .rm-navbar__drawer svg,
+html[dir="rtl"] .pagination-shell__button svg,
+html[dir="rtl"] [data-player-previous] svg,
+html[dir="rtl"] [data-player-next] svg {
+    transform: scaleX(-1);
+}
+
+html[dir="rtl"] table {
+    direction: rtl;
+}
+
+html[dir="rtl"] input[type="url"],
+html[dir="rtl"] input[type="email"],
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] input[type="datetime-local"],
+html[dir="rtl"] code,
+html[dir="rtl"] pre,
+html[dir="rtl"] video {
+    direction: ltr;
+    text-align: left;
+}

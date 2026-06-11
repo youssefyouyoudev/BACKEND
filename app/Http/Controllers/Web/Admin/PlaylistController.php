@@ -100,7 +100,7 @@ class PlaylistController extends Controller
         if (! $this->playlistHasImportableSource($inputType, $sourceUrl, $filePath)) {
             return redirect()
                 ->route('admin.dashboard')
-                ->with('status', "Playlist \"{$playlist->name}\" saved. Add an M3U URL or upload a file before parsing channels.");
+                ->with('status', __('Playlist ":name" saved. Add an M3U URL or upload a file before parsing channels.', ['name' => $playlist->name]));
         }
 
         try {
@@ -109,14 +109,17 @@ class PlaylistController extends Controller
 
             return redirect()
                 ->route('admin.playlists.index')
-                ->with('status', "Playlist \"{$playlist->name}\" imported successfully with {$playlist->iptvItems()->count()} IPTV items.");
+                ->with('status', __('Playlist ":name" imported successfully with :count IPTV items.', [
+                    'name' => $playlist->name,
+                    'count' => $playlist->iptvItems()->count(),
+                ]));
         } catch (Throwable $exception) {
             report($exception);
 
             return redirect()
                 ->route('admin.dashboard')
                 ->withErrors([
-                    'playlist' => 'Import failed: '.$exception->getMessage(),
+                    'playlist' => __('Import failed: :message', ['message' => $exception->getMessage()]),
                 ]);
         }
     }
@@ -134,7 +137,7 @@ class PlaylistController extends Controller
             return redirect()
                 ->route('admin.dashboard')
                 ->withErrors([
-                    'playlist' => 'Add an M3U URL or upload a file before parsing this playlist.',
+                    'playlist' => __('Add an M3U URL or upload a file before parsing this playlist.'),
                 ]);
         }
 
@@ -146,14 +149,14 @@ class PlaylistController extends Controller
 
             return redirect()
                 ->back()
-                ->with('status', "Playlist \"{$playlist->name}\" parsed successfully.");
+                ->with('status', __('Playlist ":name" parsed successfully.', ['name' => $playlist->name]));
         } catch (Throwable $exception) {
             report($exception);
 
             return redirect()
                 ->route('admin.dashboard')
                 ->withErrors([
-                    'playlist' => 'Parse failed: '.$exception->getMessage(),
+                    'playlist' => __('Parse failed: :message', ['message' => $exception->getMessage()]),
                 ]);
         }
     }
@@ -220,7 +223,7 @@ class PlaylistController extends Controller
         if (! $this->playlistHasImportableSource($inputType, $sourceUrl, $playlist->resolved_file_path)) {
             return redirect()
                 ->route('admin.dashboard')
-                ->with('status', "Playlist \"{$playlist->name}\" saved. Add an M3U URL or upload a file before parsing channels.");
+                ->with('status', __('Playlist ":name" saved. Add an M3U URL or upload a file before parsing channels.', ['name' => $playlist->name]));
         }
 
         try {
@@ -229,14 +232,14 @@ class PlaylistController extends Controller
 
             return redirect()
                 ->route('admin.playlists.index')
-                ->with('status', "Playlist \"{$playlist->name}\" updated and parsed successfully.");
+                ->with('status', __('Playlist ":name" updated and parsed successfully.', ['name' => $playlist->name]));
         } catch (Throwable $exception) {
             report($exception);
 
             return redirect()
                 ->route('admin.dashboard')
                 ->withErrors([
-                    'playlist' => 'Update saved, but re-parse failed: '.$exception->getMessage(),
+                    'playlist' => __('Update saved, but re-parse failed: :message', ['message' => $exception->getMessage()]),
                 ]);
         }
     }
@@ -254,7 +257,7 @@ class PlaylistController extends Controller
 
         return redirect()
             ->route('admin.playlists.index')
-            ->with('status', "Playlist \"{$name}\" deleted.");
+            ->with('status', __('Playlist ":name" deleted.', ['name' => $name]));
     }
 
     private function storeUploadedPlaylist(UploadedFile $uploadedFile): string

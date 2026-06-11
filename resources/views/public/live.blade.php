@@ -1,15 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'World Cup 2026 Live TV Receiver | RiFi Media TV')
-@section('description', 'Watch public live TV channels in the RiFi Media TV World Cup 2026 inspired receiver with search, quality selection, and automatic reconnect.')
+@section('title', __("World Cup 2026 Live TV Receiver | RiFi Media TV"))
+@section('description', __("Watch public live TV channels in the RiFi Media TV World Cup 2026 inspired receiver with search, quality selection, and automatic reconnect."))
 @section('image', asset('assets/images/fifa_world_cup_2026_tease.png'))
 
 @section('content')
 <header class="wc-live-page-header">
     <div>
-        <span class="wc-badge wc-live-badge"><i></i> Live TV · مباشر</span>
-        <h1 class="wc-title">Your Matchday Receiver</h1>
-        <p>Choose a channel, select the best quality, and enjoy a smooth broadcast experience.</p>
+        <span class="wc-badge wc-live-badge"><i></i> {{ __("Live TV · مباشر") }}</span>
+        <h1 class="wc-title">{{ __("Your Matchday Receiver") }}</h1>
+        <p>{{ __("Choose a channel, select the best quality, and enjoy a smooth broadcast experience.") }}</p>
     </div>
     <div dir="rtl">
         <strong>جهاز استقبال يوم المباراة</strong>
@@ -27,7 +27,7 @@
     })"
     x-init="init"
 >
-    <section class="rm-receiver-player" x-ref="playerSection" aria-label="Live TV player">
+    <section class="rm-receiver-player" x-ref="playerSection" aria-label="{{ __("Live TV player") }}">
         <div class="rm-receiver-player__screen">
             <video x-ref="video" x-show="!showPlayerFallback" controls playsinline autoplay muted></video>
 
@@ -35,11 +35,11 @@
             <div class="rm-receiver-player__identity" x-show="activeGroup && !showPlayerFallback" x-cloak>
                 <img :src="activeGroup?.logo || fallbackLogo" alt="" x-on:error="$event.target.src = fallbackLogo">
                 <div>
-                    <span><i></i> Live now</span>
+                    <span><i></i> {{ __("Live now") }}</span>
                     <h2 x-text="activeGroup?.name"></h2>
                     <p>
-                        <b x-text="activeGroup?.category"></b>
-                        <template x-if="activeGroup?.country"><em x-text="activeGroup.country"></em></template>
+                        <b x-text="rifiT(activeGroup?.category || '')"></b>
+                        <template x-if="activeGroup?.country"><em x-text="rifiT(activeGroup.country)"></em></template>
                         <strong x-text="activeVariant?.quality"></strong>
                     </p>
                 </div>
@@ -47,12 +47,12 @@
 
             <div class="rm-receiver-loading" x-show="loadingPlayer" x-cloak>
                 <span></span><span></span><span></span>
-                <p>Starting channel...</p>
+                <p>{{ __("Starting channel...") }}</p>
             </div>
 
             <div class="rm-receiver-reconnect" x-show="reconnecting && !showPlayerFallback" x-cloak role="status" aria-live="polite">
                 <i></i>
-                <strong x-text="reconnectMessage || 'Reconnecting...'"></strong>
+                <strong x-text="reconnectMessage || rifiT('Reconnecting...')"></strong>
                 <span>إعادة الاتصال بالبث المباشر...</span>
             </div>
 
@@ -60,8 +60,8 @@
                 <x-icon name="signal" />
                 <strong x-text="playerErrorMessage"></strong>
                 <div>
-                    <button type="button" @click="refreshStream">Try Again / حاول مرة أخرى</button>
-                    <button type="button" x-show="externalPlayerUrl" @click="openExternalPlayer">External player</button>
+                    <button type="button" @click="refreshStream">{{ __("Try Again / حاول مرة أخرى") }}</button>
+                    <button type="button" x-show="externalPlayerUrl" @click="openExternalPlayer">{{ __("External player") }}</button>
                 </div>
             </div>
 
@@ -82,33 +82,33 @@
         </div>
 
         <div class="rm-receiver-controls">
-            <button type="button" @click="stepChannel(-1)" title="Previous channel"><span>↑</span> Previous</button>
-            <button type="button" @click="stepChannel(1)" title="Next channel"><span>↓</span> Next</button>
-            <button type="button" :class="{ 'is-active': isFavorite }" @click="toggleFavorite"><x-icon name="star" /><span x-text="isFavorite ? 'Saved' : 'Favorite'"></span></button>
-            <button type="button" @click="refreshStream"><x-icon name="signal" /> Refresh</button>
-            <button type="button" @click="openExternalPlayer" :disabled="!externalPlayerUrl"><x-icon name="arrow-up-right" /> External</button>
-            <button type="button" @click="fullscreen"><x-icon name="tv" /> Fullscreen</button>
+            <button type="button" @click="stepChannel(-1)" title="{{ __("Previous channel") }}"><span>↑</span> {{ __("Previous") }}</button>
+            <button type="button" @click="stepChannel(1)" title="{{ __("Next channel") }}"><span>↓</span> {{ __("Next") }}</button>
+            <button type="button" :class="{ 'is-active': isFavorite }" @click="toggleFavorite"><x-icon name="star" /><span x-text="rifiT(isFavorite ? 'Saved' : 'Favorite')"></span></button>
+            <button type="button" @click="refreshStream"><x-icon name="signal" /> {{ __("Refresh") }}</button>
+            <button type="button" @click="openExternalPlayer" :disabled="!externalPlayerUrl"><x-icon name="arrow-up-right" /> {{ __("External") }}</button>
+            <button type="button" @click="fullscreen"><x-icon name="tv" /> {{ __("Fullscreen") }}</button>
         </div>
     </section>
 
-    <section class="rm-receiver-browser" id="channels" aria-label="Channel browser">
+    <section class="rm-receiver-browser" id="channels" aria-label="{{ __("Channel browser") }}">
         <div class="rm-receiver-toolbar">
             <label class="rm-receiver-search">
                 <x-icon name="search" />
-                <input x-ref="search" type="search" x-model="search" placeholder="Search channels / ابحث عن قناة" aria-label="Search live TV channels">
+                <input x-ref="search" type="search" x-model="search" placeholder="{{ __("Search channels / ابحث عن قناة") }}" aria-label="{{ __("Search live TV channels") }}">
                 <kbd>/</kbd>
             </label>
-            <div class="rm-receiver-view-toggle" aria-label="Channel view">
-                <button type="button" :class="{ 'is-active': viewMode === 'grid' }" @click="viewMode = 'grid'">Grid</button>
-                <button type="button" :class="{ 'is-active': viewMode === 'table' }" @click="viewMode = 'table'">Table</button>
+            <div class="rm-receiver-view-toggle" aria-label="{{ __("Channel view") }}">
+                <button type="button" :class="{ 'is-active': viewMode === 'grid' }" @click="viewMode = 'grid'">{{ __("Grid") }}</button>
+                <button type="button" :class="{ 'is-active': viewMode === 'table' }" @click="viewMode = 'table'">{{ __("Table") }}</button>
             </div>
             <span class="rm-receiver-count">
                 <i :class="{ 'is-loading': loadingCatalog }"></i>
-                <b x-text="filteredGroups.length.toLocaleString()"></b> channels
+                <b x-text="filteredGroups.length.toLocaleString()"></b> {{ __("channels") }}
             </span>
         </div>
 
-        <div class="rm-receiver-categories" role="tablist" aria-label="Channel categories">
+        <div class="rm-receiver-categories" role="tablist" aria-label="{{ __("Channel categories") }}">
             <template x-for="category in categories" :key="category">
                 <button
                     type="button"
@@ -135,14 +135,14 @@
                     @keydown.enter.prevent="watchGroup(group)"
                 >
                     <button type="button" class="rm-receiver-card__watch" @click="watchGroup(group)" :aria-label="`Watch ${group.name}`">
-                        <img :src="group.logo || fallbackLogo" :alt="group.name" loading="lazy" x-on:error="$event.target.src = fallbackLogo">
+                        <img :src="group.logo || fallbackLogo" :alt="{{ __("group.name") }}" loading="lazy" x-on:error="$event.target.src = fallbackLogo">
                         <span><x-icon name="play" /></span>
                     </button>
                     <div class="rm-receiver-card__copy">
-                        <small x-text="group.category"></small>
+                        <small x-text="rifiT(group.category)"></small>
                         <h2 x-text="group.name"></h2>
                         <p x-show="group.country || group.language">
-                            <span x-text="group.country || group.language"></span>
+                            <span x-text="rifiT(group.country || group.language)"></span>
                         </p>
                     </div>
                     <div class="rm-receiver-card__qualities">
@@ -156,14 +156,14 @@
 
         <div class="rm-receiver-table-wrap" x-show="viewMode === 'table' && filteredGroups.length" x-cloak>
             <table class="rm-receiver-table">
-                <thead><tr><th>Channel</th><th>Category</th><th>Quality options</th><th>Actions</th></tr></thead>
+                <thead><tr><th>{{ __("Channel") }}</th><th>{{ __("Category") }}</th><th>{{ __("Quality options") }}</th><th>{{ __("Actions") }}</th></tr></thead>
                 <tbody>
                     <template x-for="(group, index) in filteredGroups" :key="group.id">
                         <tr :class="{ 'is-playing': activeGroup?.id === group.id }">
                             <td><img :src="group.logo || fallbackLogo" alt="" x-on:error="$event.target.src = fallbackLogo"><strong x-text="group.name"></strong></td>
-                            <td x-text="group.category"></td>
+                            <td x-text="rifiT(group.category)"></td>
                             <td><span class="rm-receiver-table__qualities"><template x-for="variant in group.qualityOptions" :key="variant.quality"><button type="button" @click="watchGroup(group, variant)" x-text="variant.quality"></button></template></span></td>
-                            <td><button type="button" class="rm-receiver-watch-btn" @focus="focusedIndex = index" @click="watchGroup(group)">Watch</button></td>
+                            <td><button type="button" class="rm-receiver-watch-btn" @focus="focusedIndex = index" @click="watchGroup(group)">{{ __("Watch") }}</button></td>
                         </tr>
                     </template>
                 </tbody>

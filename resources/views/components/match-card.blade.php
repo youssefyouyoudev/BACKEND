@@ -5,7 +5,7 @@
     $away = data_get($match, 'away_team.name', 'Away');
     $scoreHome = data_get($match, 'score.home');
     $scoreAway = data_get($match, 'score.away');
-    $score = $scoreHome !== null && $scoreAway !== null ? "{$scoreHome} - {$scoreAway}" : (data_get($match, 'time') ?: 'TBD');
+    $score = $scoreHome !== null && $scoreAway !== null ? "{$scoreHome} - {$scoreAway}" : (data_get($match, 'time') ?: __('TBD'));
     $url = data_get($match, 'event_url') ?: (data_get($match, 'id') ? route('sports.football.event', data_get($match, 'id')) : route('sports.football'));
 @endphp
 

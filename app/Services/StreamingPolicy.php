@@ -152,7 +152,7 @@ class StreamingPolicy
 
         if ($ips === []) {
             throw ValidationException::withMessages([
-                'source_url' => ['The external host could not be resolved.'],
+                'source_url' => [__('The external host could not be resolved.')],
             ]);
         }
 

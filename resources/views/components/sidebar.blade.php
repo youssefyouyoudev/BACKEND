@@ -1,9 +1,9 @@
 @props(['channels' => [], 'activeId' => null])
 
-<aside class="rm-related-panel" aria-label="Related live streams">
+<aside class="rm-related-panel" aria-label="{{ __("Related live streams") }}">
     <div class="rm-related-panel__header">
         <x-logo compact />
-        <span>Related live</span>
+        <span>{{ __("Related live") }}</span>
     </div>
 
     <div class="rm-related-panel__list">
@@ -11,7 +11,7 @@
             @php
                 $id = data_get($channel, 'id');
                 $logo = data_get($channel, 'logo') ?: data_get($channel, 'thumbnail') ?: asset('brand/rifi-logo.png');
-                $category = data_get($channel, 'category') ?: data_get($channel, 'group_title') ?: 'General';
+                $category = data_get($channel, 'category') ?: data_get($channel, 'group_title') ?: __('General');
                 $tags = collect(data_get($channel, 'display_tags', []))->take(2);
             @endphp
             <a
@@ -28,8 +28,8 @@
             </a>
         @empty
             <div class="rm-empty-state rm-empty-state--compact">
-                <span>No related streams</span>
-                <strong>More channels will appear here once available.</strong>
+                <span>{{ __("No related streams") }}</span>
+                <strong>{{ __("More channels will appear here once available.") }}</strong>
             </div>
         @endforelse
     </div>

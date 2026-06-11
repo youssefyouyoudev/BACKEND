@@ -1,23 +1,23 @@
 @extends('layouts.app')
 
-@section('title', 'Sports & Football | RifiMedia')
-@section('description', 'Follow real football scores, fixtures, results, and available TV channels on RifiMedia.')
+@section('title', __("Sports & Football | RifiMedia"))
+@section('description', __("Follow real football scores, fixtures, results, and available TV channels on RifiMedia."))
 
 @section('content')
 <div class="rm-page rm-media-platform-page">
     <x-page-hero
-        eyebrow="Sports"
-        title="Football scores, fixtures, and channels"
-        description="Sports starts with football on RifiMedia: real match data, clean cards, and direct watch links when channels exist in the live TV playlist."
+        eyebrow="{{ __("Sports") }}"
+        title="{{ __("Football scores, fixtures, and channels") }}"
+        description="{{ __("Sports starts with football on RifiMedia: real match data, clean cards, and direct watch links when channels exist in the live TV playlist.") }}"
     >
         <div class="rm-hero-actions">
-            <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-primary">Open Football</a>
-            <a href="{{ route('live-tv') }}" class="rm-btn rm-btn-secondary">Watch Live TV</a>
+            <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-primary">{{ __("Open Football") }}</a>
+            <a href="{{ route('live-tv') }}" class="rm-btn rm-btn-secondary">{{ __("Watch Live TV") }}</a>
         </div>
     </x-page-hero>
 
     <section class="rm-section">
-        <x-section-header eyebrow="Today" title="Football matches" href="{{ route('sports.football') }}" action="All football" />
+        <x-section-header eyebrow="{{ __("Today") }}" title="{{ __("Football matches") }}" href="{{ route('sports.football') }}" action="{{ __("All football") }}" />
         @if($matches->count())
             <div class="football-match-grid">
                 @foreach($matches as $match)
@@ -25,19 +25,19 @@
                 @endforeach
             </div>
         @else
-            <x-empty-state title="No matches available" message="Football match data will appear here as soon as TheSportsDB has fixtures for the configured leagues." />
+            <x-empty-state title="{{ __("No matches available") }}" message="{{ __("Football match data will appear here as soon as TheSportsDB has fixtures for the configured leagues.") }}" />
         @endif
     </section>
 
     <section class="rm-section">
-        <x-section-header eyebrow="Leagues" title="Configured competitions" />
+        <x-section-header eyebrow="{{ __("Leagues") }}" title="{{ __("Configured competitions") }}" />
         <div class="rm-media-grid">
             @foreach($leagues as $league)
                 <x-media-card
                     :title="$league['name']"
                     :description="$league['country']"
                     :href="route('sports.football')"
-                    label="Football"
+                    label="{{ __("Football") }}"
                 />
             @endforeach
         </div>

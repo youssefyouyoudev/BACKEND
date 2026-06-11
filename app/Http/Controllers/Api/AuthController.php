@@ -21,8 +21,7 @@ class AuthController extends Controller
 {
     public function __construct(
         private readonly ActivityLogService $activityLogService,
-    ) {
-    }
+    ) {}
 
     public function register(RegisterRequest $request): JsonResponse
     {
@@ -51,12 +50,12 @@ class AuthController extends Controller
 
         if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => [__('The provided credentials are incorrect.')],
             ]);
         }
 
         if (! $user->is_active) {
-            abort(JsonResponse::HTTP_FORBIDDEN, 'Your account is currently inactive.');
+            abort(JsonResponse::HTTP_FORBIDDEN, __('Your account is currently inactive.'));
         }
 
         $token = $user->createToken($request->string('device_name', 'web-app')->toString())->plainTextToken;

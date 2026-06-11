@@ -1,4 +1,5 @@
 import { initResilientPlayer } from '../live-player-resilience';
+import { t } from '../i18n';
 
 const STORAGE = {
     catalog: 'rifi-live-tv-catalog-v4',
@@ -241,7 +242,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         const cached = readStorage(STORAGE.catalog, null);
         if (cached?.channels?.length) {
             this.rawChannels = cached.channels;
-            this.toast('Using saved channel list. Refreshing in background.');
+            this.toast(t('Using saved channel list. Refreshing in background.'));
         }
         this.rebuildGroups();
         if (initialCategory && this.categories.includes(initialCategory)) {
@@ -260,7 +261,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
                 : first.variants.find((variant) => Number(variant.id) === Number(last?.variantId));
             this.watchGroup(first, preferred || getBestDefaultVariant(first), false);
         } else if (this.channelGroups.length) {
-            this.showPlayerError('Streams are listed, but their provider is not enabled in the approved domain allowlist.');
+            this.showPlayerError(t('Streams are listed, but their provider is not enabled in the approved domain allowlist.'));
         }
 
         this.refreshCatalog();
@@ -301,7 +302,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
             if (!response.ok) throw new Error(`Catalog request failed with HTTP ${response.status}`);
             const payload = await response.json();
             if (!payload.success || !Array.isArray(payload.channels)) {
-                throw new Error('Catalog response did not contain a channels array.');
+                throw new Error(t('Catalog response did not contain a channels array.'));
             }
             collected.push(...payload.channels);
 
@@ -328,7 +329,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         } catch (error) {
             console.error('[RifiLiveTV] Catalog refresh failed.', error);
             if (this.channelGroups.length) {
-                this.toast('Using saved channel list. Refreshing in background.');
+                this.toast(t('Using saved channel list. Refreshing in background.'));
             }
         } finally {
             this.loadingCatalog = false;
@@ -342,7 +343,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         const variant = preferredVariant || getBestDefaultVariant(group);
         if (!variant) {
             this.fallbackActive = true;
-            this.showPlayerError('This channel has no playable version.', true);
+            this.showPlayerError(t('This channel has no playable version.'), true);
             return;
         }
         this.rememberRecent(group.id);
@@ -371,7 +372,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
             const payload = await response.json();
             if (requestId !== this.requestId) return;
             if (!payload.success || !payload.channel) {
-                throw new Error('Channel response did not contain channel data.');
+                throw new Error(t('Channel response did not contain channel data.'));
             }
             const freshVariant = {
                 ...variant,
@@ -388,7 +389,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
             } : null;
             if (!source?.url) {
                 this.tryNextVariant(
-                    freshVariant.playback_status?.message || 'This channel has no approved playable source.',
+                    freshVariant.playback_status?.message || t('This channel has no approved playable source.'),
                     true
                 );
                 return;
@@ -397,14 +398,14 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
             this.startPlayer(source, requestId);
             writeStorage(STORAGE.last, { groupId: this.activeGroup.id, variantId: variant.id });
             history.replaceState(null, '', `${window.location.pathname}?channel=${variant.id}`);
-            if (announce) this.toast(`Switched to ${variant.quality}`);
+            if (announce) this.toast(t('Switched to :quality', { quality: variant.quality }));
         } catch (error) {
             if (requestId !== this.requestId) return;
             console.warn('[RifiLiveTV] Could not load channel metadata.', {
                 channelId: variant.id,
                 message: error instanceof Error ? error.message : String(error),
             });
-            this.tryNextVariant('The channel service could not load this source.');
+            this.tryNextVariant(t('The channel service could not load this source.'));
         }
     },
 
@@ -453,7 +454,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         });
     },
 
-    tryNextVariant(finalMessage = 'This version is not working. Try another quality.', useFallback = false) {
+    tryNextVariant(finalMessage = t('This version is not working. Try another quality.'), useFallback = false) {
         const variants = sortQualityVariants(this.activeGroup?.variants || []);
         const next = variants.find((variant) => !this.attemptedVariantIds.includes(variant.id));
         if (next) {
@@ -476,7 +477,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         this.fallbackActive = false;
         this.attemptedVariantIds = [];
         this.playVariant(this.activeVariant, false);
-        this.toast('Stream refreshed');
+        this.toast(t('Stream refreshed'));
     },
 
     stepChannel(direction) {
@@ -500,10 +501,10 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         if (!this.activeGroup) return;
         if (this.isFavorite) {
             this.favorites = this.favorites.filter((id) => id !== this.activeGroup.id);
-            this.toast('Removed from favorites');
+            this.toast(t('Removed from favorites'));
         } else {
             this.favorites = [this.activeGroup.id, ...this.favorites];
-            this.toast('Added to favorites');
+            this.toast(t('Added to favorites'));
         }
         writeStorage(STORAGE.favorites, this.favorites);
     },
@@ -519,15 +520,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
     },
 
     categoryLabel(category) {
-        const labels = {
-            'All Channels': 'All / الكل',
-            Sports: 'Sports / رياضة',
-            News: 'News / أخبار',
-            Kids: 'Kids / أطفال',
-            Movies: 'Movies / أفلام',
-        };
-
-        return labels[category] || category;
+        return t(category);
     },
 
     openExternalPlayer() {

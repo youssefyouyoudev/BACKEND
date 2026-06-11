@@ -8,8 +8,8 @@
     $displayName = (string) preg_replace('/\s+/u', ' ', trim($displayName));
     $displayName = $displayName !== '' ? $displayName : $name;
     $logo = data_get($channel, 'logo') ?: data_get($channel, 'thumbnail') ?: data_get($channel, 'avatar') ?: asset('brand/rifi-logo.png');
-    $category = data_get($channel, 'category') ?: data_get($channel, 'group_title') ?: 'General';
-    $program = data_get($channel, 'program.title') ?: data_get($channel, 'current_program') ?: 'Channel guide';
+    $category = data_get($channel, 'category') ?: data_get($channel, 'group_title') ?: __('General');
+    $program = data_get($channel, 'program.title') ?: data_get($channel, 'current_program') ?: __('Channel guide');
     $url = data_get($channel, 'watch_url') ?: route('channels.show', data_get($channel, 'id'));
     $viewers = data_get($channel, 'viewers_label');
     $rawTags = collect(data_get($channel, 'display_tags', []));
@@ -33,8 +33,8 @@
                 onerror="this.src='{{ asset('brand/rifi-logo.png') }}'"
             >
             {{-- Live badge --}}
-            <span class="rm-live-badge rm-live-badge--small" aria-label="On air">
-                <i aria-hidden="true"></i> On air
+            <span class="rm-live-badge rm-live-badge--small" aria-label="{{ __("On air") }}">
+                <i aria-hidden="true"></i> {{ __("On air") }}
             </span>
             {{-- Quality badge --}}
             <span class="rm-match-card__quality" aria-label="Quality: {{ $quality }}">{{ $quality }}</span>
@@ -50,7 +50,7 @@
 
             {{-- Quality / language tags --}}
             @if($tags->isNotEmpty())
-                <span class="rm-match-card__tags" aria-label="Stream tags">
+                <span class="rm-match-card__tags" aria-label="{{ __("Stream tags") }}">
                     @foreach($tags as $tag)
                         <b>{{ $tag }}</b>
                     @endforeach
@@ -64,8 +64,8 @@
 
             {{-- Footer: viewers + open button --}}
             <span class="rm-match-card__footer">
-                <span>{{ $viewers ? $viewers . ' viewers' : 'Media channel' }}</span>
-                <em aria-hidden="true"><x-icon name="play" /> Watch</em>
+                <span>{{ $viewers ? __(':count viewers', ['count' => $viewers]) : __('Media channel') }}</span>
+                <em aria-hidden="true"><x-icon name="play" /> {{ __("Watch") }}</em>
             </span>
         </span>
 

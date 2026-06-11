@@ -13,9 +13,7 @@ use Illuminate\Support\Facades\Cache;
 
 class PublicChannelController extends Controller
 {
-    public function __construct(private readonly StreamService $streamService)
-    {
-    }
+    public function __construct(private readonly StreamService $streamService) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -103,13 +101,16 @@ class PublicChannelController extends Controller
             'stream_url' => $source['url'] ?? StreamUrl::signedRedirect($channel->stream_url),
             'stream_type' => $source['type'] ?? $channel->stream_type ?? 'stream',
             'sources' => $this->streamService->sourcesFor($channel),
-            'category' => $channel->category?->name ?? $channel->group_title ?: 'General',
+            'category' => $channel->category?->name ?? $channel->group_title ?: __('General'),
             'program' => $channel->currentProgram ? [
                 'title' => $channel->currentProgram->title,
                 'start_time' => $channel->currentProgram->start_time?->toIso8601String(),
                 'end_time' => $channel->currentProgram->end_time?->toIso8601String(),
             ] : null,
-            'description' => ($channel->group_title ?: 'Live TV').' stream from '.($channel->playlist?->name ?? 'approved playlist').'.',
+            'description' => __(':category stream from :playlist.', [
+                'category' => $channel->group_title ?: __('Live TV'),
+                'playlist' => $channel->playlist?->name ?? __('approved playlist'),
+            ]),
         ];
     }
 }

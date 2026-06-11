@@ -3,7 +3,7 @@
 @section('content')
 <section class="page-header">
     <div>
-        <p class="page-header__eyebrow">Edit category</p>
+        <p class="page-header__eyebrow">{{ __("Edit category") }}</p>
         <h1>{{ $category->name }}</h1>
     </div>
 </section>
@@ -13,7 +13,7 @@
         @csrf
         @method('PUT')
         @include('admin.categories.partials.form')
-        <button class="button button--primary" type="submit">Save category</button>
+        <button class="button button--primary" type="submit">{{ __("Save category") }}</button>
     </form>
 </section>
 @endsection

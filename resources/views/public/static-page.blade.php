@@ -6,7 +6,7 @@
 @section('content')
 <div class="rm-page rm-page--static">
     <section class="rm-page-hero">
-        <span class="rm-kicker">RifiMedia</span>
+        <span class="rm-kicker">{{ __("RifiMedia") }}</span>
         <h1>{{ $page['title'] }}</h1>
         <p>{{ $page['description'] }}</p>
     </section>

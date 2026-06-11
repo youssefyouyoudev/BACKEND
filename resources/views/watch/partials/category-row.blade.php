@@ -7,9 +7,9 @@
             @foreach($categories as $category)
                 <a href="{{ route('watch.category', $category) }}" class="iptv-category-chip">
                     <span>{{ $category->name }}</span>
-                    <small>{{ number_format($category->items_count) }} items</small>
+                    <small>{{ trans_choice('common.items_count', $category->items_count, ['count' => number_format($category->items_count)]) }}</small>
                     @if(\App\Models\IptvItem::isAdultName($category->name))
-                        <b aria-label="Locked">Lock</b>
+                        <b aria-label="{{ __("Locked") }}">{{ __("Lock") }}</b>
                     @endif
                 </a>
             @endforeach

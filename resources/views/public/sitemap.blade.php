@@ -3,7 +3,7 @@
 @foreach($urls as $url)
     <url>
         <loc>{{ $url }}</loc>
-        <changefreq>daily</changefreq>
+        <changefreq>{{ __("daily") }}</changefreq>
         <priority>{{ $loop->first ? '1.0' : '0.7' }}</priority>
     </url>
 @endforeach

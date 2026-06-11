@@ -30,32 +30,32 @@
 
     <div class="sat-player__loading rm-player-loading rifi-player-overlay" data-player-loading hidden>
         <span class="rifi-player-spinner"></span>
-        <strong class="rifi-player-status-title" data-player-status-title>Connecting to broadcast</strong>
-        <p class="rifi-player-status-subtitle" data-player-status-subtitle>Preparing the live signal.</p>
+        <strong class="rifi-player-status-title" data-player-status-title>{{ __("Connecting to broadcast") }}</strong>
+        <p class="rifi-player-status-subtitle" data-player-status-subtitle>{{ __("Preparing the live signal.") }}</p>
     </div>
 
     <div class="sat-player__error rm-player-error rifi-player-overlay rifi-player-overlay--error" data-player-error hidden>
-        <span>Stream unavailable</span>
-        <h3 data-player-error-title>Channel unavailable</h3>
-        <p data-player-error-message>This broadcast did not respond in time. Try another channel or retry the stream.</p>
+        <span>{{ __("Stream unavailable") }}</span>
+        <h3 data-player-error-title>{{ __("Channel unavailable") }}</h3>
+        <p data-player-error-message>{{ __("This broadcast did not respond in time. Try another channel or retry the stream.") }}</p>
         <div class="sat-player__error-actions rm-player-error__actions rifi-player-error-actions">
-            <button type="button" class="rm-btn rm-btn-primary" data-player-retry>Retry</button>
-            <button type="button" class="rm-btn rm-btn-secondary" data-player-next>Next channel</button>
-            <a href="#" class="rm-btn rm-btn-secondary" data-player-external target="_blank" rel="noopener">Open external player</a>
-            <a href="{{ route('home') }}" class="rm-btn rm-btn-secondary">Back to channels</a>
+            <button type="button" class="rm-btn rm-btn-primary" data-player-retry>{{ __("Retry") }}</button>
+            <button type="button" class="rm-btn rm-btn-secondary" data-player-next>{{ __("Next channel") }}</button>
+            <a href="#" class="rm-btn rm-btn-secondary" data-player-external target="_blank" rel="noopener">{{ __("Open external player") }}</a>
+            <a href="{{ route('home') }}" class="rm-btn rm-btn-secondary">{{ __("Back to channels") }}</a>
         </div>
     </div>
 
     <div class="sat-player__topline rm-player-topline">
         <span class="sat-live-dot rm-live-dot"></span>
         <strong data-player-title>{{ data_get($channel, 'name', 'Live Channel') }}</strong>
-        <select data-player-quality aria-label="Playback quality" hidden>
-            <option value="-1">Auto</option>
+        <select data-player-quality aria-label="{{ __("Playback quality") }}" hidden>
+            <option value="-1">{{ __("Auto") }}</option>
         </select>
     </div>
 
     <div class="rifi-server-badge" data-player-active-server hidden></div>
-    <div class="rm-server-selector" data-player-servers aria-label="Stream servers"></div>
+    <div class="rm-server-selector" data-player-servers aria-label="{{ __("Stream servers") }}"></div>
 </div>
 
 @once
@@ -94,6 +94,14 @@
                 '"': '&quot;',
                 "'": '&#039;',
             }[char]));
+            const playerText = (key, replacements = {}) => {
+                const translated = window.rifiT?.(key, replacements) || key;
+
+                return Object.entries(replacements).reduce(
+                    (text, [name, value]) => text.replaceAll(`:${name}`, value),
+                    translated,
+                );
+            };
 
             const detectStreamType = (source) => {
                 const type = String(source?.type || '').toLowerCase();
@@ -249,7 +257,10 @@
                     });
 
                     if (!source?.url) {
-                        this.showError('Channel unavailable', 'No stream URL is configured for this channel.');
+                        this.showError(
+                            playerText('Channel unavailable'),
+                            playerText('No stream URL is configured for this channel.'),
+                        );
                         return;
                     }
 
@@ -270,8 +281,8 @@
                     this.cleanupPlayer();
                     this.setPlayerState((this.isSwitchingServer || wasLiveRecovering) ? 'reconnecting' : 'connecting', {
                         title: this.isSwitchingServer
-                            ? `Switching to ${label}`
-                            : (wasLiveRecovering ? 'Restoring live broadcast' : 'Connecting to broadcast'),
+                            ? playerText('Switching to :server', { server: label })
+                            : (wasLiveRecovering ? playerText('Restoring live broadcast') : playerText('Connecting to broadcast')),
                         subtitle: `${label} - ${streamType.toUpperCase()}`,
                         soft: this.isSwitchingServer || wasLiveRecovering,
                     });
@@ -338,7 +349,7 @@
                         if (!this.isCurrentToken(token) || this.hasStartedPlayback) return;
                         this.clearTimeout();
                         this.setPlayerState('connecting', {
-                            title: this.isRecoveryLoad ? 'Restoring live broadcast' : 'Connecting to broadcast',
+                            title: this.isRecoveryLoad ? playerText('Restoring live broadcast') : playerText('Connecting to broadcast'),
                             subtitle: serverLabel(this.currentSource(), this.activeIndex),
                             soft: this.isRecoveryLoad,
                         });
@@ -441,8 +452,8 @@
                         }
                         if (this.isLiveStream) {
                             this.setPlayerState('loading', {
-                                title: this.isRecoveryLoad ? 'Restoring live broadcast' : 'Connecting to broadcast',
-                                subtitle: `${label} - waiting for IPTV data`,
+                                title: this.isRecoveryLoad ? playerText('Restoring live broadcast') : playerText('Connecting to broadcast'),
+                                subtitle: playerText(':server - waiting for IPTV data', { server: label }),
                                 soft: this.isRecoveryLoad,
                             });
                             return;
@@ -580,8 +591,8 @@
                         this.startupRetries += 1;
                         console.warn('[RiFiPlayer] Retrying failed server startup', { server: failedLabel, retry: this.startupRetries, reason: message });
                         this.setPlayerState('reconnecting', {
-                            title: 'Reconnecting broadcast',
-                            subtitle: `${failedLabel} failed. Retrying once...`,
+                            title: playerText('Reconnecting broadcast'),
+                            subtitle: playerText(':server failed. Retrying once...', { server: failedLabel }),
                             soft: true,
                         });
                         const token = this.loadToken;
@@ -602,8 +613,8 @@
                         this.activeIndex = nextIndex;
                         this.startupRetries = 0;
                         this.setPlayerState('switching_server', {
-                            title: `${failedLabel} failed`,
-                            subtitle: `Trying ${nextLabel}...`,
+                            title: playerText(':server failed', { server: failedLabel }),
+                            subtitle: playerText('Trying :server...', { server: nextLabel }),
                             soft: true,
                         });
                         this.renderServers();
@@ -614,7 +625,13 @@
                         return;
                     }
 
-                    this.showError('Broadcast unavailable', `We could not start this stream. ${failedLabel} failed. ${message || ''}`.trim());
+                    this.showError(
+                        playerText('Broadcast unavailable'),
+                        playerText('We could not start this stream. :server failed. :message', {
+                            server: failedLabel,
+                            message: message || '',
+                        }).trim(),
+                    );
                 }
 
                 startTimeout() {
@@ -672,7 +689,7 @@
                 populateQuality(levels) {
                     if (!this.quality || !this.hls || !levels.length) return;
 
-                    this.quality.innerHTML = '<option value="-1">Auto</option>' + levels
+                    this.quality.innerHTML = '<option value="-1">{{ __("Auto") }}</option>' + levels
                         .map((level, index) => `<option value="${index}">${level.height ? `${level.height}p` : `${Math.round((level.bitrate || 0) / 1000)} kbps`}</option>`)
                         .join('');
                     this.quality.hidden = false;
@@ -684,14 +701,14 @@
                 loadingDetails(label, type) {
                     if (this.isSwitchingServer) {
                         return {
-                            title: `Switching to ${label}`,
+                            title: playerText('Switching to :server', { server: label }),
                             subtitle: `${label} - ${type}`,
                             soft: true,
                         };
                     }
 
                     return {
-                        title: this.isRecoveryLoad ? 'Restoring live broadcast' : 'Connecting to broadcast',
+                        title: this.isRecoveryLoad ? playerText('Restoring live broadcast') : playerText('Connecting to broadcast'),
                         subtitle: `${label} - ${type}`,
                         soft: this.isRecoveryLoad,
                     };
@@ -699,7 +716,7 @@
 
                 showLoading() {
                     this.setPlayerState('loading', {
-                        title: this.hasStartedPlayback || this.isRecoveryLoad ? 'Restoring live broadcast' : 'Connecting to broadcast',
+                        title: this.hasStartedPlayback || this.isRecoveryLoad ? playerText('Restoring live broadcast') : playerText('Connecting to broadcast'),
                         subtitle: serverLabel(this.currentSource(), this.activeIndex),
                         soft: this.hasStartedPlayback || this.isRecoveryLoad,
                     });
@@ -833,8 +850,10 @@
                         this.bufferingIndexes.add(this.activeIndex);
                         this.renderServers();
                         this.setPlayerState('buffering', {
-                            title: 'Buffering live signal',
-                            subtitle: `${serverLabel(this.currentSource(), this.activeIndex)} is catching up.`,
+                            title: playerText('Buffering live signal'),
+                            subtitle: playerText(':server is catching up.', {
+                                server: serverLabel(this.currentSource(), this.activeIndex),
+                            }),
                             soft: true,
                         });
                     }, BUFFERING_GRACE_MS);
@@ -861,7 +880,7 @@
                     }
 
                     this.setPlayerState('connecting', {
-                        title: this.isRecoveryLoad ? 'Restoring live broadcast' : 'Connecting to broadcast',
+                        title: this.isRecoveryLoad ? playerText('Restoring live broadcast') : playerText('Connecting to broadcast'),
                         subtitle: serverLabel(this.currentSource(), this.activeIndex),
                         soft: this.isRecoveryLoad,
                     });
@@ -882,7 +901,7 @@
                 handleLiveEnded() {
                     if (!this.isLiveStream) {
                         this.setPlayerState('idle', {
-                            title: 'Playback ended',
+                            title: playerText('Playback ended'),
                             subtitle: serverLabel(this.currentSource(), this.activeIndex),
                             soft: true,
                         });
@@ -903,8 +922,8 @@
                     if (!this.isLiveStream) return;
 
                     this.setPlayerState('reconnecting', {
-                        title: 'Restoring live broadcast',
-                        subtitle: 'Keeping the live stream active',
+                        title: playerText('Restoring live broadcast'),
+                        subtitle: playerText('Keeping the live stream active'),
                         soft: true,
                     });
 
@@ -922,7 +941,7 @@
                     this.clearTimeout();
                     this.clearBufferingTimeout();
                     this.setPlayerState('reconnecting', {
-                        title: 'Reconnecting live signal',
+                        title: playerText('Reconnecting live signal'),
                         subtitle: `${serverLabel(this.currentSource(), this.activeIndex)} - ${message}`,
                         soft: true,
                     });
@@ -969,8 +988,11 @@
                     const progressAtStart = this.lastProgressAt;
 
                     this.setPlayerState('recovering', {
-                        title: 'Restoring broadcast',
-                        subtitle: `${serverLabel(this.currentSource(), this.activeIndex)} - attempt ${this.softRecoveryCount}`,
+                        title: playerText('Restoring broadcast'),
+                        subtitle: playerText(':server - attempt :attempt', {
+                            server: serverLabel(this.currentSource(), this.activeIndex),
+                            attempt: this.softRecoveryCount,
+                        }),
                         soft: true,
                     });
 
@@ -1019,8 +1041,8 @@
                     this.isHardReloading = true;
                     this.hardReloadCount += 1;
                     this.setPlayerState('recovering', {
-                        title: 'Restoring live broadcast',
-                        subtitle: 'Rebuilding the stream engine without leaving this page.',
+                        title: playerText('Restoring live broadcast'),
+                        subtitle: playerText('Rebuilding the stream engine without leaving this page.'),
                         soft: true,
                     });
 
@@ -1053,8 +1075,8 @@
                         this.hardReloadCount = 0;
                         this.isSwitchingServer = true;
                         this.setPlayerState('reconnecting', {
-                            title: `Switching to ${nextLabel}`,
-                            subtitle: `Current server could not recover: ${reason}`,
+                            title: playerText('Switching to :server', { server: nextLabel }),
+                            subtitle: playerText('Current server could not recover: :reason', { reason }),
                             soft: true,
                         });
                         this.renderServers();
@@ -1064,7 +1086,10 @@
                         return;
                     }
 
-                    this.showError('Broadcast unavailable', 'We could not restore this live signal after extended recovery attempts.');
+                    this.showError(
+                        playerText('Broadcast unavailable'),
+                        playerText('We could not restore this live signal after extended recovery attempts.'),
+                    );
                 }
 
                 scheduleRecoveryCheck(token, progressAtStart) {
@@ -1179,7 +1204,10 @@
                     window.RifiVideoPlayers.set(root, instance);
                     instance.init().catch((error) => {
                         console.error('[RiFiPlayer] Boot failed', error);
-                        instance.showError('Player unavailable', error.message || 'Player libraries could not be loaded.');
+                        instance.showError(
+                            playerText('Player unavailable'),
+                            error.message || playerText('Player libraries could not be loaded.'),
+                        );
                     });
                 });
             };

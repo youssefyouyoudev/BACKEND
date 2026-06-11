@@ -5,7 +5,7 @@
 @section('content')
     <section class="iptv-player-page" data-iptv-player-page>
         <aside class="iptv-channel-list" data-focus-list>
-            <a href="{{ route('watch.index') }}" class="button button--ghost">Back</a>
+            <a href="{{ route('watch.index') }}" class="button button--ghost">{{ __("Back") }}</a>
             <h2>{{ $item->category?->name ?? str($item->type)->headline() }}</h2>
             <div>
                 @foreach($siblings as $sibling)
@@ -30,8 +30,8 @@
                 ></video>
                 <div class="iptv-player-state" data-player-state>
                     <span class="iptv-spinner"></span>
-                    <p>Loading stream...</p>
-                    <button type="button" class="button button--ghost" data-player-retry hidden>Retry</button>
+                    <p>{{ __("Loading stream...") }}</p>
+                    <button type="button" class="button button--ghost" data-player-retry hidden>{{ __("Retry") }}</button>
                 </div>
             </div>
 
@@ -46,7 +46,7 @@
                 @auth
                     <form method="POST" action="{{ route('watch.favorite', $item) }}">
                         @csrf
-                        <button class="button button--primary">Favorite</button>
+                        <button class="button button--primary">{{ __("Favorite") }}</button>
                     </form>
                 @endauth
             </section>

@@ -1,3 +1,5 @@
+import { t } from '../i18n';
+
 export function initPlaylistForms() {
     document.querySelectorAll('form [data-playlist-input-type]').forEach((selector) => {
         const form = selector.closest('form');
@@ -17,8 +19,8 @@ export function initPlaylistForms() {
                     input.required = visible && (
                         (input.name === 'm3u_url' && inputType === 'm3u_url')
                         || (input.name === 'playlist_file' && inputType === 'upload' && !input.dataset.hasExistingFile)
-                        || (input.name === 'active_code' && inputType === 'active_code' && input.placeholder !== 'Leave unchanged')
-                        || (['server_url', 'username', 'password'].includes(input.name) && inputType === 'xtream' && input.placeholder !== 'Leave unchanged')
+                        || (input.name === 'active_code' && inputType === 'active_code' && input.placeholder !== t('Leave unchanged'))
+                        || (['server_url', 'username', 'password'].includes(input.name) && inputType === 'xtream' && input.placeholder !== t('Leave unchanged'))
                     );
                 });
             });

@@ -52,7 +52,7 @@ class AssignWorldCupIptvItemRequest extends FormRequest
                     ->exists();
 
                 if (! $isPublicApproved) {
-                    $validator->errors()->add('iptv_item_id', 'Select a public active IPTV channel from an approved playlist.');
+                    $validator->errors()->add('iptv_item_id', __('Select a public active IPTV channel from an approved playlist.'));
                 }
             },
         ];

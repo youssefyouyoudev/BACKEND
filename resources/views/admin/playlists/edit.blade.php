@@ -4,10 +4,10 @@
     <section class="surface-card">
         <div class="surface-card__header">
             <div>
-                <p class="surface-card__eyebrow">Edit playlist</p>
+                <p class="surface-card__eyebrow">{{ __("Edit playlist") }}</p>
                 <h1>{{ $playlist->name }}</h1>
             </div>
-            <a href="{{ route('admin.playlists.index') }}" class="button button--ghost">Back</a>
+            <a href="{{ route('admin.playlists.index') }}" class="button button--ghost">{{ __("Back") }}</a>
         </div>
 
         @include('admin.playlists.partials.form', [
