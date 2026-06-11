@@ -127,6 +127,37 @@ M3U),
     expect($playlist->channels()->count())->toBe(1);
 });
 
+it('accepts an xtream server outside the streaming domain allowlist', function () {
+    config()->set('streaming.enable_external_streams', false);
+    config()->set('streaming.allowed_playlist_domains', ['approved.example.com']);
+
+    Http::fake([
+        'http://unlisted-xtream.test/*' => Http::response([]),
+    ]);
+
+    $admin = User::factory()->create([
+        'role' => User::ROLE_ADMIN,
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($admin)
+        ->post('/admin/playlists', [
+            'name' => 'Unlisted Xtream',
+            'input_type' => Playlist::INPUT_TYPE_XTREAM,
+            'server_url' => 'http://unlisted-xtream.test',
+            'username' => 'demo-user',
+            'password' => 'demo-pass',
+            'output' => 'mpegts',
+        ])
+        ->assertRedirect('/admin/playlists')
+        ->assertSessionHasNoErrors();
+
+    $playlist = Playlist::query()->firstOrFail();
+
+    expect($playlist->server_url)->toBe('http://unlisted-xtream.test');
+    expect($playlist->status)->toBe('active');
+});
+
 it('saves an active code only playlist without parsing until a url or file is available', function () {
     config()->set('queue.default', 'sync');
 

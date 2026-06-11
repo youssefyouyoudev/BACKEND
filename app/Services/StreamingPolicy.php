@@ -11,7 +11,7 @@ class StreamingPolicy
 {
     public function assertPlaylistUrlAllowed(string $url): void
     {
-        $this->assertAllowed($url, 'playlist', (array) $this->config('streaming.allowed_playlist_domains', []));
+        $this->assertAllowed($url, 'playlist', [], false, false);
     }
 
     public function assertStreamUrlAllowed(string $url): void
@@ -32,9 +32,19 @@ class StreamingPolicy
         }
     }
 
-    private function assertAllowed(string $url, string $context, array $allowedDomains): void
-    {
-        $reason = $this->rejectionReason($url, $allowedDomains);
+    private function assertAllowed(
+        string $url,
+        string $context,
+        array $allowedDomains,
+        bool $requireAllowlist = true,
+        bool $requireExternalStreamsEnabled = true,
+    ): void {
+        $reason = $this->rejectionReason(
+            $url,
+            $allowedDomains,
+            $requireAllowlist,
+            $requireExternalStreamsEnabled,
+        );
 
         if ($reason === null) {
             return;
@@ -53,9 +63,13 @@ class StreamingPolicy
         ]);
     }
 
-    private function rejectionReason(string $url, array $allowedDomains): ?string
-    {
-        if (! (bool) $this->config('streaming.enable_external_streams', false)) {
+    private function rejectionReason(
+        string $url,
+        array $allowedDomains,
+        bool $requireAllowlist = true,
+        bool $requireExternalStreamsEnabled = true,
+    ): ?string {
+        if ($requireExternalStreamsEnabled && ! (bool) $this->config('streaming.enable_external_streams', false)) {
             return 'external_streams_disabled';
         }
 
@@ -79,7 +93,7 @@ class StreamingPolicy
             return 'local_hostname';
         }
 
-        if (! $this->matchesAllowlist($host, $allowedDomains)) {
+        if ($requireAllowlist && ! $this->matchesAllowlist($host, $allowedDomains)) {
             return 'domain_not_allowed';
         }
 
