@@ -32,8 +32,20 @@ it('redirects insecure stream urls instead of proxying bytes through php', funct
 it('rejects invalid encoded stream urls', function () {
     $this->get(URL::temporarySignedRoute('stream.proxy', now()->addMinutes(5), [
         'encodedUrl' => 'not-valid!!!!',
-    ]))
+    ], absolute: false))
         ->assertBadRequest();
+});
+
+it('validates protected stream signatures independently of the public host and scheme', function () {
+    $url = 'https://example.com/live/master.m3u8';
+    $signedUrl = StreamUrl::signedRedirect($url);
+
+    expect($signedUrl)->toStartWith('/stream/');
+
+    $this->withServerVariables([
+        'HTTP_HOST' => 'rifitv.com',
+        'HTTPS' => 'on',
+    ])->get($signedUrl)->assertRedirect($url);
 });
 
 it('rejects decoded values that are not valid urls', function () {
@@ -93,12 +105,14 @@ M3U, 200, [
     expect($content)->not->toContain('segment-1.ts');
 });
 
-it('generates https bridge urls when production https forcing is enabled', function () {
+it('generates host-independent bridge urls when production https forcing is enabled', function () {
     Config::set('rifimedia.force_https', true);
 
     $url = StreamUrl::channelBridge(383, 383);
 
-    expect($url)->toStartWith('https://');
+    expect($url)
+        ->toStartWith('/bridge-channel/383')
+        ->toContain('signature=');
 });
 
 it('bridges hls and mpegts sources in the browser', function () {

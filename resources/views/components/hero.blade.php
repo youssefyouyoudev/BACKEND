@@ -22,7 +22,7 @@
         <h1 id="rm-hero-title">{{ $name }}</h1>
         <p class="rm-hero__copy">{{ $category }} - {{ $program }}</p>
         <div class="rm-hero__stats" aria-label="{{ __("Featured broadcast metadata") }}">
-            <span><b>{{ __("Live") }}</b> {{ __("On air now") }}</span>
+            <span><b>{{ __('live.label') }}</b> {{ __("On air now") }}</span>
             <span><b>{{ $quality }}</b> {{ __("Auto quality") }}</span>
             <span><b>{{ $category }}</b> {{ __("Category") }}</span>
         </div>

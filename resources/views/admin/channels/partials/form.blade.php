@@ -61,6 +61,6 @@
 
 <div class="toggle-row">
     <label class="checkbox-field"><input type="checkbox" name="is_active" value="1" @checked(old('is_active', $channel->is_active ?? true))><span>{{ __("Active") }}</span></label>
-    <label class="checkbox-field"><input type="checkbox" name="is_live" value="1" @checked(old('is_live', $channel->is_live ?? true))><span>{{ __("Live") }}</span></label>
+    <label class="checkbox-field"><input type="checkbox" name="is_live" value="1" @checked(old('is_live', $channel->is_live ?? true))><span>{{ __('live.label') }}</span></label>
     <label class="checkbox-field"><input type="checkbox" name="is_featured" value="1" @checked(old('is_featured', $channel->is_featured ?? false))><span>{{ __("Featured") }}</span></label>
 </div>

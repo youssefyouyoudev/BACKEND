@@ -212,6 +212,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
     focusedIndex: 0,
     playerController: null,
     keydownHandler: null,
+    signedUrlRefreshes: 0,
 
     get filteredGroups() {
         const query = fold(this.search.trim());
@@ -340,6 +341,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         this.activeGroup = group;
         this.fallbackActive = false;
         this.attemptedVariantIds = [];
+        this.signedUrlRefreshes = 0;
         const variant = preferredVariant || getBestDefaultVariant(group);
         if (!variant) {
             this.fallbackActive = true;
@@ -353,13 +355,35 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         }
     },
 
-    async playVariant(variant, announce = true) {
+    async getFreshPlayUrl(channelId) {
+        const response = await fetch(`/api/tv/channels/${channelId}/play-url`, {
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'same-origin',
+        });
+
+        if (!response.ok) {
+            throw new Error(`Could not get play URL: ${response.status}`);
+        }
+
+        const payload = await response.json();
+        if (!payload.success || !payload.url) {
+            throw new Error('Missing protected play URL');
+        }
+
+        return payload.url;
+    },
+
+    async playVariant(variant, announce = true, isSignedUrlRefresh = false) {
         const requestId = ++this.requestId;
         this.activeVariant = variant;
         this.attemptedVariantIds.push(variant.id);
+        if (!isSignedUrlRefresh) this.signedUrlRefreshes = 0;
         this.loadingPlayer = true;
-        this.reconnecting = false;
-        this.reconnectMessage = '';
+        this.reconnecting = isSignedUrlRefresh;
+        this.reconnectMessage = isSignedUrlRefresh ? t('Stream link expired, refreshing...') : '';
         this.playerError = false;
         this.playerErrorMessage = '';
         this.fallbackActive = false;
@@ -367,24 +391,18 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         destroyPlayer(this);
 
         try {
-            const response = await fetch(`/api/tv/channels/${variant.id}`, { headers: { Accept: 'application/json' } });
-            if (!response.ok) throw new Error(`Stream request failed with HTTP ${response.status}`);
-            const payload = await response.json();
+            const playUrl = await this.getFreshPlayUrl(variant.id);
             if (requestId !== this.requestId) return;
-            if (!payload.success || !payload.channel) {
-                throw new Error(t('Channel response did not contain channel data.'));
-            }
             const freshVariant = {
                 ...variant,
-                ...payload.channel,
-                quality: payload.channel.quality || variant.quality,
+                public_play_url: playUrl,
             };
             this.activeVariant = freshVariant;
-            const source = freshVariant.public_play_url ? {
-                url: freshVariant.public_play_url,
-                browser_url: freshVariant.public_play_url,
-                external_url: freshVariant.public_play_url,
-                type: freshVariant.stream_type || 'stream',
+            const source = playUrl ? {
+                url: playUrl,
+                browser_url: playUrl,
+                external_url: playUrl,
+                type: variant.stream_type || variant.extension || 'stream',
                 requires_external_player: false,
             } : null;
             if (!source?.url) {
@@ -405,6 +423,10 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
                 channelId: variant.id,
                 message: error instanceof Error ? error.message : String(error),
             });
+            if (isSignedUrlRefresh) {
+                this.showPlayerError(t('Unable to play this channel right now. Please try again later.'));
+                return;
+            }
             this.tryNextVariant(t('The channel service could not load this source.'));
         }
     },
@@ -451,7 +473,27 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
                 this.reconnectMessage = '';
                 this.tryNextVariant(message);
             },
+            onForbidden: () => {
+                if (requestId !== this.requestId) return;
+                this.refreshSignedUrlAfterForbidden(this.activeVariant, requestId);
+            },
         });
+    },
+
+    async refreshSignedUrlAfterForbidden(variant, requestId) {
+        destroyPlayer(this);
+        if (requestId !== this.requestId) return;
+
+        if (this.signedUrlRefreshes >= 1) {
+            this.showPlayerError(t('Unable to play this channel right now. Please try again later.'));
+            return;
+        }
+
+        this.signedUrlRefreshes += 1;
+        this.loadingPlayer = false;
+        this.reconnecting = true;
+        this.reconnectMessage = t('Stream link expired, refreshing...');
+        await this.playVariant(variant, false, true);
     },
 
     tryNextVariant(finalMessage = t('This version is not working. Try another quality.'), useFallback = false) {

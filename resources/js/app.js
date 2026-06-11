@@ -13,10 +13,23 @@ import { initWorldCupAdmin } from './world-cup-admin';
 import { initWatchUnlocks } from './watch-unlock';
 import { t } from './i18n';
 
+const earlyRifiT = window.rifiT;
+
+window.rifiTranslations = window.rifiTranslations || {};
+window.rifiT = function (key, fallbackOrReplacements = null) {
+    const replacements = fallbackOrReplacements && typeof fallbackOrReplacements === 'object'
+        ? fallbackOrReplacements
+        : {};
+    const translated = t(key, replacements);
+
+    if (translated !== key) return translated;
+
+    return earlyRifiT?.(key, fallbackOrReplacements)
+        || (typeof fallbackOrReplacements === 'string' ? fallbackOrReplacements : translated);
+};
 window.Alpine = Alpine;
 window.Hls = Hls;
 window.mpegts = mpegts;
-window.rifiT = t;
 
 const applyThemeLabel = () => {
     const isLight = document.documentElement.classList.contains('theme-light');

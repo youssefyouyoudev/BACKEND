@@ -4,6 +4,29 @@ const RETRY_DELAYS = [750, 1500, 3000, 6000, 10000, 15000];
 const STALL_TIMEOUT = 20000;
 let activePlayer = null;
 
+const extractHttpStatus = (value, depth = 0) => {
+    if (depth > 3 || value === null || value === undefined) return null;
+    if (typeof value === 'number' && value >= 100 && value <= 599) return value;
+    if (typeof value === 'string') {
+        const match = value.match(/\b([1-5]\d{2})\b/);
+        return match ? Number(match[1]) : null;
+    }
+    if (Array.isArray(value)) {
+        for (const entry of value) {
+            const status = extractHttpStatus(entry, depth + 1);
+            if (status) return status;
+        }
+        return null;
+    }
+    if (typeof value === 'object') {
+        for (const key of ['status', 'statusCode', 'code', 'response', 'message', 'msg']) {
+            const status = extractHttpStatus(value[key], depth + 1);
+            if (status) return status;
+        }
+    }
+    return null;
+};
+
 const debug = (message, context = {}) => {
     if (!['localhost', '127.0.0.1'].includes(window.location.hostname)) return;
     console.debug(`[RifiLiveTV] ${message}`, context);
@@ -33,6 +56,7 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
     let lastCurrentTime = 0;
     let engineKind = 'native';
     let nativeSoftRecoveries = 0;
+    let forbiddenHandled = false;
 
     const notify = (name, payload) => options[name]?.(payload);
     const addListener = (target, event, handler, settings) => {
@@ -75,6 +99,23 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         notify('onFatal', message);
     };
 
+    const handleForbidden = (details) => {
+        if (forbiddenHandled || destroyed) return false;
+        const status = extractHttpStatus(details);
+        if (status !== 401 && status !== 403) return false;
+
+        forbiddenHandled = true;
+        clearTimeout(retryTimer);
+        clearTimeout(stableTimer);
+        retryTimer = null;
+        stableTimer = null;
+        cleanupEngine();
+        resetMedia();
+        notify('onForbidden', status);
+
+        return true;
+    };
+
     const load = () => {
         if (destroyed) return;
         cleanupEngine();
@@ -109,7 +150,7 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
                     fatal: data.fatal,
                     responseCode: data.response?.code,
                 });
-                if (!data.fatal || destroyed) return;
+                if (handleForbidden(data) || !data.fatal || destroyed) return;
 
                 if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsNetworkRecoveries < 2) {
                     hlsNetworkRecoveries += 1;
@@ -155,6 +196,7 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
             mpegPlayer.attachMediaElement(video);
             mpegPlayer.on(mpegts.Events.ERROR, (...details) => {
                 debug('MPEG-TS playback error.', { details });
+                if (handleForbidden(details)) return;
                 scheduleReconnect('MPEG-TS playback error');
             });
             mpegPlayer.load();

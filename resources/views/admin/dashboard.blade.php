@@ -30,7 +30,7 @@
             <strong>{{ number_format($stats['channels']) }}</strong>
         </article>
         <article class="stat-card">
-            <span class="stat-card__label">{{ __("Categories") }}</span>
+            <span class="stat-card__label">{{ __('categories.label') }}</span>
             <strong>{{ number_format($stats['categories']) }}</strong>
         </article>
         <article class="stat-card">

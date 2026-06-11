@@ -38,8 +38,8 @@
                     <span><i></i> {{ __("Live now") }}</span>
                     <h2 x-text="activeGroup?.name"></h2>
                     <p>
-                        <b x-text="rifiT(activeGroup?.category || '')"></b>
-                        <template x-if="activeGroup?.country"><em x-text="rifiT(activeGroup.country)"></em></template>
+                        <b x-text="window.rifiT(activeGroup?.category || '')"></b>
+                        <template x-if="activeGroup?.country"><em x-text="window.rifiT(activeGroup.country)"></em></template>
                         <strong x-text="activeVariant?.quality"></strong>
                     </p>
                 </div>
@@ -52,7 +52,7 @@
 
             <div class="rm-receiver-reconnect" x-show="reconnecting && !showPlayerFallback" x-cloak role="status" aria-live="polite">
                 <i></i>
-                <strong x-text="reconnectMessage || rifiT('Reconnecting...')"></strong>
+                <strong x-text="reconnectMessage || window.rifiT('Reconnecting...')"></strong>
                 <span>إعادة الاتصال بالبث المباشر...</span>
             </div>
 
@@ -84,7 +84,7 @@
         <div class="rm-receiver-controls">
             <button type="button" @click="stepChannel(-1)" title="{{ __("Previous channel") }}"><span>↑</span> {{ __("Previous") }}</button>
             <button type="button" @click="stepChannel(1)" title="{{ __("Next channel") }}"><span>↓</span> {{ __("Next") }}</button>
-            <button type="button" :class="{ 'is-active': isFavorite }" @click="toggleFavorite"><x-icon name="star" /><span x-text="rifiT(isFavorite ? 'Saved' : 'Favorite')"></span></button>
+            <button type="button" :class="{ 'is-active': isFavorite }" @click="toggleFavorite"><x-icon name="star" /><span x-text="window.rifiT(isFavorite ? 'Saved' : 'Favorite')"></span></button>
             <button type="button" @click="refreshStream"><x-icon name="signal" /> {{ __("Refresh") }}</button>
             <button type="button" @click="openExternalPlayer" :disabled="!externalPlayerUrl"><x-icon name="arrow-up-right" /> {{ __("External") }}</button>
             <button type="button" @click="fullscreen"><x-icon name="tv" /> {{ __("Fullscreen") }}</button>
@@ -134,15 +134,15 @@
                     @focus="focusedIndex = index"
                     @keydown.enter.prevent="watchGroup(group)"
                 >
-                    <button type="button" class="rm-receiver-card__watch" @click="watchGroup(group)" :aria-label="`Watch ${group.name}`">
-                        <img :src="group.logo || fallbackLogo" :alt="{{ __("group.name") }}" loading="lazy" x-on:error="$event.target.src = fallbackLogo">
+                    <button type="button" class="rm-receiver-card__watch" @click="watchGroup(group)" :aria-label="`${window.rifiT('Watch now')}: ${group.name || window.rifiT('Unknown group')}`">
+                        <img :src="group.logo || fallbackLogo" :alt="group.name || @js(__('live.group_name'))" loading="lazy" x-on:error="$event.target.src = fallbackLogo">
                         <span><x-icon name="play" /></span>
                     </button>
                     <div class="rm-receiver-card__copy">
-                        <small x-text="rifiT(group.category)"></small>
+                        <small x-text="window.rifiT(group.category)"></small>
                         <h2 x-text="group.name"></h2>
                         <p x-show="group.country || group.language">
-                            <span x-text="rifiT(group.country || group.language)"></span>
+                            <span x-text="window.rifiT(group.country || group.language)"></span>
                         </p>
                     </div>
                     <div class="rm-receiver-card__qualities">
@@ -161,7 +161,7 @@
                     <template x-for="(group, index) in filteredGroups" :key="group.id">
                         <tr :class="{ 'is-playing': activeGroup?.id === group.id }">
                             <td><img :src="group.logo || fallbackLogo" alt="" x-on:error="$event.target.src = fallbackLogo"><strong x-text="group.name"></strong></td>
-                            <td x-text="rifiT(group.category)"></td>
+                            <td x-text="window.rifiT(group.category)"></td>
                             <td><span class="rm-receiver-table__qualities"><template x-for="variant in group.qualityOptions" :key="variant.quality"><button type="button" @click="watchGroup(group, variant)" x-text="variant.quality"></button></template></span></td>
                             <td><button type="button" class="rm-receiver-watch-btn" @focus="focusedIndex = index" @click="watchGroup(group)">{{ __("Watch") }}</button></td>
                         </tr>

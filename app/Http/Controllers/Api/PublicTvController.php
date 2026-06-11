@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\IptvItem;
 use App\Services\PublicLiveTvService;
+use App\Support\StreamUrl;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,10 +41,7 @@ class PublicTvController extends Controller
 
     public function show(IptvItem $item): JsonResponse
     {
-        abort_unless(
-            IptvItem::query()->publicLive()->whereKey($item->getKey())->exists(),
-            404
-        );
+        $this->abortUnlessPublicLive($item);
 
         $item->load('category:id,name');
 
@@ -58,7 +56,18 @@ class PublicTvController extends Controller
 
         return response()->json([
             'success' => true,
-            'channel' => $this->liveTv->serialize($item),
+            'channel' => $this->liveTv->serialize($item, includePlayUrl: true),
+        ]);
+    }
+
+    public function playUrl(IptvItem $item): JsonResponse
+    {
+        $this->abortUnlessPublicLive($item);
+
+        return response()->json([
+            'success' => true,
+            'url' => StreamUrl::iptvItemBridge($item->id),
+            'expires_in' => 1800,
         ]);
     }
 
@@ -99,5 +108,13 @@ class PublicTvController extends Controller
             'sql' => $query->toSql(),
             'first_names' => $items->take(3)->pluck('name')->values()->all(),
         ]);
+    }
+
+    private function abortUnlessPublicLive(IptvItem $item): void
+    {
+        abort_unless(
+            IptvItem::query()->publicLive()->whereKey($item->getKey())->exists(),
+            404
+        );
     }
 }

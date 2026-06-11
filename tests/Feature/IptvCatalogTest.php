@@ -191,6 +191,15 @@ it('builds live tv from active public IPTV items without requiring a sports cate
         ->toContain("/play/iptv/{$item->id}")
         ->not->toContain('streams.example.com')
         ->and($response->content())->not->toContain($item->stream_url);
+
+    $this->getJson("/api/tv/channels/{$item->id}/play-url")
+        ->assertSuccessful()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('expires_in', 1800)
+        ->assertJson(fn ($json) => $json
+            ->whereType('url', 'string')
+            ->etc()
+        );
 });
 
 it('uses a local logo fallback without returning the provider source URL', function () {

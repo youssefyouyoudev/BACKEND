@@ -48,7 +48,7 @@ class PublicLiveTvService
     /**
      * @return array<string, mixed>
      */
-    public function serialize(IptvItem $item): array
+    public function serialize(IptvItem $item, bool $includePlayUrl = false): array
     {
         $category = $item->category?->name ?: $item->group_title ?: 'General';
 
@@ -62,7 +62,7 @@ class PublicLiveTvService
             'quality' => $item->qualityLabel(),
             'quality_label' => $item->qualityLabel(),
             'stream_type' => $item->extension ?: 'stream',
-            'public_play_url' => StreamUrl::iptvItemBridge($item->id),
+            'public_play_url' => $includePlayUrl ? StreamUrl::iptvItemBridge($item->id) : null,
             'watch_url' => route('watch.item', $item),
             'playback_status' => [
                 'playable' => true,

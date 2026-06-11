@@ -93,19 +93,19 @@ Route::post('/watch/item/{item}/history', [WatchController::class, 'history'])->
 Route::get('/watch/search', [WatchController::class, 'search'])->name('watch.search');
 Route::get('/watch/{channel}', [ChannelController::class, 'show'])->name('channels.show');
 Route::get('/stream/{encodedUrl}', StreamProxyController::class)
-    ->middleware(['signed', 'throttle:streams'])
+    ->middleware(['signed:relative', 'throttle:streams'])
     ->name('stream.proxy');
 Route::get('/go/{channel}', [StreamProxyController::class, 'playChannel'])
-    ->middleware(['signed', 'throttle:streams'])
+    ->middleware(['signed:relative', 'throttle:streams'])
     ->name('stream.channel');
 Route::get('/bridge/{encodedUrl}', StreamBridgeController::class)
-    ->middleware(['signed', 'throttle:streams'])
+    ->middleware(['signed:relative', 'throttle:streams'])
     ->name('stream.bridge');
 Route::get('/bridge-channel/{channel}', [StreamBridgeController::class, 'playChannel'])
-    ->middleware(['signed', 'throttle:streams'])
+    ->middleware(['signed:relative', 'throttle:streams'])
     ->name('stream.bridge.channel');
 Route::get('/play/iptv/{item}', [StreamBridgeController::class, 'playIptvItem'])
-    ->middleware(['signed', 'throttle:streams'])
+    ->middleware(['signed:relative', 'throttle:streams'])
     ->name('stream.bridge.iptv-item');
 
 Route::middleware('guest')->group(function (): void {

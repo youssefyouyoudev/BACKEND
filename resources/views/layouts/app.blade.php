@@ -67,6 +67,58 @@
         :schema="$schema ?? $baseSchema"
     />
     <link rel="icon" type="image/png" href="{{ asset('brand/rifi-logo.png') }}">
+    <script>
+        window.rifiLocale = @js(app()->getLocale());
+        window.rifiTranslations = Object.assign({}, window.rifiTranslations || {}, @js([
+            'Reconnecting...' => __('live.reconnecting'),
+            'Saved' => __('common.saved'),
+            'Favorite' => __('common.favorite'),
+            'Group name' => __('live.group_name'),
+            'Unknown group' => __('live.unknown_group'),
+            'Channel' => __('live.channel'),
+            'Channels' => __('live.channels'),
+            'Watch now' => __('live.watch_now'),
+            'Search' => __('common.search'),
+            'Loading...' => __('common.loading'),
+            'No results' => __('common.no_results'),
+            'Stream link expired, refreshing...' => __('player.link_expired_refreshing'),
+            'Unable to play this channel right now. Please try again later.' => __('player.unable_to_play'),
+            'Movies' => __('categories.movies'),
+            'Sports' => __('categories.sports'),
+            'News' => __('categories.news'),
+            'Kids' => __('categories.kids'),
+            'Entertainment' => __('categories.entertainment'),
+            'Documentary' => __('categories.documentary'),
+            'Music' => __('categories.music'),
+            'Religion' => __('categories.religion'),
+            'General' => __('categories.general'),
+            'Morocco' => __('countries.morocco'),
+            'France' => __('countries.france'),
+            'Spain' => __('countries.spain'),
+            'Arabic' => __('languages.arabic'),
+            'French' => __('languages.french'),
+            'English' => __('languages.english'),
+            'Spanish' => __('languages.spanish'),
+        ]));
+        window.rifiT = window.rifiT || function (key, fallbackOrReplacements = null) {
+            if (key === null || key === undefined || key === '') {
+                return typeof fallbackOrReplacements === 'string' ? fallbackOrReplacements : '';
+            }
+
+            const textKey = String(key).trim();
+            const replacements = fallbackOrReplacements && typeof fallbackOrReplacements === 'object'
+                ? fallbackOrReplacements
+                : {};
+            let value = window.rifiTranslations?.[textKey]
+                || (typeof fallbackOrReplacements === 'string' ? fallbackOrReplacements : textKey);
+
+            Object.entries(replacements).forEach(([name, replacement]) => {
+                value = value.replaceAll(`:${name}`, String(replacement));
+            });
+
+            return value;
+        };
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>

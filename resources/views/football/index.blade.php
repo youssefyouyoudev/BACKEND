@@ -40,7 +40,7 @@
     <section class="football-filter-panel" aria-label="{{ __("Football filters") }}">
         <div class="football-quick-filters chip-scroll" role="tablist" aria-label="{{ __("Match range") }}">
             <button type="button" data-football-filter="today" class="chip is-active chip-active"><x-icon name="calendar" />{{ __("Today") }}</button>
-            <button type="button" data-football-filter="live" class="chip"><x-icon name="signal" />{{ __("Live") }}</button>
+            <button type="button" data-football-filter="live" class="chip"><x-icon name="signal" />{{ __('live.label') }}</button>
             <button type="button" data-football-filter="tomorrow" class="chip"><x-icon name="calendar" />{{ __("Tomorrow") }}</button>
             <button type="button" data-football-filter="yesterday" class="chip"><x-icon name="clock" />{{ __("Yesterday") }}</button>
             <button type="button" data-football-filter="upcoming" class="chip"><x-icon name="trending" />{{ __("Upcoming") }}</button>

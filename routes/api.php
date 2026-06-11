@@ -106,6 +106,8 @@ Route::middleware('throttle:api')->group(function (): void {
     // Live TV split-screen: channels (paginated) + category counts
     Route::prefix('tv')->middleware('throttle:channel-catalog')->group(function (): void {
         Route::get('/channels', [PublicTvController::class, 'channels']);
+        Route::get('/channels/{item}/play-url', [PublicTvController::class, 'playUrl'])
+            ->name('api.tv.channels.play-url');
         Route::get('/channels/{item}', [PublicTvController::class, 'show']);
         Route::get('/categories', [PublicTvController::class, 'categories']);
     });

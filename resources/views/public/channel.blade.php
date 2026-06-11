@@ -16,7 +16,7 @@
     <section class="rm-watch-shell">
         <main class="rm-watch-main">
             <header class="rm-player-header rm-player-header--hero">
-                <span class="rm-live-badge"><i></i> {{ __("Live") }}</span>
+                <span class="rm-live-badge"><i></i> {{ __('live.label') }}</span>
                 <div>
                     <p class="rm-eyebrow">{{ $activeChannel['category'] ?? __('Live TV') }}</p>
                     <h1>{{ $activeChannel['name'] }}</h1>

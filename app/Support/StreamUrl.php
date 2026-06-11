@@ -35,9 +35,12 @@ class StreamUrl
 
         $url = trim($url);
 
-        return URL::temporarySignedRoute('stream.proxy', now()->addMinutes($minutes), [
-            'encodedUrl' => self::encodeProxyUrl($url),
-        ]);
+        return URL::temporarySignedRoute(
+            'stream.proxy',
+            now()->addMinutes($minutes),
+            ['encodedUrl' => self::encodeProxyUrl($url)],
+            absolute: false,
+        );
     }
 
     public static function channelRedirect(int $channelId, ?int $sourceId = null, int $minutes = 15): string
@@ -48,7 +51,8 @@ class StreamUrl
             array_filter([
                 'channel' => $channelId,
                 'source' => $sourceId,
-            ], fn ($value) => $value !== null)
+            ], fn ($value) => $value !== null),
+            absolute: false,
         );
     }
 
@@ -58,9 +62,12 @@ class StreamUrl
             return $url;
         }
 
-        return URL::temporarySignedRoute('stream.bridge', now()->addMinutes($minutes), [
-            'encodedUrl' => self::encodeProxyUrl(trim($url)),
-        ]);
+        return URL::temporarySignedRoute(
+            'stream.bridge',
+            now()->addMinutes($minutes),
+            ['encodedUrl' => self::encodeProxyUrl(trim($url))],
+            absolute: false,
+        );
     }
 
     public static function channelBridge(int $channelId, ?int $sourceId = null, int $minutes = 15): string
@@ -71,7 +78,8 @@ class StreamUrl
             array_filter([
                 'channel' => $channelId,
                 'source' => $sourceId,
-            ], fn ($value) => $value !== null)
+            ], fn ($value) => $value !== null),
+            absolute: false,
         );
     }
 
@@ -80,7 +88,8 @@ class StreamUrl
         return URL::temporarySignedRoute(
             'stream.bridge.iptv-item',
             now()->addMinutes($minutes),
-            ['item' => $itemId]
+            ['item' => $itemId],
+            absolute: false,
         );
     }
 
