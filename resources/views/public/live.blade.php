@@ -2,7 +2,7 @@
 
 @section('title', __("World Cup 2026 Live TV Receiver | RiFi Media TV"))
 @section('description', __("Watch public live TV channels in the RiFi Media TV World Cup 2026 inspired receiver with search, quality selection, and automatic reconnect."))
-@section('image', asset('assets/images/fifa_world_cup_2026_tease.png'))
+@section('image', asset('assets/images/promo/rifitv-world-football-2026-1122.webp'))
 
 @section('content')
 <header class="wc-live-page-header">
@@ -17,6 +17,8 @@
     </div>
 </header>
 
+<x-ad-slot name="channels_after_hero" type="banner" compact />
+
 <div
     class="rm-receiver wc-live-receiver"
     x-data="liveTvPage({
@@ -28,8 +30,9 @@
     x-init="init"
 >
     <section class="rm-receiver-player" x-ref="playerSection" aria-label="{{ __("Live TV player") }}">
-        <div class="rm-receiver-player__screen">
+        <div class="rm-receiver-player__screen" x-ref="playerStage">
             <video x-ref="video" x-show="!showPlayerFallback" controls playsinline autoplay muted></video>
+            <x-video-premium-ticker />
 
             <div class="rm-receiver-player__shade" x-show="!showPlayerFallback"></div>
             <div class="rm-receiver-player__identity" x-show="activeGroup && !showPlayerFallback" x-cloak>

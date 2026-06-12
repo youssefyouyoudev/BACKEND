@@ -141,7 +141,7 @@ export function initIptvPlayer() {
         });
 
         document.addEventListener('keydown', (event) => {
-            if (event.key === 'f' || event.key === 'F') video.requestFullscreen?.();
+            if (event.key === 'f' || event.key === 'F') video.closest('.iptv-video-shell')?.requestFullscreen?.();
             if (event.key === 'm' || event.key === 'M') video.muted = !video.muted;
             if (event.key === 'Escape' && document.fullscreenElement) document.exitFullscreen?.();
         });

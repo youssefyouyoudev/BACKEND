@@ -243,6 +243,7 @@ class SportsPageController extends Controller
             route('home'),
             route('sports.index'),
             route('sports.football'),
+            route('world-cup.index'),
             route('live-tv'),
             route('movies'),
             route('tv-shows'),

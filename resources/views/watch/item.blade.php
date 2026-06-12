@@ -28,6 +28,7 @@
                     preload="metadata"
                     poster="{{ $item->logo }}"
                 ></video>
+                <x-video-premium-ticker />
                 <div class="iptv-player-state" data-player-state>
                     <span class="iptv-spinner"></span>
                     <p>{{ __("Loading stream...") }}</p>

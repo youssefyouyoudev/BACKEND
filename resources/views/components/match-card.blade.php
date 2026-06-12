@@ -16,12 +16,12 @@
     </header>
     <div class="football-scoreline">
         <div class="football-team">
-            <img src="{{ data_get($match, 'home_team.badge') ?: asset('brand/rifi-logo.png') }}" alt="" loading="lazy">
+            <img src="{{ data_get($match, 'home_team.badge') ?: asset('brand/rifi-logo.png') }}" alt="{{ $home }} {{ app()->isLocale('ar') ? 'شعار الفريق' : 'team badge' }}" loading="lazy">
             <strong>{{ $home }}</strong>
         </div>
         <a href="{{ $url }}" class="football-scoreline__score">{{ $score }}</a>
         <div class="football-team football-team--away">
-            <img src="{{ data_get($match, 'away_team.badge') ?: asset('brand/rifi-logo.png') }}" alt="" loading="lazy">
+            <img src="{{ data_get($match, 'away_team.badge') ?: asset('brand/rifi-logo.png') }}" alt="{{ $away }} {{ app()->isLocale('ar') ? 'شعار الفريق' : 'team badge' }}" loading="lazy">
             <strong>{{ $away }}</strong>
         </div>
     </div>

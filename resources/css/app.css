@@ -20206,3 +20206,384 @@ html[dir="rtl"] video {
     direction: ltr;
     text-align: left;
 }
+
+/* Premium subscription ticker inside live video stages */
+.sat-player,
+.rm-receiver-player__screen,
+.iptv-video-shell {
+    position: relative;
+}
+
+.premium-video-ticker {
+    position: absolute;
+    z-index: 8;
+    inset-inline-start: 50%;
+    inset-block-end: clamp(3.6rem, 9%, 5rem);
+    width: max-content;
+    max-width: 90%;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.48rem 0.8rem;
+    overflow: hidden;
+    border: 1px solid rgba(244, 196, 74, 0.72);
+    border-inline-start: 4px solid #d71920;
+    border-radius: 999px;
+    color: #fff;
+    background:
+        linear-gradient(100deg, rgba(7, 12, 24, 0.94), rgba(30, 9, 14, 0.9)),
+        rgba(2, 7, 19, 0.9);
+    box-shadow:
+        0 12px 34px rgba(0, 0, 0, 0.58),
+        0 0 22px rgba(244, 196, 74, 0.16);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    cursor: pointer;
+    transform: translate(-50%, 130%);
+    transition:
+        opacity 320ms ease,
+        visibility 320ms ease,
+        transform 320ms ease;
+    backdrop-filter: blur(12px) saturate(135%);
+}
+
+.premium-video-ticker.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+}
+
+.premium-video-ticker__icon {
+    width: 1.8rem;
+    height: 1.8rem;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    color: #08101d;
+    background: linear-gradient(135deg, #f7d66d, #e9a82f);
+    box-shadow: 0 0 16px rgba(244, 196, 74, 0.34);
+}
+
+.premium-video-ticker__icon .rm-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.premium-video-ticker__viewport {
+    min-width: 0;
+    max-width: min(72vw, 760px);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.premium-video-ticker__track {
+    display: inline-block;
+    padding-inline: 0.35rem;
+    color: #f8fafc;
+    font-family: "Noto Sans Arabic", Inter, sans-serif;
+    font-size: clamp(0.78rem, 1.25vw, 1rem);
+    font-weight: 750;
+    line-height: 1.45;
+    text-shadow: 0 2px 8px #000;
+    animation: premium-video-ticker-scroll 16s linear infinite;
+}
+
+.premium-video-ticker__track strong {
+    color: #ffd75e;
+    font-weight: 950;
+}
+
+.premium-video-ticker__track b {
+    color: #ff7579;
+    font-weight: 950;
+}
+
+.premium-video-ticker:hover,
+.premium-video-ticker:focus-visible {
+    border-color: #ffe083;
+    box-shadow:
+        0 14px 38px rgba(0, 0, 0, 0.64),
+        0 0 28px rgba(244, 196, 74, 0.28);
+}
+
+.sat-player:fullscreen .premium-video-ticker,
+.rm-receiver-player__screen:fullscreen .premium-video-ticker,
+.iptv-video-shell:fullscreen .premium-video-ticker {
+    inset-block-end: clamp(4.5rem, 10%, 6.5rem);
+}
+
+@keyframes premium-video-ticker-scroll {
+    from { transform: translateX(100%); }
+    to { transform: translateX(-100%); }
+}
+
+@media (max-width: 767px) {
+    .premium-video-ticker {
+        inset-block-end: 3.15rem;
+        max-width: 94%;
+        min-height: 34px;
+        gap: 0.35rem;
+        padding: 0.32rem 0.55rem;
+        border-inline-start-width: 3px;
+    }
+
+    .premium-video-ticker__icon {
+        width: 1.45rem;
+        height: 1.45rem;
+    }
+
+    .premium-video-ticker__icon .rm-icon {
+        width: 0.82rem;
+        height: 0.82rem;
+    }
+
+    .premium-video-ticker__viewport {
+        max-width: 78vw;
+    }
+
+    .premium-video-ticker__track {
+        font-size: 0.68rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .premium-video-ticker {
+        transition: none;
+    }
+
+    .premium-video-ticker__viewport {
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .premium-video-ticker__track {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        animation: none;
+        transform: none;
+    }
+}
+
+/* RiFiTV premium promotion and sponsored placements */
+.rm-promo-banner {
+    margin: 0;
+    width: 100%;
+}
+
+.rm-promo-banner a,
+.rm-promo-banner picture {
+    display: block;
+}
+
+.rm-promo-banner img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1122 / 1402;
+    object-fit: cover;
+    border: 1px solid color-mix(in srgb, var(--wc-gold, #f3c969) 42%, transparent);
+    border-radius: clamp(1rem, 2.4vw, 1.75rem);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.48), 0 0 42px rgba(22, 140, 255, 0.16);
+}
+
+.rm-promo-banner--compact {
+    max-width: 440px;
+    margin-inline: auto;
+}
+
+.rm-ad-slot {
+    position: relative;
+    min-height: 116px;
+    display: block;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(243, 201, 105, 0.28);
+    border-radius: 1.25rem;
+    background:
+        radial-gradient(circle at 85% 20%, rgba(240, 68, 82, 0.18), transparent 30%),
+        linear-gradient(120deg, rgba(7, 29, 61, 0.96), rgba(2, 10, 25, 0.98));
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+}
+
+.rm-ad-slot__link {
+    min-height: inherit;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+}
+
+.rm-ad-slot__link > img {
+    width: 112px;
+    height: 82px;
+    flex: 0 0 auto;
+    object-fit: cover;
+    border-radius: 0.8rem;
+}
+
+.rm-ad-slot__copy {
+    min-width: 0;
+    display: grid;
+    gap: 0.2rem;
+    flex: 1;
+}
+
+.rm-ad-slot__copy small {
+    color: var(--wc-gold, #f3c969);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.rm-ad-slot__copy strong {
+    color: #fff;
+    font-size: clamp(1rem, 2vw, 1.35rem);
+}
+
+.rm-ad-slot__copy span {
+    color: var(--text-soft, #a8bad0);
+}
+
+.rm-ad-slot__link > b {
+    flex: 0 0 auto;
+    padding: 0.72rem 1rem;
+    border-radius: 0.75rem;
+    color: #fff;
+    background: linear-gradient(115deg, #bf0b16, #ed2939);
+}
+
+.rm-ad-slot--inline,
+.rm-ad-slot--empty,
+.rm-ad-slot--compact {
+    min-height: 92px;
+}
+
+.rm-ad-slot--sidebar,
+.rm-ad-slot--card {
+    min-height: 250px;
+}
+
+.rm-ad-slot--sidebar .rm-ad-slot__link,
+.rm-ad-slot--card .rm-ad-slot__link {
+    align-items: flex-start;
+    flex-direction: column;
+}
+
+.rm-ad-slot--sticky {
+    display: none;
+}
+
+.rm-ad-slot__close {
+    position: absolute;
+    z-index: 2;
+    inset-block-start: 0.35rem;
+    inset-inline-end: 0.35rem;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(2, 7, 19, 0.88);
+    cursor: pointer;
+}
+
+.rtv-landing-hero__visual .rm-promo-banner {
+    max-width: 520px;
+    margin-inline: auto;
+}
+
+.rtv-final-cta .rm-promo-banner {
+    margin-bottom: 1.25rem;
+}
+
+.wc-date-nav {
+    position: sticky;
+    z-index: 10;
+    top: 88px;
+    display: flex;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+    padding: 0.7rem;
+    overflow-x: auto;
+    border: 1px solid rgba(99, 183, 255, 0.18);
+    border-radius: 1rem;
+    background: rgba(2, 10, 25, 0.9);
+    backdrop-filter: blur(16px);
+}
+
+.wc-date-nav a {
+    flex: 0 0 auto;
+    padding: 0.55rem 0.8rem;
+    border-radius: 999px;
+    color: #d9edff;
+    background: rgba(22, 140, 255, 0.12);
+    font-weight: 800;
+}
+
+.wc-schedule-date {
+    scroll-margin-top: 170px;
+    margin-bottom: 2rem;
+}
+
+.wc-schedule-date__heading,
+.wc-schedule-group__heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.wc-schedule-group {
+    display: grid;
+    gap: 0.9rem;
+    margin-top: 1.2rem;
+}
+
+@media (max-width: 767px) {
+    .rm-ad-slot__link {
+        padding: 0.85rem;
+    }
+
+    .rm-ad-slot__copy span {
+        display: none;
+    }
+
+    .rm-ad-slot__link > b {
+        padding: 0.62rem 0.75rem;
+        font-size: 0.78rem;
+    }
+
+    .rm-ad-slot--sticky {
+        position: fixed;
+        z-index: 80;
+        inset-inline: 0.5rem;
+        inset-block-end: 76px;
+        display: block;
+        min-height: 76px;
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.58);
+    }
+
+    .rm-ad-slot--sticky .rm-ad-slot__link {
+        min-height: 76px;
+        padding-inline-end: 2.8rem;
+    }
+
+    .rm-ad-slot--sticky .rm-ad-slot__copy strong {
+        font-size: 0.9rem;
+    }
+
+    .rm-ad-slot--sticky .rm-ad-slot__link > b {
+        display: none;
+    }
+
+    .wc-date-nav {
+        top: 74px;
+    }
+}

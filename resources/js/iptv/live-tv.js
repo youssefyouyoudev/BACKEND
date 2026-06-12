@@ -570,7 +570,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
     },
 
     fullscreen() {
-        this.$refs.video?.requestFullscreen?.();
+        this.$refs.playerStage?.requestFullscreen?.();
     },
 
     toast(message) {

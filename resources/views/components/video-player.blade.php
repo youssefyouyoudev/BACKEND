@@ -28,6 +28,8 @@
         @if($poster) poster="{{ $poster }}" @endif
     ></video>
 
+    <x-video-premium-ticker />
+
     <div class="sat-player__loading rm-player-loading rifi-player-overlay" data-player-loading hidden>
         <span class="rifi-player-spinner"></span>
         <strong class="rifi-player-status-title" data-player-status-title>{{ __("Connecting to broadcast") }}</strong>

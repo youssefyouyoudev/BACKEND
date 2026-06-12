@@ -49,6 +49,7 @@ class HomeController extends Controller
             'previewMatches' => $todayMatches->isNotEmpty() ? $todayMatches : $upcomingMatches,
             'featuredChannels' => $this->featuredChannels(),
             'worldCupMatchesCount' => $worldCupMatchesCount,
+            'schema' => $this->homeSchema(),
         ]);
     }
 
@@ -73,5 +74,42 @@ class HomeController extends Controller
             ->orderBy('name')
             ->limit(8)
             ->get();
+    }
+
+    private function homeSchema(): array
+    {
+        $faqItems = collect(__('landing.faq.items'));
+
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'Organization',
+                    '@id' => url('/').'#organization',
+                    'name' => 'RiFiTV',
+                    'url' => url('/'),
+                    'logo' => asset('brand/rifi-logo.png'),
+                ],
+                [
+                    '@type' => 'WebSite',
+                    '@id' => url('/').'#website',
+                    'url' => url('/'),
+                    'name' => 'RiFiTV',
+                    'inLanguage' => app()->isLocale('ar') ? 'ar-MA' : 'en',
+                    'publisher' => ['@id' => url('/').'#organization'],
+                ],
+                [
+                    '@type' => 'FAQPage',
+                    'mainEntity' => $faqItems->map(fn (array $item): array => [
+                        '@type' => 'Question',
+                        'name' => $item['question'],
+                        'acceptedAnswer' => [
+                            '@type' => 'Answer',
+                            'text' => $item['answer'],
+                        ],
+                    ])->values()->all(),
+                ],
+            ],
+        ];
     }
 }

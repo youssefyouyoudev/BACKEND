@@ -11,6 +11,7 @@ import { groupChannelVariants } from './iptv/live-tv';
 import { initCountdowns } from './countdown';
 import { initWorldCupAdmin } from './world-cup-admin';
 import { initWatchUnlocks } from './watch-unlock';
+import { initVideoPremiumTickers } from './video-premium-ticker';
 import { t } from './i18n';
 
 const earlyRifiT = window.rifiT;
@@ -58,6 +59,7 @@ const setTheme = (theme, persist = true) => {
 
 document.addEventListener('DOMContentLoaded', () => {
     initCountdowns();
+    initVideoPremiumTickers();
 
     document.querySelectorAll('[data-channel-picker]').forEach((picker) => {
         const search = picker.querySelector('[data-channel-search]');
@@ -139,6 +141,21 @@ document.addEventListener('DOMContentLoaded', () => {
             void button.offsetWidth;
             button.classList.add('is-bouncing');
             setTheme(next, true);
+        });
+    });
+
+    document.querySelectorAll('[data-ad-dismiss]').forEach((button) => {
+        const slot = button.closest('[data-ad-slot]');
+        const storageKey = `rifi-ad-dismissed:${slot?.dataset.adSlot || 'sticky'}`;
+
+        if (sessionStorage.getItem(storageKey) === '1') {
+            slot?.remove();
+            return;
+        }
+
+        button.addEventListener('click', () => {
+            sessionStorage.setItem(storageKey, '1');
+            slot?.remove();
         });
     });
 

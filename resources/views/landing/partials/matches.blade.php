@@ -64,10 +64,14 @@
                         </span>
                     @endif
                 </article>
+                @if($loop->iteration % 4 === 0 && ! $loop->last)
+                    <x-ad-slot :name="'home_matches_'.$loop->iteration" type="inline" compact />
+                @endif
             @endforeach
         </div>
     @else
         <div class="rtv-landing-empty" data-reveal>
+            <x-promo-banner compact />
             <span><x-icon name="calendar" /></span>
             <h3>{{ __('landing.matches.empty_title') }}</h3>
             <p>{{ __('landing.matches.empty_copy') }}</p>

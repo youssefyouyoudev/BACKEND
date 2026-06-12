@@ -2,6 +2,7 @@
 
 @section('title', ($match['home_team']['name'] ?? __('Match')).' '.__('vs').' '.($match['away_team']['name'] ?? __('Match')).' | '.__('Football Match Center'))
 @section('description', __("Football match details, status, score, venue, and TV channel availability with direct watch links."))
+@section('image', $match['home_team']['badge'] ?? asset('assets/images/promo/rifitv-world-football-2026-1122.webp'))
 
 @section('content')
 <div class="rm-page football-live-page" data-football-event-page data-event-id="{{ $match['id'] }}">
@@ -17,13 +18,13 @@
         <p>{{ $match['status'] }} @if($match['venue']) at {{ $match['venue'] }} @endif</p>
         <div class="football-event-score">
             <div class="football-event-team">
-                <img src="{{ $match['home_team']['badge'] ?? asset('brand/rifi-logo.png') }}" alt="" loading="lazy">
+                <img src="{{ $match['home_team']['badge'] ?? asset('brand/rifi-logo.png') }}" alt="{{ $match['home_team']['name'] }} {{ app()->isLocale('ar') ? 'شعار الفريق' : 'team badge' }}" loading="lazy">
                 <strong>{{ $match['score']['home'] ?? '-' }}</strong>
             </div>
             <span>{{ $match['date'] }} {{ $match['time'] }}</span>
             <div class="football-event-team football-event-team--away">
                 <strong>{{ $match['score']['away'] ?? '-' }}</strong>
-                <img src="{{ $match['away_team']['badge'] ?? asset('brand/rifi-logo.png') }}" alt="" loading="lazy">
+                <img src="{{ $match['away_team']['badge'] ?? asset('brand/rifi-logo.png') }}" alt="{{ $match['away_team']['name'] }} {{ app()->isLocale('ar') ? 'شعار الفريق' : 'team badge' }}" loading="lazy">
             </div>
         </div>
     </section>

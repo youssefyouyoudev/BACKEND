@@ -4,10 +4,7 @@
     class="rm-live-fallback {{ $compact ? 'rm-live-fallback--compact' : '' }}"
 >
     <div class="rm-live-fallback__poster">
-        <img
-            src="{{ asset('assets/images/fifa_world_cup_2026_tease.png') }}"
-            alt="{{ __("FIFA World Cup 2026 coming soon on Rifi Media TV") }}"
-        >
+        <x-promo-banner :compact="$compact" />
     </div>
     <div class="rm-live-fallback__content">
         <span class="rm-live-fallback__eyebrow wc-badge">{{ __("Rifi Media TV · World Cup 2026") }}</span>
@@ -25,5 +22,6 @@
                 <button type="button" @click="$refs.search?.scrollIntoView({ behavior: 'smooth', block: 'center' }); $refs.search?.focus()">{{ __("Back to Channels / العودة للقنوات") }}</button>
             @endif
         </div>
+        <x-ad-slot name="channels_empty_state" type="empty" compact />
     </div>
 </article>

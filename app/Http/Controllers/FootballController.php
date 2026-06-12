@@ -62,18 +62,30 @@ class FootballController extends Controller
             'match' => $event,
             'schema' => [
                 '@context' => 'https://schema.org',
-                '@type' => 'SportsEvent',
-                'name' => ($event['home_team']['name'] ?? 'Home').' vs '.($event['away_team']['name'] ?? 'Away'),
-                'startDate' => trim(($event['date'] ?? '').'T'.($event['time'] ?? '00:00')),
-                'eventStatus' => 'https://schema.org/EventScheduled',
-                'sport' => 'Football',
-                'location' => $event['venue'] ? [
-                    '@type' => 'Place',
-                    'name' => $event['venue'],
-                ] : null,
-                'competitor' => [
-                    ['@type' => 'SportsTeam', 'name' => $event['home_team']['name'] ?? 'Home'],
-                    ['@type' => 'SportsTeam', 'name' => $event['away_team']['name'] ?? 'Away'],
+                '@graph' => [
+                    [
+                        '@type' => 'SportsEvent',
+                        'name' => ($event['home_team']['name'] ?? 'Home').' vs '.($event['away_team']['name'] ?? 'Away'),
+                        'startDate' => trim(($event['date'] ?? '').'T'.($event['time'] ?? '00:00')),
+                        'eventStatus' => 'https://schema.org/EventScheduled',
+                        'sport' => 'Football',
+                        'location' => $event['venue'] ? [
+                            '@type' => 'Place',
+                            'name' => $event['venue'],
+                        ] : null,
+                        'competitor' => [
+                            ['@type' => 'SportsTeam', 'name' => $event['home_team']['name'] ?? 'Home'],
+                            ['@type' => 'SportsTeam', 'name' => $event['away_team']['name'] ?? 'Away'],
+                        ],
+                    ],
+                    [
+                        '@type' => 'BreadcrumbList',
+                        'itemListElement' => [
+                            ['@type' => 'ListItem', 'position' => 1, 'name' => 'RiFiTV', 'item' => route('home')],
+                            ['@type' => 'ListItem', 'position' => 2, 'name' => __('Football'), 'item' => route('sports.football')],
+                            ['@type' => 'ListItem', 'position' => 3, 'name' => ($event['home_team']['name'] ?? 'Home').' vs '.($event['away_team']['name'] ?? 'Away')],
+                        ],
+                    ],
                 ],
             ],
         ]);

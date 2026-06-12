@@ -17,12 +17,12 @@
 <meta property="og:type" content="{{ $type }}">
 <meta property="og:url" content="{{ $canonical }}">
 <meta property="og:image" content="{{ $image }}">
+<meta property="og:locale" content="{{ app()->isLocale('ar') ? 'ar_MA' : 'en_US' }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ $title }}">
 <meta name="twitter:description" content="{{ $description }}">
 <meta name="twitter:image" content="{{ $image }}">
-@if(! empty($schema))
-<script type="application/ld+json">
-{!! json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) !!}
-</script>
-@endif
+<link rel="alternate" hreflang="ar-MA" href="{{ route('language.switch', 'ar') }}">
+<link rel="alternate" hreflang="en" href="{{ route('language.switch', 'en') }}">
+<link rel="alternate" hreflang="x-default" href="{{ $canonical }}">
+<x-schema-jsonld :data="$schema" />

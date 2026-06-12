@@ -2,18 +2,21 @@
 
 @section('title', __('landing.meta.title'))
 @section('description', __('landing.meta.description'))
-@section('image', asset('assets/images/fifa_world_cup_2026_tease.png'))
+@section('image', asset('assets/images/promo/rifitv-world-football-2026-1122.webp'))
 
 @section('content')
 <div class="rtv-landing">
     @include('landing.partials.hero')
+    <x-ad-slot name="home_after_hero" type="banner" />
     @include('landing.partials.matches')
+    <x-ad-slot name="home_between_matches_world_cup" type="inline" compact />
     @include('landing.partials.world-cup')
     @include('landing.partials.channels')
     @include('landing.partials.features')
     @include('landing.partials.faq')
 
     <section class="rtv-final-cta" data-reveal aria-labelledby="rtv-final-title">
+        <x-promo-banner compact />
         <span class="rtv-kicker">{{ __('landing.cta.eyebrow') }}</span>
         <h2 id="rtv-final-title">{{ __('landing.cta.title') }}</h2>
         <p>{{ __('landing.cta.copy') }}</p>
