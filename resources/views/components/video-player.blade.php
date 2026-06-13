@@ -43,8 +43,10 @@
             class="rifitv-player-iframe"
             data-match-player-iframe
             title="{{ __('Live match player') }}"
-            allow="autoplay; fullscreen; picture-in-picture"
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowfullscreen
+            referrerpolicy="no-referrer"
+            loading="eager"
             hidden
         ></iframe>
 

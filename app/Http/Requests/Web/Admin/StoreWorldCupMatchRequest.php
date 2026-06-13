@@ -42,6 +42,7 @@ class StoreWorldCupMatchRequest extends FormRequest
             'broadcaster' => ['nullable', 'string', 'max:120'],
             'commentator' => ['nullable', 'string', 'max:120'],
             'live_url_manual' => ['nullable', 'required_if:use_manual_live_url,1', 'url:http,https', 'max:2048'],
+            'player_type' => ['nullable', Rule::in(['auto', 'iframe', 'videojs', 'external_embed'])],
             'use_manual_live_url' => ['nullable', 'boolean'],
             'is_live_link_enabled' => ['nullable', 'boolean'],
             'broadcast_status' => ['required', Rule::in(WorldCupMatch::STATUSES)],
@@ -94,6 +95,7 @@ class StoreWorldCupMatchRequest extends FormRequest
     public function validated($key = null, $default = null): array
     {
         $validated = parent::validated($key, $default);
+        $validated['player_type'] = $validated['player_type'] ?? 'iframe';
         $validated['use_manual_live_url'] = $this->boolean('use_manual_live_url');
         $validated['is_live_link_enabled'] = $this->boolean('is_live_link_enabled');
         $validated['is_featured'] = $this->boolean('is_featured');

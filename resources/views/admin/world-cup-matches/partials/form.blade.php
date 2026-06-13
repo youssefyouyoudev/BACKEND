@@ -61,7 +61,7 @@
     </section>
 
     <section class="surface-card">
-        <div class="surface-card__header"><div><p class="surface-card__eyebrow">{{ __("3. Live Stream / Player Settings") }}</p><h2>{{ __("Player source and broadcast status") }}</h2></div></div>
+        <div class="surface-card__header"><div><p class="surface-card__eyebrow">{{ __("3. Match Player Settings") }}</p><h2>{{ __("Player source and broadcast status") }}</h2></div></div>
         <div class="legal-callout"><strong>{{ __("Rights reminder") }}</strong><p>{{ __("Only add links you own or are allowed to publish.") }}</p></div>
         <div class="field form-grid__wide wc-channel-picker" data-channel-picker>
             <label for="channel_search">{{ __("Search existing channels") }}</label>
@@ -104,6 +104,7 @@
         </div>
         <div class="form-grid">
             <div class="field"><label for="broadcast_status">{{ __("Broadcast status") }}</label><select id="broadcast_status" name="broadcast_status" required>@foreach($statuses as $status)<option value="{{ $status }}" @selected(old('broadcast_status', $worldCupMatch->broadcast_status) === $status)>{{ str($status)->headline() }}</option>@endforeach</select></div>
+            <div class="field"><label for="player_type">{{ __("Player type") }}</label><select id="player_type" name="player_type">@foreach(['auto' => 'Auto', 'iframe' => 'Iframe', 'videojs' => 'Video.js', 'external_embed' => 'External embed'] as $value => $label)<option value="{{ $value }}" @selected(old('player_type', $worldCupMatch->player_type ?: 'iframe') === $value)>{{ __($label) }}</option>@endforeach</select></div>
             <div class="field"><label for="live_url_manual">{{ __("Manual live URL") }}</label><input id="live_url_manual" type="url" name="live_url_manual" maxlength="2048" value="{{ old('live_url_manual', $worldCupMatch->live_url_manual) }}" placeholder="https://approved.example.com/live.m3u8"></div>
             <div class="field"><label for="channel_name_manual">{{ __("Manual channel name") }}</label><input id="channel_name_manual" name="channel_name_manual" maxlength="120" value="{{ old('channel_name_manual', $worldCupMatch->channel_name_manual) }}" placeholder="{{ __("Channel to be confirmed") }}"></div>
             <div class="field"><label for="broadcaster">{{ __("Broadcaster") }}</label><input id="broadcaster" name="broadcaster" maxlength="120" value="{{ old('broadcaster', $worldCupMatch->broadcaster) }}"></div>

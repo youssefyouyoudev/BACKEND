@@ -27,76 +27,40 @@ class MatchWatchController extends Controller
         $now = CarbonImmutable::now(WorldCupMatch::MOROCCO_TIMEZONE);
         $watchItems = $worldCupMatch->availableWatchItems($now);
         $manualWatchUrl = $this->manualWatchUrl($worldCupMatch);
-        $sources = collect();
-
-        if ($manualWatchUrl) {
-            $sources->push([
-                'id' => 'manual-'.$worldCupMatch->getKey(),
-                'channel' => $worldCupMatch->channel_name_manual ?: $worldCupMatch->broadcaster ?: __('Manual source'),
-                'title' => $worldCupMatch->channel_name_manual ?: "{$worldCupMatch->home_team} vs {$worldCupMatch->away_team}",
-                'label' => __('Manual URL'),
-                'quality' => 'Auto',
-                'language' => null,
-                'commentator' => $worldCupMatch->commentator,
-                'type' => $this->streamTypeForUrl($worldCupMatch->live_url_manual),
-                'recommended' => true,
-                'health_status' => 'unknown',
-                'url' => $manualWatchUrl,
-            ]);
-        }
-
-        $sources = $sources->merge($watchItems->map(fn (IptvItem $item, int $index): array => [
-            'id' => $item->getKey(),
-            'channel' => $item->pivot?->channel_name ?: $item->name,
-            'title' => $item->pivot?->stream_title ?: $item->name,
-            'label' => $item->pivot?->server_label ?: __('Server :number', ['number' => $sources->isNotEmpty() ? $index + 2 : $index + 1]),
-            'quality' => $item->pivot?->quality ?: $item->qualityLabel(),
-            'language' => $item->pivot?->language,
-            'commentator' => $item->pivot?->commentator ?: $worldCupMatch->commentator,
-            'type' => $item->pivot?->stream_type ?: $item->extension ?: 'stream',
-            'recommended' => (bool) ($item->pivot?->is_recommended ?? false),
-            'health_status' => $item->pivot?->health_status ?: 'unknown',
-            'url' => URL::temporarySignedRoute(
-                'watch-links.play',
-                $worldCupMatch->watch_expires_at,
-                ['worldCupMatch' => $worldCupMatch, 'item' => $item],
-                absolute: false,
-            ),
-        ]))->values();
-
-        if ($sources->isEmpty() && $this->hasPlayableSelectedChannel($worldCupMatch)) {
-            $sources->push([
-                'id' => 'channel-'.$worldCupMatch->selectedChannel->getKey(),
-                'channel' => $worldCupMatch->selectedChannel->clean_display_name,
-                'title' => $worldCupMatch->selectedChannel->clean_display_name,
-                'label' => __('Server 1'),
-                'quality' => $worldCupMatch->selectedChannel->quality_label ?: 'Auto',
-                'language' => null,
-                'commentator' => $worldCupMatch->commentator,
-                'type' => $worldCupMatch->selectedChannel->stream_type ?: 'stream',
-                'recommended' => true,
-                'health_status' => 'unknown',
-                'url' => URL::temporarySignedRoute(
-                    'matches.watch-channel',
-                    $worldCupMatch->watch_expires_at,
-                    [
-                        'worldCupMatch' => $worldCupMatch,
-                        'channel' => $worldCupMatch->selectedChannel,
-                    ],
-                    absolute: false,
-                ),
-            ]);
-        }
+        $sources = $this->matchPlayerSources($worldCupMatch, $now);
 
         return view('matches.watch', [
             'match' => $worldCupMatch,
             'status' => $worldCupMatch->watchStatus($now),
             'watchItems' => $watchItems,
             'sources' => $sources,
+            'playerType' => $worldCupMatch->player_type ?: 'iframe',
             'manualWatchUrl' => $manualWatchUrl,
             'upcomingMatches' => $this->upcomingMatches($worldCupMatch, $now),
             'schema' => $this->schema($worldCupMatch),
             'isAdmin' => auth()->user()?->isAdmin() ?? false,
+        ]);
+    }
+
+    public function embed(Request $request, WorldCupMatch $worldCupMatch): View
+    {
+        abort_unless($request->hasValidRelativeSignature(), Response::HTTP_FORBIDDEN);
+
+        $worldCupMatch->load([
+            'selectedChannel.playlist',
+            'selectedIptvItem.playlist',
+            'iptvItems.playlist',
+        ]);
+
+        abort_unless($worldCupMatch->isWatchOpen(), Response::HTTP_GONE);
+
+        $source = $this->resolveEmbedSource($worldCupMatch, $request);
+
+        abort_unless($source !== null, Response::HTTP_NOT_FOUND);
+
+        return view('matches.embed', [
+            'match' => $worldCupMatch,
+            'source' => $source,
         ]);
     }
 
@@ -161,6 +125,166 @@ class MatchWatchController extends Controller
         ));
     }
 
+    private function matchPlayerSources(WorldCupMatch $match, CarbonImmutable $now)
+    {
+        if (! $match->is_live_link_enabled || ! $match->isWatchOpen($now)) {
+            return collect();
+        }
+
+        if ($match->use_manual_live_url && filled($match->live_url_manual)) {
+            return collect([$this->manualPlayerSource($match)]);
+        }
+
+        $items = $match->availableWatchItems($now);
+
+        if ($items->isNotEmpty()) {
+            return $items
+                ->map(fn (IptvItem $item, int $index): array => $this->iptvPlayerSource($match, $item, $index))
+                ->values();
+        }
+
+        if ($this->hasPlayableSelectedChannel($match)) {
+            return collect([$this->channelPlayerSource($match)]);
+        }
+
+        return collect();
+    }
+
+    private function manualPlayerSource(WorldCupMatch $match): array
+    {
+        return [
+            'id' => 'manual-'.$match->getKey(),
+            'source' => 'manual',
+            'channel' => $match->channel_name_manual ?: $match->broadcaster ?: __('Manual source'),
+            'title' => $match->channel_name_manual ?: "{$match->home_team} vs {$match->away_team}",
+            'label' => __('Server 1'),
+            'quality' => 'Auto',
+            'language' => null,
+            'commentator' => $match->commentator,
+            'type' => $this->streamTypeForUrl($match->live_url_manual, $match->player_type),
+            'recommended' => true,
+            'health_status' => 'unknown',
+            'embed_url' => $this->embedUrl($match, ['source' => 'manual']),
+        ];
+    }
+
+    private function iptvPlayerSource(WorldCupMatch $match, IptvItem $item, int $index): array
+    {
+        return [
+            'id' => $item->getKey(),
+            'source' => 'item-'.$item->getKey(),
+            'channel' => $item->pivot?->channel_name ?: $item->name,
+            'title' => $item->pivot?->stream_title ?: $item->name,
+            'label' => $item->pivot?->server_label ?: __('Server :number', ['number' => $index + 1]),
+            'quality' => $item->pivot?->quality ?: $item->qualityLabel(),
+            'language' => $item->pivot?->language,
+            'commentator' => $item->pivot?->commentator ?: $match->commentator,
+            'type' => $this->streamTypeForUrl($item->stream_url, $item->pivot?->stream_type ?: $item->extension),
+            'recommended' => (bool) ($item->pivot?->is_recommended ?? false),
+            'health_status' => $item->pivot?->health_status ?: 'unknown',
+            'embed_url' => $this->embedUrl($match, ['source' => 'item', 'item' => $item->getKey()]),
+        ];
+    }
+
+    private function channelPlayerSource(WorldCupMatch $match): array
+    {
+        return [
+            'id' => 'channel-'.$match->selectedChannel->getKey(),
+            'source' => 'channel-'.$match->selectedChannel->getKey(),
+            'channel' => $match->selectedChannel->clean_display_name,
+            'title' => $match->selectedChannel->clean_display_name,
+            'label' => __('Server 1'),
+            'quality' => $match->selectedChannel->quality_label ?: 'Auto',
+            'language' => null,
+            'commentator' => $match->commentator,
+            'type' => $match->selectedChannel->stream_type ?: 'stream',
+            'recommended' => true,
+            'health_status' => 'unknown',
+            'embed_url' => $this->embedUrl($match, ['source' => 'channel', 'channel' => $match->selectedChannel->getKey()]),
+        ];
+    }
+
+    private function embedUrl(WorldCupMatch $match, array $parameters): string
+    {
+        return URL::temporarySignedRoute(
+            'matches.embed',
+            $match->watch_expires_at,
+            ['worldCupMatch' => $match, ...$parameters],
+            absolute: false,
+        );
+    }
+
+    private function resolveEmbedSource(WorldCupMatch $match, Request $request): ?array
+    {
+        if ($request->string('source')->toString() === 'manual') {
+            if (
+                ! $match->is_live_link_enabled
+                || ! $match->use_manual_live_url
+                || blank($match->live_url_manual)
+            ) {
+                return null;
+            }
+
+            return [
+                ...$this->manualPlayerSource($match),
+                'url' => $this->playbackUrl($match->live_url_manual, $match->player_type),
+            ];
+        }
+
+        if ($request->string('source')->toString() === 'item') {
+            $itemId = $request->integer('item');
+            $item = $match->availableWatchItems()
+                ->first(fn (IptvItem $availableItem): bool => $availableItem->getKey() === $itemId);
+
+            if (! $item) {
+                return null;
+            }
+
+            $index = $match->availableWatchItems()->search(fn (IptvItem $availableItem): bool => $availableItem->is($item));
+
+            return [
+                ...$this->iptvPlayerSource($match, $item, is_int($index) ? $index : 0),
+                'url' => StreamUrl::matchIptvItemBridge(
+                    $item->getKey(),
+                    $match->getKey(),
+                    $match->watch_expires_at,
+                ),
+            ];
+        }
+
+        if ($request->string('source')->toString() === 'channel' && $this->hasPlayableSelectedChannel($match)) {
+            $channel = $match->selectedChannel;
+
+            if (! $channel || $channel->getKey() !== $request->integer('channel')) {
+                return null;
+            }
+
+            return [
+                ...$this->channelPlayerSource($match),
+                'url' => StreamUrl::matchChannelBridge(
+                    $channel->getKey(),
+                    $match->getKey(),
+                    $match->watch_expires_at,
+                ),
+            ];
+        }
+
+        return null;
+    }
+
+    private function playbackUrl(?string $url, ?string $playerType = null): ?string
+    {
+        if (blank($url)) {
+            return null;
+        }
+
+        if ($playerType === 'external_embed' || $this->streamTypeForUrl($url, $playerType) === 'iframe') {
+            return $url;
+        }
+
+        return StreamUrl::signedBridge($url, 60);
+    }
+
     private function manualWatchUrl(WorldCupMatch $match): ?string
     {
         if (
@@ -180,15 +304,26 @@ class MatchWatchController extends Controller
         );
     }
 
-    private function streamTypeForUrl(?string $url): string
+    private function streamTypeForUrl(?string $url, ?string $type = null): string
     {
+        $type = mb_strtolower((string) $type);
+
+        if (in_array($type, ['iframe', 'external_embed'], true)) {
+            return 'iframe';
+        }
+
+        if (in_array($type, ['hls', 'm3u', 'm3u8', 'mpegts', 'ts', 'mp4'], true)) {
+            return $type === 'ts' ? 'mpegts' : $type;
+        }
+
         $path = mb_strtolower((string) parse_url((string) $url, PHP_URL_PATH));
 
         return match (true) {
             str_ends_with($path, '.m3u8') => 'hls',
             str_ends_with($path, '.ts') => 'mpegts',
+            str_ends_with($path, '.mpegts') => 'mpegts',
             str_ends_with($path, '.mp4') => 'mp4',
-            default => 'mpegts',
+            default => 'iframe',
         };
     }
 

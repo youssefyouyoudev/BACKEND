@@ -32,6 +32,9 @@ Route::get('/world-cup', [WorldCupController::class, 'index'])->name('world-cup.
 Route::get('/world-cup/group-stage', [WorldCupController::class, 'index'])->name('world-cup.group-stage');
 Route::get('/match/{worldCupMatch}/watch', [MatchWatchController::class, 'show'])
     ->name('matches.watch');
+Route::get('/match/{worldCupMatch}/embed', [MatchWatchController::class, 'embed'])
+    ->middleware(['signed:relative', 'throttle:streams'])
+    ->name('matches.embed');
 Route::get('/match/{worldCupMatch}/watch-link/manual', [MatchWatchController::class, 'manualWatchLink'])
     ->middleware(['signed:relative', 'throttle:streams'])
     ->name('matches.watch-link.manual');

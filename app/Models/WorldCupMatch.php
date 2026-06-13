@@ -50,6 +50,7 @@ class WorldCupMatch extends Model
         'channel_name_manual',
         'broadcaster',
         'live_url_manual',
+        'player_type',
         'use_manual_live_url',
         'is_live_link_enabled',
         'broadcast_status',
