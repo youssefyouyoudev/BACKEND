@@ -72,7 +72,22 @@ class IptvItem extends Model
     public function worldCupMatches(): BelongsToMany
     {
         return $this->belongsToMany(WorldCupMatch::class, 'world_cup_match_iptv_item')
-            ->withPivot(['is_active', 'priority', 'starts_at', 'expires_at'])
+            ->withPivot([
+                'is_active',
+                'priority',
+                'channel_name',
+                'stream_title',
+                'stream_type',
+                'quality',
+                'language',
+                'commentator',
+                'server_label',
+                'is_recommended',
+                'health_status',
+                'last_checked_at',
+                'starts_at',
+                'expires_at',
+            ])
             ->withTimestamps();
     }
 

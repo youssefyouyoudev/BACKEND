@@ -85,6 +85,47 @@ it('filters inactive and expired match IPTV assignments', function () {
         ->toBe([$active->id]);
 });
 
+it('orders recommended match streams first and exposes channel and server metadata', function () {
+    Carbon::setTestNow(CarbonImmutable::parse('2026-06-13 20:00:00', WorldCupMatch::MOROCCO_TIMEZONE));
+
+    $playlist = Playlist::factory()->create(['is_public' => true, 'approved_at' => now()]);
+    $primary = createMatchIptvItem($playlist, 'beIN Sports Max 1 HD');
+    $backup = createMatchIptvItem($playlist, 'Alkass Sports HD');
+    $match = createOpenMatch();
+
+    $match->iptvItems()->attach($primary->id, [
+        'is_active' => true,
+        'priority' => 20,
+        'channel_name' => 'beIN Sports Max 1',
+        'server_label' => 'Server 2',
+        'quality' => 'FHD',
+        'language' => 'Arabic',
+        'is_recommended' => true,
+        'health_status' => 'online',
+    ]);
+    $match->iptvItems()->attach($backup->id, [
+        'is_active' => true,
+        'priority' => 1,
+        'channel_name' => 'Alkass Sports',
+        'server_label' => 'Server 1',
+        'quality' => 'HD',
+    ]);
+
+    $freshMatch = $match->fresh()->load('iptvItems.playlist');
+
+    expect($freshMatch->availableWatchItems()->pluck('id')->all())
+        ->toBe([$primary->id, $backup->id]);
+
+    $this->get(route('matches.watch', $match))
+        ->assertSuccessful()
+        ->assertSee('data-match-player-config', false)
+        ->assertSee('beIN Sports Max 1')
+        ->assertSee('Alkass Sports')
+        ->assertSee('Server 2')
+        ->assertSee('"recommended":true', false)
+        ->assertSee('\/watch-link\/'.$match->id.'\/'.$primary->id.'\/play', false);
+});
+
 it('hides the player before and after the watch window', function () {
     config()->set('ads.enabled', true);
     $match = createOpenMatch();
@@ -124,6 +165,25 @@ it('rejects a direct signed match stream link after expiry', function () {
 
     Carbon::setTestNow(CarbonImmutable::parse('2026-06-13 23:01:00', WorldCupMatch::MOROCCO_TIMEZONE));
     $this->get($url)->assertForbidden();
+});
+
+it('protects the match-scoped play endpoint with a relative signature', function () {
+    Carbon::setTestNow(CarbonImmutable::parse('2026-06-13 20:00:00', WorldCupMatch::MOROCCO_TIMEZONE));
+
+    $playlist = Playlist::factory()->create(['is_public' => true, 'approved_at' => now()]);
+    $item = createMatchIptvItem($playlist, 'Signed FHD');
+    $match = createOpenMatch();
+    $match->iptvItems()->attach($item->id);
+
+    $url = URL::temporarySignedRoute(
+        'watch-links.play',
+        $match->watch_expires_at,
+        ['worldCupMatch' => $match, 'item' => $item],
+        absolute: false,
+    );
+
+    $this->get($url)->assertRedirect();
+    $this->get(parse_url($url, PHP_URL_PATH))->assertForbidden();
 });
 
 function createOpenMatch(): WorldCupMatch

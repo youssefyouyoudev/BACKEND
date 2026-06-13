@@ -27,11 +27,18 @@ class MatchWatchController extends Controller
         $now = CarbonImmutable::now(WorldCupMatch::MOROCCO_TIMEZONE);
         $watchItems = $worldCupMatch->availableWatchItems($now);
         $sources = $watchItems->map(fn (IptvItem $item, int $index): array => [
-            'label' => __('Server :number', ['number' => $index + 1]),
-            'quality' => $item->qualityLabel(),
-            'type' => $item->extension ?: 'stream',
+            'id' => $item->getKey(),
+            'channel' => $item->pivot?->channel_name ?: $item->name,
+            'title' => $item->pivot?->stream_title ?: $item->name,
+            'label' => $item->pivot?->server_label ?: __('Server :number', ['number' => $index + 1]),
+            'quality' => $item->pivot?->quality ?: $item->qualityLabel(),
+            'language' => $item->pivot?->language,
+            'commentator' => $item->pivot?->commentator ?: $worldCupMatch->commentator,
+            'type' => $item->pivot?->stream_type ?: $item->extension ?: 'stream',
+            'recommended' => (bool) ($item->pivot?->is_recommended ?? false),
+            'health_status' => $item->pivot?->health_status ?: 'unknown',
             'url' => URL::temporarySignedRoute(
-                'matches.watch-link',
+                'watch-links.play',
                 $worldCupMatch->watch_expires_at,
                 ['worldCupMatch' => $worldCupMatch, 'item' => $item],
                 absolute: false,
@@ -40,9 +47,16 @@ class MatchWatchController extends Controller
 
         if ($sources->isEmpty() && $this->hasPlayableSelectedChannel($worldCupMatch)) {
             $sources->push([
+                'id' => 'channel-'.$worldCupMatch->selectedChannel->getKey(),
+                'channel' => $worldCupMatch->selectedChannel->clean_display_name,
+                'title' => $worldCupMatch->selectedChannel->clean_display_name,
                 'label' => __('Server 1'),
                 'quality' => $worldCupMatch->selectedChannel->quality_label ?: 'Auto',
+                'language' => null,
+                'commentator' => $worldCupMatch->commentator,
                 'type' => $worldCupMatch->selectedChannel->stream_type ?: 'stream',
+                'recommended' => true,
+                'health_status' => 'unknown',
                 'url' => URL::temporarySignedRoute(
                     'matches.watch-channel',
                     $worldCupMatch->watch_expires_at,
@@ -63,6 +77,7 @@ class MatchWatchController extends Controller
             'manualWatchUrl' => $this->manualWatchUrl($worldCupMatch),
             'upcomingMatches' => $this->upcomingMatches($worldCupMatch, $now),
             'schema' => $this->schema($worldCupMatch),
+            'isAdmin' => auth()->user()?->isAdmin() ?? false,
         ]);
     }
 

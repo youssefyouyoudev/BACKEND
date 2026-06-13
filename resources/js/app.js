@@ -12,6 +12,7 @@ import { initCountdowns } from './countdown';
 import { initWorldCupAdmin } from './world-cup-admin';
 import { initWatchUnlocks } from './watch-unlock';
 import { initVideoPremiumTickers } from './video-premium-ticker';
+import { initMatchPlayers } from './match-player';
 import { t } from './i18n';
 
 const earlyRifiT = window.rifiT;
@@ -76,6 +77,7 @@ window.rifiTheme = {
 document.addEventListener('DOMContentLoaded', () => {
     initCountdowns();
     initVideoPremiumTickers();
+    initMatchPlayers();
 
     document.querySelectorAll('[data-channel-picker]').forEach((picker) => {
         const search = picker.querySelector('[data-channel-search]');

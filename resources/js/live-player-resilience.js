@@ -90,6 +90,7 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
     const play = () => {
         video.play().catch((error) => {
             debug('Autoplay is waiting for user interaction.', { message: error?.message });
+            notify('onAutoplayBlocked');
         });
     };
 
@@ -130,15 +131,22 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
             engineKind = 'hls';
             hls = new Hls({
                 enableWorker: true,
-                lowLatencyMode: true,
-                liveSyncDurationCount: 3,
-                liveMaxLatencyDurationCount: 8,
+                lowLatencyMode: false,
+                backBufferLength: 90,
                 maxBufferLength: 30,
                 maxMaxBufferLength: 60,
-                backBufferLength: 30,
-                manifestLoadingMaxRetry: 4,
-                levelLoadingMaxRetry: 4,
+                liveSyncDurationCount: 4,
+                liveMaxLatencyDurationCount: 10,
+                fragLoadingTimeOut: 20000,
                 fragLoadingMaxRetry: 6,
+                fragLoadingRetryDelay: 1000,
+                fragLoadingMaxRetryTimeout: 8000,
+                manifestLoadingTimeOut: 20000,
+                manifestLoadingMaxRetry: 6,
+                manifestLoadingRetryDelay: 1000,
+                levelLoadingTimeOut: 20000,
+                levelLoadingMaxRetry: 6,
+                levelLoadingRetryDelay: 1000,
             });
             hls.loadSource(streamUrl);
             hls.attachMedia(video);

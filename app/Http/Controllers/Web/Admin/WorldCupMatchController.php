@@ -227,14 +227,32 @@ class WorldCupMatchController extends Controller
 
         $data = $request->validate([
             'is_active' => ['nullable', 'boolean'],
+            'is_recommended' => ['nullable', 'boolean'],
             'priority' => ['required', 'integer', 'min:0', 'max:999'],
+            'channel_name' => ['nullable', 'string', 'max:160'],
+            'stream_title' => ['nullable', 'string', 'max:160'],
+            'stream_type' => ['nullable', Rule::in(['hls', 'm3u8', 'mpegts', 'stream', 'mp4', 'iframe', 'external', 'channel_proxy'])],
+            'quality' => ['nullable', Rule::in(['SD', 'HD', 'FHD', '4K', 'Auto'])],
+            'language' => ['nullable', 'string', 'max:60'],
+            'commentator' => ['nullable', 'string', 'max:120'],
+            'server_label' => ['nullable', 'string', 'max:80'],
+            'health_status' => ['nullable', Rule::in(['unknown', 'online', 'offline', 'failed'])],
             'starts_at' => ['nullable', 'date'],
             'expires_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
         ]);
 
         $worldCupMatch->iptvItems()->updateExistingPivot($item->getKey(), [
             'is_active' => $request->boolean('is_active'),
+            'is_recommended' => $request->boolean('is_recommended'),
             'priority' => $data['priority'],
+            'channel_name' => $data['channel_name'] ?? null,
+            'stream_title' => $data['stream_title'] ?? null,
+            'stream_type' => $data['stream_type'] ?? null,
+            'quality' => $data['quality'] ?? null,
+            'language' => $data['language'] ?? null,
+            'commentator' => $data['commentator'] ?? null,
+            'server_label' => $data['server_label'] ?? null,
+            'health_status' => $data['health_status'] ?? null,
             'starts_at' => $data['starts_at'] ?? null,
             'expires_at' => $data['expires_at'] ?? null,
         ]);

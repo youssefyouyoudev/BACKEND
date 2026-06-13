@@ -41,6 +41,9 @@ Route::get('/match/{worldCupMatch}/watch-channel/{channel}', [MatchWatchControll
 Route::get('/match/{worldCupMatch}/watch-link/{item}', [MatchWatchController::class, 'watchLink'])
     ->middleware(['signed:relative', 'throttle:streams'])
     ->name('matches.watch-link');
+Route::get('/watch-link/{worldCupMatch}/{item}/play', [MatchWatchController::class, 'watchLink'])
+    ->middleware(['signed:relative', 'throttle:streams'])
+    ->name('watch-links.play');
 Route::get('/sports/football', [FootballController::class, 'index'])->name('sports.football');
 Route::get('/sports/football/event/{eventId}', [FootballController::class, 'event'])
     ->whereNumber('eventId')

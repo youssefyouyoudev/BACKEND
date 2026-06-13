@@ -90,7 +90,22 @@ class WorldCupMatch extends Model
     public function iptvItems(): BelongsToMany
     {
         return $this->belongsToMany(IptvItem::class, 'world_cup_match_iptv_item')
-            ->withPivot(['is_active', 'priority', 'starts_at', 'expires_at'])
+            ->withPivot([
+                'is_active',
+                'priority',
+                'channel_name',
+                'stream_title',
+                'stream_type',
+                'quality',
+                'language',
+                'commentator',
+                'server_label',
+                'is_recommended',
+                'health_status',
+                'last_checked_at',
+                'starts_at',
+                'expires_at',
+            ])
             ->withTimestamps();
     }
 
@@ -268,7 +283,23 @@ class WorldCupMatch extends Model
                     && (! $expiresAt || $expiresAt->greaterThanOrEqualTo($now))
                     && $this->isPublicLiveIptvItem($item);
             })
-            ->sortBy(fn (IptvItem $item): int => (int) ($item->pivot?->priority ?? 0))
+            ->sort(function (IptvItem $left, IptvItem $right): int {
+                $recommended = (int) ($right->pivot?->is_recommended ?? false)
+                    <=> (int) ($left->pivot?->is_recommended ?? false);
+
+                if ($recommended !== 0) {
+                    return $recommended;
+                }
+
+                $priority = (int) ($left->pivot?->priority ?? 0)
+                    <=> (int) ($right->pivot?->priority ?? 0);
+
+                if ($priority !== 0) {
+                    return $priority;
+                }
+
+                return $this->qualityRank($right) <=> $this->qualityRank($left);
+            })
             ->values();
     }
 
@@ -297,6 +328,16 @@ class WorldCupMatch extends Model
             && filled($item->stream_url)
             && $item->playlist?->is_public
             && filled($item->playlist?->approved_at);
+    }
+
+    private function qualityRank(IptvItem $item): int
+    {
+        return match (strtoupper((string) ($item->pivot?->quality ?: $item->qualityLabel()))) {
+            '4K', 'UHD' => 4,
+            'FHD', '1080P' => 3,
+            'HD', '720P' => 2,
+            default => 1,
+        };
     }
 
     private function asMoroccoWallClock(mixed $value): CarbonImmutable

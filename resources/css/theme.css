@@ -839,6 +839,333 @@ html[data-theme="light"] .rm-premium-navbar {
     }
 }
 
+/* Match player */
+.rifitv-match-player {
+    display: grid;
+    gap: 1rem;
+    color: var(--text-main);
+}
+
+.rifitv-player-now,
+.rifitv-player-options > section {
+    border: 1px solid var(--border-color);
+    border-radius: 1rem;
+    background: var(--bg-card);
+    box-shadow: 0 14px 40px var(--shadow-color);
+}
+
+.rifitv-player-now {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+}
+
+.rifitv-player-now > div,
+.rifitv-player-options__heading > div {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.rifitv-player-now__eyebrow,
+.rifitv-player-options__heading span {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.rifitv-player-now small,
+.rifitv-player-options__heading small,
+.rifitv-channel-tab small,
+.rifitv-server-card small {
+    color: var(--text-muted);
+}
+
+.rifitv-player-health {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+    border-radius: 999px;
+    color: var(--success);
+    background: color-mix(in srgb, var(--success) 12%, transparent);
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.rifitv-player-shell {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    min-height: 260px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--primary) 24%, transparent);
+    border-radius: 1.1rem;
+    background: var(--player-bg);
+    box-shadow: 0 24px 70px rgba(2, 6, 23, 0.42);
+}
+
+.rifitv-player-video,
+.rifitv-player-iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: var(--player-bg);
+    object-fit: contain;
+}
+
+.rifitv-player-overlay {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 0.65rem;
+    padding: 1.5rem;
+    color: #f8fafc;
+    text-align: center;
+    background: rgba(2, 6, 23, 0.78);
+    backdrop-filter: blur(8px);
+}
+
+.rifitv-player-overlay[hidden] {
+    display: none;
+}
+
+.rifitv-player-overlay p {
+    max-width: 560px;
+    margin: 0;
+    color: #cbd5e1;
+}
+
+.rifitv-player-overlay.is-error strong {
+    color: #fecaca;
+}
+
+.rifitv-player-play {
+    position: absolute;
+    z-index: 4;
+    inset: 50% auto auto 50%;
+    display: grid;
+    width: clamp(64px, 9vw, 88px);
+    height: clamp(64px, 9vw, 88px);
+    place-items: center;
+    padding: 0;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 999px;
+    color: #fff;
+    background: color-mix(in srgb, var(--primary) 88%, #020617);
+    box-shadow: 0 18px 50px rgba(2, 6, 23, 0.55);
+    cursor: pointer;
+}
+
+.rifitv-player-play[hidden] {
+    display: none;
+}
+
+.rifitv-player-play .rm-icon {
+    width: 32px;
+    height: 32px;
+}
+
+.rifitv-player-spinner {
+    width: 46px;
+    height: 46px;
+    border: 3px solid rgba(255, 255, 255, 0.2);
+    border-top-color: var(--primary);
+    border-radius: 999px;
+    animation: rifitv-player-spin 0.8s linear infinite;
+}
+
+.rifitv-player-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+
+.rifitv-player-controls :is(button, a) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.8rem;
+    color: var(--text-main);
+    background: var(--bg-card);
+    font: inherit;
+    font-weight: 750;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.rifitv-player-controls :is(button, a):hover,
+.rifitv-player-controls :is(button, a):focus-visible {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.rifitv-player-options {
+    display: grid;
+    gap: 1rem;
+}
+
+.rifitv-player-options > section {
+    padding: 1rem;
+}
+
+.rifitv-player-options__heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.rifitv-channel-tabs,
+.rifitv-server-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 0.7rem;
+}
+
+.rifitv-channel-tab,
+.rifitv-server-card {
+    position: relative;
+    display: grid;
+    gap: 0.25rem;
+    min-height: 76px;
+    padding: 0.85rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.9rem;
+    color: var(--text-main);
+    background: var(--bg-surface-soft);
+    text-align: start;
+    cursor: pointer;
+}
+
+.rifitv-channel-tab > span {
+    position: absolute;
+    inset-block-start: 0.45rem;
+    inset-inline-end: 0.45rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 999px;
+    color: var(--success);
+    background: color-mix(in srgb, var(--success) 12%, transparent);
+    font-size: 0.65rem;
+    font-weight: 800;
+}
+
+.rifitv-channel-tab.is-active,
+.rifitv-server-card.is-active {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, var(--bg-card));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.rifitv-server-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.rifitv-server-card__number {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border-radius: 0.65rem;
+    color: var(--text-inverse);
+    background: var(--primary);
+    font-weight: 900;
+}
+
+.rifitv-server-card > span:nth-child(2) {
+    display: grid;
+    min-width: 0;
+}
+
+.rifitv-server-card > b {
+    color: var(--success);
+    font-size: 0.72rem;
+}
+
+.rifitv-server-card.is-loading > b {
+    color: var(--warning);
+}
+
+.rifitv-server-card.is-failed {
+    border-color: color-mix(in srgb, var(--danger) 42%, var(--border-color));
+}
+
+.rifitv-server-card.is-failed > b {
+    color: var(--danger);
+}
+
+.match-watch-admin-note {
+    margin: 0.75rem 0 0;
+    color: var(--warning);
+    font-weight: 700;
+}
+
+.match-watch-servers {
+    display: none;
+}
+
+.wc-admin-stream-row {
+    grid-template-columns: minmax(180px, 0.7fr) minmax(0, 2.3fr) !important;
+}
+
+.wc-admin-stream-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(150px, 1fr));
+    gap: 0.75rem;
+}
+
+.wc-admin-stream-actions {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+@keyframes rifitv-player-spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 760px) {
+    .rifitv-player-shell {
+        min-height: 200px;
+        border-radius: 0.8rem;
+    }
+
+    .rifitv-player-now,
+    .rifitv-player-options__heading {
+        align-items: start;
+        flex-direction: column;
+    }
+
+    .rifitv-player-controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .rifitv-channel-tabs,
+    .rifitv-server-grid,
+    .wc-admin-stream-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .wc-admin-stream-row {
+        grid-template-columns: 1fr !important;
+    }
+}
+
 @media (min-width: 1600px) {
     body {
         font-size: clamp(1rem, 0.72vw, 1.2rem);
@@ -850,5 +1177,9 @@ html[data-theme="light"] .rm-premium-navbar {
     *::before,
     *::after {
         scroll-behavior: auto !important;
+    }
+
+    .rifitv-player-spinner {
+        animation-duration: 1.8s;
     }
 }
