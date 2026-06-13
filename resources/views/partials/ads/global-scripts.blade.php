@@ -39,7 +39,7 @@ HTML;
             title="{{ __('Sponsored content runtime') }}"
             aria-hidden="true"
             tabindex="-1"
-            sandbox="allow-scripts"
+            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-top-navigation-by-user-activation"
             srcdoc="{{ $adRuntime }}"
         ></iframe>
     @endif

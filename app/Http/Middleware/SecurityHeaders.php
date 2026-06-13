@@ -15,13 +15,28 @@ class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('X-Frame-Options', 'SAMEORIGIN');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-        $response->headers->set('Content-Security-Policy', (string) config('security.content_security_policy'));
+        $response->headers->set('Permissions-Policy', (string) config('security.permissions_policy'));
+        $response->headers->set('Content-Security-Policy', $this->contentSecurityPolicy());
 
         if ($request->isSecure()) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
         }
 
         return $response;
+    }
+
+    private function contentSecurityPolicy(): string
+    {
+        $override = config('security.content_security_policy');
+
+        if (is_string($override) && trim($override) !== '') {
+            return $override;
+        }
+
+        return (string) config(
+            config('security.csp_ads_compatible')
+                ? 'security.ads_compatible_content_security_policy'
+                : 'security.strict_content_security_policy'
+        );
     }
 }

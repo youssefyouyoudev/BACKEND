@@ -102,6 +102,7 @@ it('loads centralized ad scripts once on public pages and never in admin', funct
 
     $publicResponse
         ->assertSee('data-ad-placement="home_after_hero"', false)
+        ->assertSee('sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-top-navigation-by-user-activation"', false)
         ->assertSee('rel="nofollow sponsored noopener noreferrer"', false);
 
     $this->get('/admin/login')
@@ -119,7 +120,7 @@ it('can disable all public ads through configuration', function () {
         ->assertDontSee('data-ad-placement=', false);
 });
 
-it('keeps ad scripts off error pages and allows only configured ad domains in CSP', function () {
+it('keeps ad scripts off error pages and uses the ad-compatible CSP by default', function () {
     config()->set('ads.enabled', true);
 
     $response = $this->get('/missing-ad-test-page')->assertNotFound();
@@ -127,7 +128,34 @@ it('keeps ad scripts off error pages and allows only configured ad domains in CS
 
     $response->assertDontSee('n6wxm.com', false);
 
-    foreach (['omg10.com', 'n6wxm.com', 'nap5k.com', 'al5sm.com', '5gvci.com', 'quge5.com'] as $domain) {
-        expect($policy)->toContain($domain);
-    }
+    expect($policy)
+        ->toContain("default-src 'self' https: data: blob:")
+        ->toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval' https: blob:")
+        ->toContain("connect-src 'self' https: wss: blob:")
+        ->toContain("frame-src 'self' https: blob:")
+        ->toContain("media-src 'self' https: blob: data:")
+        ->toContain("worker-src 'self' blob:");
+});
+
+it('can switch to the stricter CSP while keeping browser video playback support', function () {
+    config()->set('security.csp_ads_compatible', false);
+
+    $policy = $this->get('/')->assertOk()->headers->get('Content-Security-Policy');
+
+    expect($policy)
+        ->toContain("default-src 'self'")
+        ->toContain("script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://static.cloudflareinsights.com blob:")
+        ->toContain("connect-src 'self' https: wss: blob:")
+        ->toContain("media-src 'self' https: blob: data:")
+        ->toContain("worker-src 'self' blob:")
+        ->not->toContain('n6wxm.com')
+        ->not->toContain('nap5k.com');
+});
+
+it('emits a strict permissions policy without allowing bluetooth', function () {
+    $policy = $this->get('/')->assertOk()->headers->get('Permissions-Policy');
+
+    expect($policy)
+        ->toContain('bluetooth=()')
+        ->not->toContain('bluetooth=(self)');
 });

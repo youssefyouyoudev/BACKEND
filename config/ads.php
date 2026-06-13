@@ -2,7 +2,7 @@
 
 return [
     'enabled' => filter_var(
-        env('RIFITV_ADS_ENABLED', env('ADS_ENABLED', true)),
+        env('ADS_ENABLED', env('RIFITV_ADS_ENABLED', true)),
         FILTER_VALIDATE_BOOL
     ),
     'provider' => env('ADS_PROVIDER', 'placeholder'),
