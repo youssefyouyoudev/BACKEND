@@ -4,12 +4,17 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @include('partials.theme-init')
     <title>{{ $title ?? __("RiFi Media TV Admin") }}</title>
     <meta name="description" content="{{ __("RiFi Media TV administration dashboard for playlist management.") }}">
     <link rel="icon" type="image/png" href="{{ asset('brand/rifi-logo.png') }}">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/css/theme.css', 'resources/js/app.js'])
 </head>
 <body class="app-body app-body--admin">
+    <button type="button" class="admin-theme-toggle" data-theme-toggle aria-label="{{ __("Switch theme") }}" title="{{ __("Switch theme") }}">
+        <span class="rm-theme-icon rm-theme-icon--moon" aria-hidden="true"><x-icon name="moon" /></span>
+        <span class="rm-theme-icon rm-theme-icon--sun" aria-hidden="true"><x-icon name="sun" /></span>
+    </button>
     <div class="shell shell--admin">
         <aside class="sidebar sidebar--admin">
             <div class="sidebar__brand">

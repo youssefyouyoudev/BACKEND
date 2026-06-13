@@ -12,9 +12,7 @@
     </section>
     <section class="rm-section rm-readable-card">
         <p>{{ $page['body'] }}</p>
-        @if($slug === 'advertise')
-            <x-ad-slot name="advertise_demo_leaderboard" size="leaderboard" />
-        @endif
     </section>
+    <x-ad-slot :name="$slug.'_bottom'" type="inline" compact />
 </div>
 @endsection

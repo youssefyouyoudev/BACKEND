@@ -17,8 +17,6 @@
     </div>
 </header>
 
-<x-ad-slot name="channels_after_hero" type="banner" compact />
-
 <div
     class="rm-receiver wc-live-receiver"
     x-data="liveTvPage({
@@ -93,6 +91,8 @@
             <button type="button" @click="fullscreen"><x-icon name="tv" /> {{ __("Fullscreen") }}</button>
         </div>
     </section>
+
+    <x-ad-slot name="live_tv_under_player" type="inline" compact />
 
     <section class="rm-receiver-browser" id="channels" aria-label="{{ __("Channel browser") }}">
         <div class="rm-receiver-toolbar">
@@ -176,4 +176,5 @@
 
     <div class="rm-receiver-toast" x-show="toastMessage" x-transition.opacity x-cloak role="status" x-text="toastMessage"></div>
 </div>
+<x-ad-slot name="live_tv_after_channels" type="banner" compact />
 @endsection

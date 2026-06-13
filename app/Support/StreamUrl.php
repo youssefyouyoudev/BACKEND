@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use DateTimeInterface;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\URL;
@@ -89,6 +90,32 @@ class StreamUrl
             'stream.bridge.iptv-item',
             now()->addMinutes($minutes),
             ['item' => $itemId],
+            absolute: false,
+        );
+    }
+
+    public static function matchIptvItemBridge(
+        int $itemId,
+        int $matchId,
+        DateTimeInterface $expiresAt
+    ): string {
+        return URL::temporarySignedRoute(
+            'stream.bridge.iptv-item',
+            $expiresAt,
+            ['item' => $itemId, 'match' => $matchId],
+            absolute: false,
+        );
+    }
+
+    public static function matchChannelBridge(
+        int $channelId,
+        int $matchId,
+        DateTimeInterface $expiresAt
+    ): string {
+        return URL::temporarySignedRoute(
+            'stream.bridge.channel',
+            $expiresAt,
+            ['channel' => $channelId, 'match' => $matchId],
             absolute: false,
         );
     }

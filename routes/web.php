@@ -17,6 +17,7 @@ use App\Http\Controllers\Web\ChannelController;
 use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\LiveTvController;
 use App\Http\Controllers\Web\LocaleController;
+use App\Http\Controllers\Web\MatchWatchController;
 use App\Http\Controllers\Web\SportsPageController;
 use App\Http\Controllers\Web\WatchController;
 use App\Http\Controllers\Web\WorldCupController;
@@ -29,6 +30,17 @@ Route::get('/lang/{locale}', LocaleController::class)
 Route::get('/sports', SportsController::class)->name('sports.index');
 Route::get('/world-cup', [WorldCupController::class, 'index'])->name('world-cup.index');
 Route::get('/world-cup/group-stage', [WorldCupController::class, 'index'])->name('world-cup.group-stage');
+Route::get('/match/{worldCupMatch}/watch', [MatchWatchController::class, 'show'])
+    ->name('matches.watch');
+Route::get('/match/{worldCupMatch}/watch-link/manual', [MatchWatchController::class, 'manualWatchLink'])
+    ->middleware(['signed:relative', 'throttle:streams'])
+    ->name('matches.watch-link.manual');
+Route::get('/match/{worldCupMatch}/watch-channel/{channel}', [MatchWatchController::class, 'watchChannel'])
+    ->middleware(['signed:relative', 'throttle:streams'])
+    ->name('matches.watch-channel');
+Route::get('/match/{worldCupMatch}/watch-link/{item}', [MatchWatchController::class, 'watchLink'])
+    ->middleware(['signed:relative', 'throttle:streams'])
+    ->name('matches.watch-link');
 Route::get('/sports/football', [FootballController::class, 'index'])->name('sports.football');
 Route::get('/sports/football/event/{eventId}', [FootballController::class, 'event'])
     ->whereNumber('eventId')
@@ -139,6 +151,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
         ->name('admin.world-cup-matches.iptv-items');
     Route::patch('/world-cup-matches/{world_cup_match}/iptv-item', [AdminWorldCupMatchController::class, 'assignIptvItem'])
         ->name('admin.world-cup-matches.assign-iptv-item');
+    Route::patch('/world-cup-matches/{world_cup_match}/iptv-items/{item}', [AdminWorldCupMatchController::class, 'updateIptvItem'])
+        ->name('admin.world-cup-matches.update-iptv-item');
     Route::resource('world-cup-matches', AdminWorldCupMatchController::class)
         ->except('show')
         ->parameters(['world-cup-matches' => 'world_cup_match'])

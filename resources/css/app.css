@@ -8149,6 +8149,266 @@ html.theme-light .wc-title {
     }
 }
 
+/* Match-first public watch experience */
+.match-window-note,
+.rtv-match-card__venue {
+    color: var(--text-soft, #a8bad0);
+}
+
+.match-window-note {
+    margin: 1rem 0 0;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.rtv-match-card__venue {
+    margin: 0;
+    text-align: center;
+}
+
+.match-window-badge,
+.channel-confirmation {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+.match-window-badge {
+    padding: 0.42rem 0.7rem;
+    font-size: 0.75rem;
+}
+
+.match-window-badge--live {
+    color: #d8ffe4;
+    background: rgba(39, 190, 92, 0.2);
+}
+
+.match-window-badge--soon {
+    color: #fff0c4;
+    background: rgba(245, 158, 11, 0.2);
+}
+
+.match-window-badge--upcoming {
+    color: #d8e2ed;
+    background: rgba(148, 163, 184, 0.18);
+}
+
+.match-window-badge--ended {
+    color: #ffd8dc;
+    background: rgba(190, 38, 51, 0.22);
+}
+
+.channel-confirmation {
+    margin-inline-end: 0.35rem;
+    padding: 0.2rem 0.45rem;
+    font-size: 0.68rem;
+}
+
+.channel-confirmation--confirmed {
+    color: #bfffd1;
+    background: rgba(39, 190, 92, 0.16);
+}
+
+.channel-confirmation--pending {
+    color: #d8e2ed;
+    background: rgba(148, 163, 184, 0.14);
+}
+
+.match-watch-page {
+    display: grid;
+    gap: 1.25rem;
+    padding-block: 1rem 3rem;
+}
+
+.match-watch-hero,
+.match-watch-state,
+.match-watch-player,
+.match-watch-premium,
+.match-watch-suggestion {
+    border: 1px solid rgba(99, 183, 255, 0.16);
+    border-radius: 1.5rem;
+    background: linear-gradient(145deg, rgba(7, 25, 43, 0.96), rgba(3, 12, 23, 0.98));
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.3);
+}
+
+.match-watch-hero,
+.match-watch-state,
+.match-watch-player {
+    padding: clamp(1rem, 3vw, 2rem);
+}
+
+.match-watch-hero__topline,
+.match-watch-player__heading,
+.match-watch-premium,
+.match-watch-facts,
+.match-watch-servers {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.match-scoreboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: clamp(1rem, 5vw, 4rem);
+    margin-block: 2rem;
+}
+
+.match-scoreboard__team,
+.match-scoreboard__center {
+    display: grid;
+    justify-items: center;
+    gap: 0.65rem;
+    text-align: center;
+}
+
+.match-scoreboard__team strong {
+    font-size: clamp(1rem, 2.5vw, 1.6rem);
+}
+
+.match-scoreboard__center b {
+    font-size: clamp(2rem, 6vw, 4.5rem);
+    line-height: 1;
+}
+
+.match-scoreboard__center span,
+.match-scoreboard__center small,
+.match-watch-facts,
+.match-watch-player__heading small,
+.match-watch-suggestion span {
+    color: var(--text-soft, #a8bad0);
+}
+
+.match-watch-state {
+    text-align: center;
+}
+
+.match-countdown {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.75rem;
+    max-width: 620px;
+    margin: 1.5rem auto;
+}
+
+.match-countdown span {
+    display: grid;
+    gap: 0.25rem;
+    padding: 1rem 0.5rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.match-countdown b {
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.match-watch-empty {
+    padding: 3rem 1rem;
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+    border-radius: 1rem;
+    text-align: center;
+    color: var(--text-soft, #a8bad0);
+}
+
+.match-watch-servers {
+    margin-top: 1rem;
+}
+
+.match-watch-servers span {
+    padding: 0.55rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.match-watch-premium {
+    padding: 1rem 1.25rem;
+}
+
+.match-watch-premium > span {
+    color: #42d56f;
+}
+
+.match-watch-premium div {
+    display: grid;
+    flex: 1;
+}
+
+.match-watch-premium a {
+    padding: 0.7rem 1rem;
+    border-radius: 0.8rem;
+    background: #168a4f;
+    color: #fff;
+    font-weight: 800;
+}
+
+.match-watch-suggestion {
+    display: grid;
+    gap: 0.65rem;
+    padding: 1rem;
+    transition: transform 160ms ease, border-color 160ms ease;
+}
+
+.match-watch-suggestion:hover,
+.match-watch-suggestion:focus-visible {
+    transform: translateY(-3px);
+    border-color: rgba(66, 213, 111, 0.4);
+}
+
+.match-watch-suggestion b {
+    color: #73e493;
+}
+
+.wc-admin-stream-list {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 1rem;
+}
+
+.wc-admin-stream-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.5fr) auto repeat(3, minmax(130px, 0.7fr)) auto;
+    align-items: end;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.wc-admin-stream-row > div:first-child {
+    display: grid;
+    gap: 0.25rem;
+    align-self: center;
+}
+
+.wc-admin-stream-row small {
+    color: var(--muted);
+}
+
+@media (max-width: 640px) {
+    .match-scoreboard {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .match-scoreboard__center {
+        order: -1;
+    }
+
+    .match-countdown {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .wc-admin-stream-row {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Premium RiFiTV landing page */
 :root {
     --rtv-accent: #06b6d4;

@@ -6,18 +6,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Arabic:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <script>
-        (() => {
-            const storageKey = 'rifi-theme';
-            const stored = localStorage.getItem(storageKey);
-            const system = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-            const theme = stored || system;
-            document.documentElement.classList.remove('theme-light', 'theme-dark', 'light', 'dark');
-            document.documentElement.classList.add(`theme-${theme}`, theme);
-            document.documentElement.dataset.theme = theme;
-            document.documentElement.style.colorScheme = theme;
-        })();
-    </script>
+    @include('partials.theme-init')
     @php
         $seoTitle = html_entity_decode(trim($__env->yieldContent('title')), ENT_QUOTES, 'UTF-8') ?: ($title ?? __('landing.meta.title'));
         $seoDescription = html_entity_decode(trim($__env->yieldContent('description')), ENT_QUOTES, 'UTF-8') ?: ($description ?? __('landing.meta.description'));
@@ -119,7 +108,7 @@
             return value;
         };
     </script>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/css/theme.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
 <body class="app-body rm-body">
@@ -219,7 +208,6 @@
 
         <footer class="rm-footer rm-premium-footer" aria-label="{{ __("Site footer") }}">
             <div class="rm-footer__inner">
-                <x-ad-slot name="footer_sponsor" type="banner" compact />
                 <div class="rm-footer__brand">
                     <x-logo />
                     <p>{{ __('landing.footer.description') }}</p>
@@ -256,9 +244,11 @@
             </div>
         </footer>
 
-        <x-ad-slot name="mobile_sticky_sponsor" type="sticky" compact />
     </div>
 
     @stack('scripts')
+    @if(config('ads.enabled') && !request()->is('admin*') && trim($__env->yieldContent('ads')) !== 'disabled')
+        @include('partials.ads.global-scripts')
+    @endif
 </body>
 </html>

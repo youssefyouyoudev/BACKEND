@@ -29,5 +29,6 @@
             </a>
         </div>
     </section>
+    <x-ad-slot name="home_before_footer" type="banner" compact />
 </div>
 @endsection

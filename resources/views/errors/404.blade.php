@@ -2,6 +2,7 @@
 
 @section('title', __('Page not found | RiFiTV'))
 @section('robots', 'noindex,nofollow')
+@section('ads', 'disabled')
 
 @section('content')
     <section class="rm-page">

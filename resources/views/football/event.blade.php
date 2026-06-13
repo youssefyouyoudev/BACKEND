@@ -12,7 +12,7 @@
         <span>{{ $match['home_team']['name'] }} vs {{ $match['away_team']['name'] }}</span>
     </nav>
 
-    <section class="football-live-hero football-event-hero">
+    <section class="football-live-hero football-event-hero match-hero-card">
         <span class="rm-kicker">{{ $match['league']['name'] ?? __('Football') }}</span>
         <h1>{{ $match['home_team']['name'] }} vs {{ $match['away_team']['name'] }}</h1>
         <p>{{ $match['status'] }} @if($match['venue']) at {{ $match['venue'] }} @endif</p>

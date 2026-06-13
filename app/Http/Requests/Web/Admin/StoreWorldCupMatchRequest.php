@@ -33,6 +33,8 @@ class StoreWorldCupMatchRequest extends FormRequest
             'morocco_kickoff_at' => ['nullable', 'date'],
             'local_kickoff_at' => ['nullable', 'date'],
             'local_timezone' => ['nullable', 'timezone'],
+            'watch_opens_at' => ['nullable', 'date'],
+            'watch_expires_at' => ['nullable', 'date', 'after:watch_opens_at'],
             'selected_channel_id' => ['nullable', 'exists:channels,id'],
             'channel_name_manual' => ['nullable', 'string', 'max:120'],
             'broadcaster' => ['nullable', 'string', 'max:120'],

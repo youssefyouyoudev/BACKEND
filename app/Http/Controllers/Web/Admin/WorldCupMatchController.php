@@ -98,7 +98,12 @@ class WorldCupMatchController extends Controller
     public function edit(WorldCupMatch $worldCupMatch): View
     {
         return view('admin.world-cup-matches.edit', [
-            'worldCupMatch' => $worldCupMatch->load(['selectedChannel.playlist', 'selectedChannel.category']),
+            'worldCupMatch' => $worldCupMatch->load([
+                'selectedChannel.playlist',
+                'selectedChannel.category',
+                'iptvItems.category',
+                'iptvItems.playlist',
+            ]),
             'channels' => $this->channels(),
             'groups' => $this->groups(),
             'statuses' => WorldCupMatch::STATUSES,
@@ -211,6 +216,30 @@ class WorldCupMatchController extends Controller
             'watch_available_at' => $worldCupMatch->watch_available_at?->toIso8601String(),
             'is_watch_window_open' => $worldCupMatch->is_watch_window_open,
         ]);
+    }
+
+    public function updateIptvItem(
+        Request $request,
+        WorldCupMatch $worldCupMatch,
+        IptvItem $item
+    ): RedirectResponse {
+        abort_unless($worldCupMatch->iptvItems()->whereKey($item->getKey())->exists(), 404);
+
+        $data = $request->validate([
+            'is_active' => ['nullable', 'boolean'],
+            'priority' => ['required', 'integer', 'min:0', 'max:999'],
+            'starts_at' => ['nullable', 'date'],
+            'expires_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
+        ]);
+
+        $worldCupMatch->iptvItems()->updateExistingPivot($item->getKey(), [
+            'is_active' => $request->boolean('is_active'),
+            'priority' => $data['priority'],
+            'starts_at' => $data['starts_at'] ?? null,
+            'expires_at' => $data['expires_at'] ?? null,
+        ]);
+
+        return back()->with('status', __('Match watch link updated.'));
     }
 
     private function channels()

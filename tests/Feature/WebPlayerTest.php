@@ -83,3 +83,51 @@ it('allows an admin to reach the dashboard', function () {
         ->assertOk()
         ->assertSee('Playlist ingestion and channel publishing.');
 });
+
+it('loads centralized ad scripts once on public pages and never in admin', function () {
+    config()->set('ads.enabled', true);
+
+    $publicResponse = $this->get('/')->assertOk();
+    $content = $publicResponse->getContent();
+
+    foreach ([
+        'n6wxm.com/vignette.min.js',
+        'nap5k.com/tag.min.js',
+        'al5sm.com/tag.min.js',
+        '5gvci.com/act/files/tag.min.js?z=11137945',
+        'quge5.com/88/tag.min.js',
+    ] as $script) {
+        expect(substr_count($content, $script))->toBe(1);
+    }
+
+    $publicResponse
+        ->assertSee('data-ad-placement="home_after_hero"', false)
+        ->assertSee('rel="nofollow sponsored noopener noreferrer"', false);
+
+    $this->get('/admin/login')
+        ->assertOk()
+        ->assertDontSee('n6wxm.com', false)
+        ->assertDontSee('data-ad-placement=', false);
+});
+
+it('can disable all public ads through configuration', function () {
+    config()->set('ads.enabled', false);
+
+    $this->get('/')
+        ->assertOk()
+        ->assertDontSee('n6wxm.com', false)
+        ->assertDontSee('data-ad-placement=', false);
+});
+
+it('keeps ad scripts off error pages and allows only configured ad domains in CSP', function () {
+    config()->set('ads.enabled', true);
+
+    $response = $this->get('/missing-ad-test-page')->assertNotFound();
+    $policy = $response->headers->get('Content-Security-Policy');
+
+    $response->assertDontSee('n6wxm.com', false);
+
+    foreach (['omg10.com', 'n6wxm.com', 'nap5k.com', 'al5sm.com', '5gvci.com', 'quge5.com'] as $domain) {
+        expect($policy)->toContain($domain);
+    }
+});

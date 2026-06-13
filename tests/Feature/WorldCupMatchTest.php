@@ -6,6 +6,7 @@ use App\Models\Playlist;
 use App\Models\User;
 use App\Models\WorldCupMatch;
 use App\Support\TeamFlag;
+use Carbon\CarbonImmutable;
 use Database\Seeders\WorldCup2026GroupStageSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -85,7 +86,7 @@ it('allows an admin to assign an existing channel and edit the commentator', fun
         ->and($match->fresh()->is_live_link_enabled)->toBeTrue();
 });
 
-it('shows the selected channel publicly but gates its watch URL', function () {
+it('shows the selected channel publicly and links to the dedicated match page', function () {
     $playlist = Playlist::factory()->create(['is_public' => true, 'approved_at' => now()]);
     $channel = Channel::factory()->for($playlist)->create([
         'name' => 'RiFi Sports HD',
@@ -108,14 +109,16 @@ it('shows the selected channel publicly but gates its watch URL', function () {
         ->assertSee('RiFi Sports')
         ->assertSee('images/flags/ma.svg', false)
         ->assertSee('images/flags/br.svg', false)
-        ->assertSee('Link will be added before kickoff')
+        ->assertSee('Watch Match')
+        ->assertSee(route('matches.watch', $match), false)
         ->assertDontSee(route('channels.show', $channel->slug), false);
 
     $match->update(['is_live_link_enabled' => true]);
 
     $this->get(route('world-cup.index', ['tab' => 'all']))
         ->assertSuccessful()
-        ->assertSee(route('channels.show', $channel->slug), false);
+        ->assertSee(route('matches.watch', $match), false)
+        ->assertDontSee(route('channels.show', $channel->slug), false);
 });
 
 it('filters the admin list to matches missing a channel', function () {
@@ -203,7 +206,7 @@ it('searches and assigns only public active IPTV items with ajax', function () {
         ])
         ->assertSuccessful()
         ->assertJsonPath('assignments.0.id', $publicItem->id)
-        ->assertJsonPath('is_watch_window_open', false);
+        ->assertJsonPath('is_watch_window_open', true);
 
     $this->actingAs($admin)
         ->patchJson(route('admin.world-cup-matches.assign-iptv-item', $match), [
@@ -238,8 +241,8 @@ it('searches and assigns only public active IPTV items with ajax', function () {
         ->and($match->fresh()->is_live_link_enabled)->toBeFalse();
 });
 
-it('unlocks all assigned IPTV watch links thirty minutes before kickoff', function () {
-    Carbon::setTestNow('2026-06-11 12:00:00');
+it('unlocks assigned IPTV items one hour before kickoff', function () {
+    Carbon::setTestNow(CarbonImmutable::parse('2026-06-11 11:59:00', WorldCupMatch::MOROCCO_TIMEZONE));
 
     $playlist = Playlist::factory()->create([
         'is_public' => true,
@@ -266,28 +269,24 @@ it('unlocks all assigned IPTV watch links thirty minutes before kickoff', functi
     $match = WorldCupMatch::query()->create([
         'home_team' => 'Morocco',
         'away_team' => 'Brazil',
-        'kickoff_at' => now()->addHour(),
-        'morocco_kickoff_at' => now()->addHour(),
+        'kickoff_at' => '2026-06-11 13:00:00',
+        'morocco_kickoff_at' => '2026-06-11 13:00:00',
         'is_live_link_enabled' => true,
     ]);
     $match->iptvItems()->attach([$item->id, $secondItem->id]);
 
     expect($match->fresh()->public_watch_links)->toBeEmpty();
 
-    Carbon::setTestNow('2026-06-11 12:30:00');
+    Carbon::setTestNow(CarbonImmutable::parse('2026-06-11 12:00:00', WorldCupMatch::MOROCCO_TIMEZONE));
 
-    $links = $match->fresh()->public_watch_links;
+    $availableItems = $match->fresh()->load('iptvItems.playlist')->availableWatchItems();
 
-    expect($links)->toHaveCount(2)
-        ->and($links->pluck('url')->all())->toEqualCanonicalizing([
-            route('watch.item', $item),
-            route('watch.item', $secondItem),
-        ]);
+    expect($availableItems)->toHaveCount(2);
 
     $this->get(route('world-cup.index', ['tab' => 'all']))
         ->assertSuccessful()
-        ->assertSee('Watch RiFi World Cup Live')
-        ->assertSee('Watch RiFi World Cup Alternate')
-        ->assertSee(route('watch.item', $item), false)
-        ->assertSee(route('watch.item', $secondItem), false);
+        ->assertSee('Watch Match')
+        ->assertSee(route('matches.watch', $match), false)
+        ->assertDontSee(route('watch.item', $item), false)
+        ->assertDontSee(route('watch.item', $secondItem), false);
 });

@@ -2,17 +2,19 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Carbon;
 
 class WorldCupMatch extends Model
 {
     use HasFactory;
+
+    public const MOROCCO_TIMEZONE = 'Africa/Casablanca';
 
     public const STATUSES = [
         'to_confirm',
@@ -41,6 +43,8 @@ class WorldCupMatch extends Model
         'morocco_kickoff_at',
         'local_kickoff_at',
         'local_timezone',
+        'watch_opens_at',
+        'watch_expires_at',
         'commentator',
         'selected_channel_id',
         'selected_iptv_item_id',
@@ -61,9 +65,11 @@ class WorldCupMatch extends Model
     {
         return [
             'match_number' => 'integer',
-            'kickoff_at' => 'datetime',
-            'morocco_kickoff_at' => 'datetime',
-            'local_kickoff_at' => 'datetime',
+            'kickoff_at' => 'immutable_datetime',
+            'morocco_kickoff_at' => 'immutable_datetime',
+            'local_kickoff_at' => 'immutable_datetime',
+            'watch_opens_at' => 'immutable_datetime',
+            'watch_expires_at' => 'immutable_datetime',
             'use_manual_live_url' => 'boolean',
             'is_live_link_enabled' => 'boolean',
             'is_featured' => 'boolean',
@@ -84,6 +90,7 @@ class WorldCupMatch extends Model
     public function iptvItems(): BelongsToMany
     {
         return $this->belongsToMany(IptvItem::class, 'world_cup_match_iptv_item')
+            ->withPivot(['is_active', 'priority', 'starts_at', 'expires_at'])
             ->withTimestamps();
     }
 
@@ -111,49 +118,21 @@ class WorldCupMatch extends Model
      */
     public function getPublicWatchLinksAttribute(): Collection
     {
-        if (! $this->is_live_link_enabled) {
+        if (! $this->is_live_link_enabled || ! $this->isWatchOpen()) {
             return collect();
         }
 
-        $iptvItems = $this->assignedIptvItems();
+        $hasSource = $this->availableWatchItems()->isNotEmpty()
+            || ($this->use_manual_live_url && filled($this->live_url_manual))
+            || ($this->selectedChannel?->is_active && filled($this->selectedChannel?->stream_url));
 
-        if ($iptvItems->isNotEmpty()) {
-            if (! $this->isWatchWindowOpen()) {
-                return collect();
-            }
-
-            return $iptvItems
-                ->filter(fn (IptvItem $item): bool => $this->isPublicLiveIptvItem($item))
-                ->map(fn (IptvItem $item): array => [
-                    'name' => $item->name,
-                    'url' => route('watch.item', $item),
-                    'external' => false,
-                ])
-                ->values();
-        }
-
-        if ($this->use_manual_live_url && filled($this->live_url_manual)) {
-            return collect([[
-                'name' => $this->channel_name_manual ?: 'Watch Live',
-                'url' => $this->live_url_manual,
-                'external' => true,
-            ]]);
-        }
-
-        $channel = $this->selectedChannel;
-        $playlist = $channel?->playlist;
-
-        if (! $channel?->is_active || blank($channel->stream_url)) {
-            return collect();
-        }
-
-        if (! $playlist?->is_public || ! $playlist->approved_at) {
+        if (! $hasSource) {
             return collect();
         }
 
         return collect([[
-            'name' => $channel->clean_display_name,
-            'url' => route('channels.show', $channel->slug ?: $channel->id),
+            'name' => 'Watch Match',
+            'url' => route('matches.watch', $this),
             'external' => false,
         ]]);
     }
@@ -166,14 +145,46 @@ class WorldCupMatch extends Model
             && filled($this->live_url_manual);
     }
 
-    public function getWatchAvailableAtAttribute(): ?Carbon
+    public function getKickoffAtMoroccoAttribute(): ?CarbonImmutable
     {
-        return $this->kickoff_at?->copy()->subMinutes(30);
+        if ($this->morocco_kickoff_at) {
+            return $this->asMoroccoWallClock($this->morocco_kickoff_at);
+        }
+
+        return $this->kickoff_at?->setTimezone(self::MOROCCO_TIMEZONE);
+    }
+
+    public function getWatchOpensAtAttribute(): ?CarbonImmutable
+    {
+        if ($this->attributes['watch_opens_at'] ?? null) {
+            return $this->asMoroccoWallClock($this->getAttributeFromArray('watch_opens_at'));
+        }
+
+        return $this->kickoff_at_morocco?->subHour();
+    }
+
+    public function getExpectedEndsAtAttribute(): ?CarbonImmutable
+    {
+        return $this->kickoff_at_morocco?->addHours(2);
+    }
+
+    public function getWatchExpiresAtAttribute(): ?CarbonImmutable
+    {
+        if ($this->attributes['watch_expires_at'] ?? null) {
+            return $this->asMoroccoWallClock($this->getAttributeFromArray('watch_expires_at'));
+        }
+
+        return $this->kickoff_at_morocco?->addHours(3);
+    }
+
+    public function getWatchAvailableAtAttribute(): ?CarbonImmutable
+    {
+        return $this->watch_opens_at;
     }
 
     public function getIsWatchWindowOpenAttribute(): bool
     {
-        return $this->isWatchWindowOpen();
+        return $this->isWatchOpen();
     }
 
     public function scopeGroupStage(Builder $query): Builder
@@ -183,7 +194,7 @@ class WorldCupMatch extends Model
 
     public function scopeUpcoming(Builder $query): Builder
     {
-        return $query->where('kickoff_at', '>=', now())->orderBy('kickoff_at');
+        return $query->where('kickoff_at', '>=', now('UTC'))->orderBy('kickoff_at');
     }
 
     public function scopeFeatured(Builder $query): Builder
@@ -196,9 +207,69 @@ class WorldCupMatch extends Model
         return $query->whereNotNull('kickoff_at');
     }
 
-    private function isWatchWindowOpen(): bool
+    public function isWatchOpen(?CarbonImmutable $now = null): bool
     {
-        return ! $this->watch_available_at || now()->greaterThanOrEqualTo($this->watch_available_at);
+        $now ??= CarbonImmutable::now(self::MOROCCO_TIMEZONE);
+
+        return $this->watch_opens_at !== null
+            && $this->watch_expires_at !== null
+            && $now->betweenIncluded($this->watch_opens_at, $this->watch_expires_at);
+    }
+
+    public function isWatchUpcoming(?CarbonImmutable $now = null): bool
+    {
+        $now ??= CarbonImmutable::now(self::MOROCCO_TIMEZONE);
+
+        return $this->watch_opens_at !== null && $now->lessThan($this->watch_opens_at);
+    }
+
+    public function isWatchExpired(?CarbonImmutable $now = null): bool
+    {
+        $now ??= CarbonImmutable::now(self::MOROCCO_TIMEZONE);
+
+        return $this->watch_expires_at !== null && $now->greaterThan($this->watch_expires_at);
+    }
+
+    public function watchStatus(?CarbonImmutable $now = null): string
+    {
+        if ($this->isWatchExpired($now)) {
+            return 'expired';
+        }
+
+        if ($this->isWatchOpen($now)) {
+            return 'open';
+        }
+
+        return 'opens_soon';
+    }
+
+    /**
+     * @return Collection<int, IptvItem>
+     */
+    public function availableWatchItems(?CarbonImmutable $now = null): Collection
+    {
+        $now ??= CarbonImmutable::now(self::MOROCCO_TIMEZONE);
+
+        if (! $this->is_live_link_enabled || ! $this->isWatchOpen($now)) {
+            return collect();
+        }
+
+        return $this->assignedIptvItems()
+            ->filter(function (IptvItem $item) use ($now): bool {
+                $startsAt = $item->pivot?->starts_at
+                    ? CarbonImmutable::parse($item->pivot->starts_at, 'UTC')->setTimezone(self::MOROCCO_TIMEZONE)
+                    : null;
+                $expiresAt = $item->pivot?->expires_at
+                    ? CarbonImmutable::parse($item->pivot->expires_at, 'UTC')->setTimezone(self::MOROCCO_TIMEZONE)
+                    : null;
+
+                return ($item->pivot?->is_active ?? true)
+                    && (! $startsAt || $startsAt->lessThanOrEqualTo($now))
+                    && (! $expiresAt || $expiresAt->greaterThanOrEqualTo($now))
+                    && $this->isPublicLiveIptvItem($item);
+            })
+            ->sortBy(fn (IptvItem $item): int => (int) ($item->pivot?->priority ?? 0))
+            ->values();
     }
 
     /**
@@ -226,5 +297,14 @@ class WorldCupMatch extends Model
             && filled($item->stream_url)
             && $item->playlist?->is_public
             && filled($item->playlist?->approved_at);
+    }
+
+    private function asMoroccoWallClock(mixed $value): CarbonImmutable
+    {
+        $formatted = $value instanceof \DateTimeInterface
+            ? $value->format('Y-m-d H:i:s')
+            : CarbonImmutable::parse($value)->format('Y-m-d H:i:s');
+
+        return CarbonImmutable::createFromFormat('Y-m-d H:i:s', $formatted, self::MOROCCO_TIMEZONE);
     }
 }

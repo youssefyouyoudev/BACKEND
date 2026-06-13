@@ -32,13 +32,19 @@ window.Alpine = Alpine;
 window.Hls = Hls;
 window.mpegts = mpegts;
 
+const THEME_STORAGE_KEY = 'rifitv-theme';
+const LEGACY_THEME_STORAGE_KEY = 'rifi-theme';
+
+const currentTheme = () => document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+
 const applyThemeLabel = () => {
-    const isLight = document.documentElement.classList.contains('theme-light');
+    const isLight = currentTheme() === 'light';
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
         const label = isLight ? t('Switch to dark mode') : t('Switch to light mode');
         button.dataset.themeState = isLight ? 'light' : 'dark';
         button.setAttribute('aria-label', label);
         button.setAttribute('title', label);
+        button.setAttribute('aria-pressed', isLight ? 'false' : 'true');
     });
 };
 
@@ -52,9 +58,19 @@ const setTheme = (theme, persist = true) => {
     root.dataset.theme = normalized;
     root.style.colorScheme = normalized;
     if (persist) {
-        localStorage.setItem('rifi-theme', normalized);
+        localStorage.setItem(THEME_STORAGE_KEY, normalized);
+        localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
     }
     applyThemeLabel();
+    window.dispatchEvent(new CustomEvent('rifitv:theme-changed', {
+        detail: { theme: normalized },
+    }));
+};
+
+window.rifiTheme = {
+    get: currentTheme,
+    set: (theme) => setTheme(theme, true),
+    toggle: () => setTheme(currentTheme() === 'light' ? 'dark' : 'light', true),
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -111,13 +127,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    const stored = localStorage.getItem('rifi-theme');
+    const stored = localStorage.getItem(THEME_STORAGE_KEY) || localStorage.getItem(LEGACY_THEME_STORAGE_KEY);
     if (! stored) {
-        setTheme(window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark', false);
+        setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light', false);
+    } else if (! localStorage.getItem(THEME_STORAGE_KEY)) {
+        localStorage.setItem(THEME_STORAGE_KEY, stored);
+        localStorage.removeItem(LEGACY_THEME_STORAGE_KEY);
     }
-    window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', (event) => {
-        if (localStorage.getItem('rifi-theme')) return;
-        setTheme(event.matches ? 'light' : 'dark', false);
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (event) => {
+        if (localStorage.getItem(THEME_STORAGE_KEY)) return;
+        setTheme(event.matches ? 'dark' : 'light', false);
     });
     applyThemeLabel();
 
@@ -136,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
         button.addEventListener('click', () => {
-            const next = document.documentElement.classList.contains('theme-light') ? 'dark' : 'light';
+            const next = currentTheme() === 'light' ? 'dark' : 'light';
             button.classList.remove('is-bouncing');
             void button.offsetWidth;
             button.classList.add('is-bouncing');

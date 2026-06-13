@@ -90,16 +90,17 @@
                     <small>{{ $match->commentator ?: __('Commentator to be confirmed') }}</small>
                     <small
                         data-watch-availability
-                        data-scheduled-text="Automatically unlocks {{ $match->watch_available_at?->timezone('Africa/Casablanca')->format('M d, H:i') }} Morocco"
+                        data-scheduled-text="Automatically opens {{ $match->watch_opens_at?->format('M d, H:i') }} Morocco"
                     >
                         @if($match->iptvItems->isNotEmpty() || $match->selectedIptvItem)
                             {{ $match->is_watch_window_open
                                 ? __('Watch links are available now')
-                                : __('Automatically unlocks :date Morocco', ['date' => $match->watch_available_at?->timezone('Africa/Casablanca')->format('M d, H:i')]) }}
+                                : __('Automatically opens :date Morocco', ['date' => $match->watch_opens_at?->format('M d, H:i')]) }}
                         @else
                             Choose one or more public IPTV channels
                         @endif
                     </small>
+                    <small>{{ __("Expires at") }} {{ $match->watch_expires_at?->format('M d, H:i') }} · {{ str($match->watchStatus())->headline() }}</small>
                 </div>
                 <div class="wc-admin-match-card__actions">
                     <a class="button button--primary" href="{{ route('admin.world-cup-matches.edit', $match) }}">{{ __("Edit") }}</a>

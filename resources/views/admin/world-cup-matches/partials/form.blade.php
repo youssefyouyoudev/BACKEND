@@ -22,11 +22,19 @@
             <div class="field"><label for="morocco_kickoff_at">{{ __("Morocco kickoff") }}</label><input id="morocco_kickoff_at" type="datetime-local" name="morocco_kickoff_at" value="{{ old('morocco_kickoff_at', $worldCupMatch->morocco_kickoff_at?->format('Y-m-d\TH:i')) }}"></div>
             <div class="field"><label for="local_kickoff_at">{{ __("Stadium-local kickoff") }}</label><input id="local_kickoff_at" type="datetime-local" name="local_kickoff_at" value="{{ old('local_kickoff_at', $worldCupMatch->local_kickoff_at?->format('Y-m-d\TH:i')) }}"></div>
             <div class="field"><label for="local_timezone">{{ __("Local timezone") }}</label><input id="local_timezone" name="local_timezone" value="{{ old('local_timezone', $worldCupMatch->local_timezone) }}" placeholder="{{ __("America/New_York") }}"></div>
+            <div class="field"><label for="watch_opens_at">{{ __("Custom watch opening") }}</label><input id="watch_opens_at" type="datetime-local" name="watch_opens_at" value="{{ old('watch_opens_at', $worldCupMatch->getRawOriginal('watch_opens_at') ? $worldCupMatch->watch_opens_at?->format('Y-m-d\TH:i') : '') }}"><small class="field__hint">{{ __("Leave empty to open one hour before kickoff.") }}</small></div>
+            <div class="field"><label for="watch_expires_at">{{ __("Custom watch expiry") }}</label><input id="watch_expires_at" type="datetime-local" name="watch_expires_at" value="{{ old('watch_expires_at', $worldCupMatch->getRawOriginal('watch_expires_at') ? $worldCupMatch->watch_expires_at?->format('Y-m-d\TH:i') : '') }}"><small class="field__hint">{{ __("Leave empty to close three hours after kickoff.") }}</small></div>
             <div class="field"><label for="venue">{{ __("Venue") }}</label><input id="venue" name="venue" maxlength="160" value="{{ old('venue', $worldCupMatch->venue) }}"></div>
             <div class="field"><label for="city">{{ __("City") }}</label><input id="city" name="city" maxlength="120" value="{{ old('city', $worldCupMatch->city) }}"></div>
             <div class="field"><label for="country">{{ __("Country") }}</label><input id="country" name="country" maxlength="120" value="{{ old('country', $worldCupMatch->country) }}"></div>
             <div class="field"><label for="sort_order">{{ __("Sort order") }}</label><input id="sort_order" type="number" min="0" name="sort_order" value="{{ old('sort_order', $worldCupMatch->sort_order) }}"></div>
         </div>
+        @if($worldCupMatch->exists && $worldCupMatch->kickoff_at_morocco)
+            <div class="legal-callout">
+                <strong>{{ __("Automatic watch window") }}</strong>
+                <p>{{ __("Opens at") }} {{ $worldCupMatch->watch_opens_at?->format('M d, Y H:i') }} · {{ __("Expires at") }} {{ $worldCupMatch->watch_expires_at?->format('M d, Y H:i') }} · {{ str($worldCupMatch->watchStatus())->headline() }}</p>
+            </div>
+        @endif
     </section>
 
     <section class="surface-card">

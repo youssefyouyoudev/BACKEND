@@ -3,12 +3,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    @include('partials.theme-init')
     <title>{{ __("Admin Login | RiFi Media TV") }}</title>
     <meta name="description" content="{{ __("Administrator login for the RiFi Media TV playlist management dashboard.") }}">
     <link rel="icon" type="image/png" href="{{ asset('brand/rifi-logo.png') }}">
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/css/theme.css', 'resources/js/app.js'])
 </head>
 <body class="app-body rm-body rm-auth-body">
+    <button type="button" class="admin-theme-toggle" data-theme-toggle aria-label="{{ __("Switch theme") }}" title="{{ __("Switch theme") }}">
+        <span class="rm-theme-icon rm-theme-icon--moon" aria-hidden="true"><x-icon name="moon" /></span>
+        <span class="rm-theme-icon rm-theme-icon--sun" aria-hidden="true"><x-icon name="sun" /></span>
+    </button>
     <main class="rm-auth-shell">
         <section class="rm-auth-card">
             <x-logo />

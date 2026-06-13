@@ -4,7 +4,7 @@
     </div>
 @endif
 
-@if ($errors->any())
+@if (isset($errors) && $errors->any())
     <div class="flash-banner flash-banner--error" role="alert">
         <strong>{{ __("We hit a problem.") }}</strong>
         <ul class="flash-banner__list">

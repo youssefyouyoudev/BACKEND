@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Channel;
 use App\Models\ChannelStream;
 use App\Models\IptvItem;
+use App\Models\WorldCupMatch;
 use App\Services\StreamingPolicy;
 use App\Support\StreamUrl;
 use Illuminate\Http\Client\ConnectionException;
@@ -37,6 +38,20 @@ class StreamBridgeController extends Controller
             Response::HTTP_NOT_FOUND
         );
 
+        if ($request->integer('match') > 0) {
+            $match = WorldCupMatch::query()
+                ->with(['selectedIptvItem.playlist', 'iptvItems.playlist'])
+                ->findOrFail($request->integer('match'));
+
+            abort_unless($match->isWatchOpen(), Response::HTTP_GONE);
+            abort_unless(
+                $match->availableWatchItems()->contains(
+                    fn (IptvItem $availableItem): bool => $availableItem->is($item)
+                ),
+                Response::HTTP_NOT_FOUND
+            );
+        }
+
         $this->abortUnlessAllowedStreamUrl($item->stream_url);
 
         if (app()->isLocal()) {
@@ -60,6 +75,15 @@ class StreamBridgeController extends Controller
             && $channel->playlist()->where('is_public', true)->whereNotNull('approved_at')->exists(),
             Response::HTTP_NOT_FOUND
         );
+
+        if ($request->integer('match') > 0) {
+            $match = WorldCupMatch::query()->findOrFail($request->integer('match'));
+
+            abort_unless(
+                $match->isWatchOpen() && $match->selected_channel_id === $channel->getKey(),
+                Response::HTTP_GONE
+            );
+        }
 
         $sourceId = $request->integer('source');
         $stream = null;

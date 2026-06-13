@@ -22,6 +22,5 @@
                 <button type="button" @click="$refs.search?.scrollIntoView({ behavior: 'smooth', block: 'center' }); $refs.search?.focus()">{{ __("Back to Channels / العودة للقنوات") }}</button>
             @endif
         </div>
-        <x-ad-slot name="channels_empty_state" type="empty" compact />
     </div>
 </article>

@@ -23,8 +23,6 @@
         <x-promo-banner compact />
     </section>
 
-    <x-ad-slot name="world_cup_after_hero" type="banner" />
-
     <nav class="wc-schedule-tabs" aria-label="{{ __("Schedule views") }}">
         @foreach(['today' => 'Today', 'upcoming' => 'Upcoming', 'all' => 'All Matches', 'groups' => 'Groups'] as $value => $label)
             <a class="{{ $tab === $value ? 'is-active' : '' }}" href="{{ route('world-cup.index', array_merge(request()->except('page'), ['tab' => $value])) }}">{{ __($label) }}</a>
@@ -70,6 +68,8 @@
         </form>
     </section>
 
+    <x-ad-slot name="world_cup_after_filters" type="banner" />
+
     <section id="world-cup-schedule">
         <div class="wc-section__heading">
             <div>
@@ -101,7 +101,7 @@
                         </div>
                         <div class="wc-schedule-grid">
                             @foreach($groupMatches as $match)
-                                <article class="wc-schedule-card {{ $match->is_featured ? 'is-featured' : '' }}">
+                                <article class="wc-schedule-card match-card {{ $match->is_featured ? 'is-featured' : '' }}">
                                     <header>
                                         <span>{{ $match->group_name }}</span>
                                         <span class="wc-match-status wc-match-status--{{ $match->broadcast_status }}">{{ str($match->broadcast_status)->headline() }}</span>
@@ -120,28 +120,18 @@
                                         <p><b>{{ __("Channel") }}</b><span>{{ $match->public_channel_name }}</span></p>
                                         <p><b>{{ __("Commentator") }}</b><span>{{ $match->commentator ?: __('Commentator to be confirmed') }}</span></p>
                                     </div>
-                                    @if($match->public_watch_links->isNotEmpty())
-                                        <div class="wc-schedule-card__watch-options">
-                                            @foreach($match->public_watch_links as $watchLink)
-                                                <a class="wc-button wc-button--primary wc-schedule-card__watch" href="{{ $watchLink['url'] }}" @if($watchLink['external']) target="_blank" rel="nofollow noopener noreferrer" @endif>
-                                                    {{ app()->isLocale('ar') ? 'شاهد' : 'Watch' }} {{ $watchLink['name'] }}
-                                                </a>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <span class="wc-schedule-card__pending" @if(($match->iptvItems->isNotEmpty() || $match->selectedIptvItem) && $match->watch_available_at) data-watch-unlock-at="{{ $match->watch_available_at->toIso8601String() }}" @endif>
-                                            {{ app()->isLocale('ar') ? 'سيتم إضافة الرابط قبل انطلاق المباراة' : 'Link will be added before kickoff' }}
-                                        </span>
-                                    @endif
+                                    <a class="wc-button wc-button--primary wc-schedule-card__watch" href="{{ route('matches.watch', $match) }}">
+                                        {{ app()->isLocale('ar') ? 'شاهد المباراة' : 'Watch Match' }}
+                                    </a>
                                 </article>
                             @endforeach
                         </div>
                     </div>
                 @endforeach
 
-                @unless($loop->last)
+                @if($loop->iteration === max(1, (int) ceil($matchesByDate->count() / 2)))
                     <x-ad-slot :name="'world_cup_date_'.$loop->iteration" type="inline" compact />
-                @endunless
+                @endif
             </section>
         @empty
             <div class="wc-empty-state">
@@ -164,5 +154,6 @@
             · <a href="{{ route('contact') }}">{{ app()->isLocale('ar') ? 'تواصل معنا' : 'Contact RiFiTV' }}</a>
         </p>
     </section>
+    <x-ad-slot name="world_cup_before_footer" type="banner" compact />
 </div>
 @endsection

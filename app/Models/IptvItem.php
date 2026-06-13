@@ -6,8 +6,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class IptvItem extends Model
 {
@@ -72,6 +72,7 @@ class IptvItem extends Model
     public function worldCupMatches(): BelongsToMany
     {
         return $this->belongsToMany(WorldCupMatch::class, 'world_cup_match_iptv_item')
+            ->withPivot(['is_active', 'priority', 'starts_at', 'expires_at'])
             ->withTimestamps();
     }
 

@@ -78,6 +78,8 @@
         @endforeach
     </section>
 
+    <x-ad-slot name="football_after_filters" type="inline" compact />
+
     <section class="football-match-shell" aria-live="polite" aria-busy="false">
         <div class="football-match-shell__header">
             <div>
@@ -97,6 +99,7 @@
                 </article>
             @endfor
         </div>
+        <x-ad-slot name="football_after_matches" type="banner" compact />
     </section>
 </div>
 @endsection
