@@ -26,11 +26,30 @@ class MatchWatchController extends Controller
 
         $now = CarbonImmutable::now(WorldCupMatch::MOROCCO_TIMEZONE);
         $watchItems = $worldCupMatch->availableWatchItems($now);
-        $sources = $watchItems->map(fn (IptvItem $item, int $index): array => [
+        $manualWatchUrl = $this->manualWatchUrl($worldCupMatch);
+        $sources = collect();
+
+        if ($manualWatchUrl) {
+            $sources->push([
+                'id' => 'manual-'.$worldCupMatch->getKey(),
+                'channel' => $worldCupMatch->channel_name_manual ?: $worldCupMatch->broadcaster ?: __('Manual source'),
+                'title' => $worldCupMatch->channel_name_manual ?: "{$worldCupMatch->home_team} vs {$worldCupMatch->away_team}",
+                'label' => __('Manual URL'),
+                'quality' => 'Auto',
+                'language' => null,
+                'commentator' => $worldCupMatch->commentator,
+                'type' => $this->streamTypeForUrl($worldCupMatch->live_url_manual),
+                'recommended' => true,
+                'health_status' => 'unknown',
+                'url' => $manualWatchUrl,
+            ]);
+        }
+
+        $sources = $sources->merge($watchItems->map(fn (IptvItem $item, int $index): array => [
             'id' => $item->getKey(),
             'channel' => $item->pivot?->channel_name ?: $item->name,
             'title' => $item->pivot?->stream_title ?: $item->name,
-            'label' => $item->pivot?->server_label ?: __('Server :number', ['number' => $index + 1]),
+            'label' => $item->pivot?->server_label ?: __('Server :number', ['number' => $sources->isNotEmpty() ? $index + 2 : $index + 1]),
             'quality' => $item->pivot?->quality ?: $item->qualityLabel(),
             'language' => $item->pivot?->language,
             'commentator' => $item->pivot?->commentator ?: $worldCupMatch->commentator,
@@ -43,7 +62,7 @@ class MatchWatchController extends Controller
                 ['worldCupMatch' => $worldCupMatch, 'item' => $item],
                 absolute: false,
             ),
-        ])->values();
+        ]))->values();
 
         if ($sources->isEmpty() && $this->hasPlayableSelectedChannel($worldCupMatch)) {
             $sources->push([
@@ -74,7 +93,7 @@ class MatchWatchController extends Controller
             'status' => $worldCupMatch->watchStatus($now),
             'watchItems' => $watchItems,
             'sources' => $sources,
-            'manualWatchUrl' => $this->manualWatchUrl($worldCupMatch),
+            'manualWatchUrl' => $manualWatchUrl,
             'upcomingMatches' => $this->upcomingMatches($worldCupMatch, $now),
             'schema' => $this->schema($worldCupMatch),
             'isAdmin' => auth()->user()?->isAdmin() ?? false,
@@ -159,6 +178,18 @@ class MatchWatchController extends Controller
             ['worldCupMatch' => $match],
             absolute: false,
         );
+    }
+
+    private function streamTypeForUrl(?string $url): string
+    {
+        $path = mb_strtolower((string) parse_url((string) $url, PHP_URL_PATH));
+
+        return match (true) {
+            str_ends_with($path, '.m3u8') => 'hls',
+            str_ends_with($path, '.ts') => 'mpegts',
+            str_ends_with($path, '.mp4') => 'mp4',
+            default => 'mpegts',
+        };
     }
 
     private function upcomingMatches(WorldCupMatch $match, CarbonImmutable $now)

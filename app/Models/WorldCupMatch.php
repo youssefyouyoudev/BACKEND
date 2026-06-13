@@ -18,10 +18,9 @@ class WorldCupMatch extends Model
 
     public const STATUSES = [
         'to_confirm',
-        'confirmed',
+        'scheduled',
         'live',
-        'finished',
-        'postponed',
+        'ended',
         'cancelled',
     ];
 
@@ -284,6 +283,13 @@ class WorldCupMatch extends Model
                     && $this->isPublicLiveIptvItem($item);
             })
             ->sort(function (IptvItem $left, IptvItem $right): int {
+                $selected = (int) ($right->getKey() === $this->selected_iptv_item_id)
+                    <=> (int) ($left->getKey() === $this->selected_iptv_item_id);
+
+                if ($selected !== 0) {
+                    return $selected;
+                }
+
                 $recommended = (int) ($right->pivot?->is_recommended ?? false)
                     <=> (int) ($left->pivot?->is_recommended ?? false);
 
@@ -312,8 +318,8 @@ class WorldCupMatch extends Model
             ? $this->iptvItems
             : $this->iptvItems()->with('playlist')->get();
 
-        if ($items->isEmpty() && $this->selectedIptvItem) {
-            return collect([$this->selectedIptvItem]);
+        if ($this->selectedIptvItem && ! $items->contains(fn (IptvItem $item): bool => $item->is($this->selectedIptvItem))) {
+            $items->prepend($this->selectedIptvItem);
         }
 
         return $items;

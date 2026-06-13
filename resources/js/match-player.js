@@ -132,6 +132,16 @@ class MatchPlayer {
             return;
         }
 
+        if (type === 'other' || !source.url) {
+            this.video.hidden = true;
+            this.external.href = source.external_url || source.url || '#';
+            this.external.hidden = !source.url;
+            this.loading.delete(index);
+            this.showError(t('This stream type is not supported by the browser player.'));
+            this.renderOptions();
+            return;
+        }
+
         this.external.hidden = true;
         this.controller = initResilientPlayer(this.video, source.url, {
             streamType: type,

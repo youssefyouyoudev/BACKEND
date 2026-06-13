@@ -113,8 +113,26 @@
                     <form method="POST" action="{{ route('admin.world-cup-matches.quick-update', $match) }}">
                         @csrf
                         @method('PATCH')
-                        <input type="hidden" name="action" value="toggle_live">
-                        <button class="button button--ghost" type="submit">{{ $match->is_live_link_enabled ? __('Disable live') : __('Enable live') }}</button>
+                        <input type="hidden" name="action" value="enable_live">
+                        <button class="button button--ghost" type="submit">{{ __("Enable Live") }}</button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.world-cup-matches.quick-update', $match) }}">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="action" value="disable_live">
+                        <button class="button button--ghost" type="submit">{{ __("Disable Live") }}</button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.world-cup-matches.quick-update', $match) }}">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="action" value="mark_live">
+                        <button class="button button--ghost" type="submit">{{ __("Mark as Live") }}</button>
+                    </form>
+                    <form method="POST" action="{{ route('admin.world-cup-matches.quick-update', $match) }}">
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="action" value="mark_ended">
+                        <button class="button button--ghost" type="submit">{{ __("Mark as Ended") }}</button>
                     </form>
                     <form method="POST" action="{{ route('admin.world-cup-matches.quick-update', $match) }}">
                         @csrf

@@ -76,7 +76,9 @@ it('allows an admin to assign an existing channel and edit the commentator', fun
             'kickoff_at' => now()->addDay()->toDateTimeString(),
             'selected_channel_id' => $channel->id,
             'commentator' => 'Hafid Derradji',
-            'broadcast_status' => 'confirmed',
+            'broadcast_status' => 'scheduled',
+            'use_manual_live_url' => '1',
+            'live_url_manual' => 'https://example.com/live.m3u8',
             'is_live_link_enabled' => '1',
         ])
         ->assertRedirect();
@@ -101,7 +103,7 @@ it('shows the selected channel publicly and links to the dedicated match page', 
         'morocco_kickoff_at' => now()->addDay(),
         'selected_channel_id' => $channel->id,
         'is_live_link_enabled' => false,
-        'broadcast_status' => 'confirmed',
+        'broadcast_status' => 'scheduled',
     ]);
 
     $this->get(route('world-cup.index', ['tab' => 'all']))

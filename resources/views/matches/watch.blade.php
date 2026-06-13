@@ -37,7 +37,11 @@
 
     <x-ad-slot name="match_watch_before_content" type="inline" compact />
 
-    @if($status === 'opens_soon')
+    @if(! $match->is_live_link_enabled)
+        <section class="match-watch-player">
+            <div class="match-watch-empty">{{ app()->isLocale('ar') ? 'Ø³ØªØ¸Ù‡Ø± Ø±ÙˆØ§Ø¨Ø· Ø§Ù„Ù…Ø´Ø§Ù‡Ø¯Ø© Ù‡Ù†Ø§ Ù‚Ø¨Ù„ Ø§Ù†Ø·Ù„Ø§Ù‚ Ø§Ù„Ù…Ø¨Ø§Ø±Ø§Ø©.' : 'Watch links will appear here before kickoff.' }}</div>
+        </section>
+    @elseif($status === 'opens_soon')
         <section class="match-watch-state">
             <span class="rm-kicker">{{ app()->isLocale('ar') ? 'موعد فتح المشاهدة' : 'Watch window' }}</span>
             <h2>{{ app()->isLocale('ar') ? 'تفتح صفحة المشاهدة على الساعة' : 'Watch page opens at' }} {{ $match->watch_opens_at?->format('H:i') }}</h2>

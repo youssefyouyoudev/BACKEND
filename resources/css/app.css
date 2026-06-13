@@ -7713,6 +7713,44 @@ html:has(.rm-body) {
     justify-content: space-between;
 }
 
+.wc-match-iptv-repeater {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.wc-match-iptv-repeater [data-match-iptv-rows] {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.wc-match-iptv-row {
+    display: grid;
+    gap: 0.9rem;
+    padding: 1rem;
+    border: 1px solid var(--panel-border);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.wc-match-iptv-row__head,
+.wc-match-iptv-row__grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.wc-match-iptv-row__head {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.wc-match-iptv-row__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.wc-match-iptv-row .form-grid__wide {
+    grid-column: 1 / -1;
+}
+
 .wc-schedule-card__watch-options,
 .rtv-match-card__watch-options {
     display: grid;
@@ -7967,9 +8005,15 @@ html:has(.rm-body) {
     background: var(--rtv-danger);
 }
 
-.wc-match-status--confirmed {
+.wc-match-status--confirmed,
+.wc-match-status--scheduled {
     color: #fff;
     background: var(--rtv-success);
+}
+
+.wc-match-status--ended {
+    color: #fff;
+    background: var(--rtv-muted);
 }
 
 .wc-schedule-card__time {
@@ -8405,6 +8449,11 @@ html.theme-light .wc-title {
     }
 
     .wc-admin-stream-row {
+        grid-template-columns: 1fr;
+    }
+
+    .wc-match-iptv-row__head,
+    .wc-match-iptv-row__grid {
         grid-template-columns: 1fr;
     }
 }

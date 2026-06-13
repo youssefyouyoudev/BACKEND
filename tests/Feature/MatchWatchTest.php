@@ -194,7 +194,7 @@ function createOpenMatch(): WorldCupMatch
         'kickoff_at' => '2026-06-13 19:00:00',
         'morocco_kickoff_at' => '2026-06-13 20:00:00',
         'is_live_link_enabled' => true,
-        'broadcast_status' => 'confirmed',
+        'broadcast_status' => 'scheduled',
     ]);
 }
 

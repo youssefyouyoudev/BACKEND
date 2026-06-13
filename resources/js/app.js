@@ -116,6 +116,70 @@ document.addEventListener('DOMContentLoaded', () => {
         renderPreview();
     });
 
+    document.querySelectorAll('[data-local-select-search]').forEach((search) => {
+        const select = document.getElementById(search.dataset.localSelectSearch);
+        if (!select) return;
+
+        const options = [...select.options];
+        search.addEventListener('input', () => {
+            const query = search.value.trim().toLowerCase();
+            options.forEach((option) => {
+                option.hidden = Boolean(query) && ! (option.dataset.search || option.textContent.toLowerCase()).includes(query);
+            });
+        });
+    });
+
+    document.querySelectorAll('[data-match-iptv-repeater]').forEach((repeater) => {
+        const rows = repeater.querySelector('[data-match-iptv-rows]');
+        const template = repeater.querySelector('[data-match-iptv-template]');
+        const addButton = document.querySelector('[data-add-match-iptv-row]');
+        if (!rows || !template || !addButton) return;
+
+        const bindRowSearch = (row) => {
+            row.querySelectorAll('[data-local-select-search]').forEach((search) => {
+                const select = document.getElementById(search.dataset.localSelectSearch);
+                if (!select) return;
+
+                const options = [...select.options];
+                search.addEventListener('input', () => {
+                    const query = search.value.trim().toLowerCase();
+                    options.forEach((option) => {
+                        option.hidden = Boolean(query) && ! (option.dataset.search || option.textContent.toLowerCase()).includes(query);
+                    });
+                });
+            });
+        };
+
+        rows.querySelectorAll('[data-match-iptv-row]').forEach(bindRowSearch);
+        repeater.addEventListener('click', (event) => {
+            const remove = event.target.closest('[data-remove-match-iptv-row]');
+            if (!remove) return;
+
+            remove.closest('[data-match-iptv-row]')?.remove();
+            if (!rows.querySelector('[data-match-iptv-row]')) {
+                const empty = document.createElement('p');
+                empty.className = 'empty-state';
+                empty.textContent = t('No match servers attached yet.');
+                rows.append(empty);
+            }
+        });
+
+        addButton.addEventListener('click', () => {
+            rows.querySelector('.empty-state')?.remove();
+            const index = Date.now();
+            const html = template.innerHTML.replaceAll('__INDEX__', String(index));
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = html.trim();
+            const row = wrapper.firstElementChild;
+            const priority = row.querySelector('input[name$="[priority]"]');
+            if (priority && !priority.value) {
+                priority.value = String(rows.querySelectorAll('[data-match-iptv-row]').length + 1);
+            }
+            rows.append(row);
+            bindRowSearch(row);
+        });
+    });
+
     document.querySelectorAll('[data-live-channel-count]').forEach((element) => {
         try {
             const cached = JSON.parse(localStorage.getItem('rifi-live-tv-catalog-v4'));

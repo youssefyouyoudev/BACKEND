@@ -51,8 +51,8 @@
                         <div>
                             <dt>{{ __('landing.matches.channel') }}</dt>
                             <dd>
-                                <span class="channel-confirmation channel-confirmation--{{ $match->broadcast_status === 'confirmed' ? 'confirmed' : 'pending' }}">
-                                    {{ $match->broadcast_status === 'confirmed'
+                                <span class="channel-confirmation channel-confirmation--{{ in_array($match->broadcast_status, ['scheduled', 'live'], true) ? 'confirmed' : 'pending' }}">
+                                    {{ in_array($match->broadcast_status, ['scheduled', 'live'], true)
                                         ? (app()->isLocale('ar') ? 'مؤكدة' : 'Confirmed')
                                         : (app()->isLocale('ar') ? 'غير مؤكدة' : 'Not confirmed') }}
                                 </span>

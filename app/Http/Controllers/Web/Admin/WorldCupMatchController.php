@@ -10,6 +10,7 @@ use App\Models\Channel;
 use App\Models\IptvItem;
 use App\Models\WorldCupMatch;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -83,6 +84,7 @@ class WorldCupMatchController extends Controller
                 'broadcast_status' => 'to_confirm',
             ]),
             'channels' => $this->channels(),
+            'iptvItems' => $this->publicIptvItems()->orderBy('name')->limit(300)->get(),
             'groups' => $this->groups(),
             'statuses' => WorldCupMatch::STATUSES,
         ]);
@@ -90,7 +92,16 @@ class WorldCupMatchController extends Controller
 
     public function store(StoreWorldCupMatchRequest $request): RedirectResponse
     {
-        $match = WorldCupMatch::query()->create($request->validated());
+        $match = DB::transaction(function () use ($request): WorldCupMatch {
+            $validated = $request->validated();
+            $rows = $validated['match_iptv_items'] ?? [];
+            unset($validated['match_iptv_items']);
+
+            $match = WorldCupMatch::query()->create($validated);
+            $this->syncMatchIptvItems($match, $rows);
+
+            return $match;
+        });
 
         return redirect()->route('admin.world-cup-matches.edit', $match)->with('status', __('World Cup match created.'));
     }
@@ -101,10 +112,13 @@ class WorldCupMatchController extends Controller
             'worldCupMatch' => $worldCupMatch->load([
                 'selectedChannel.playlist',
                 'selectedChannel.category',
+                'selectedIptvItem.playlist',
+                'selectedIptvItem.category',
                 'iptvItems.category',
                 'iptvItems.playlist',
             ]),
             'channels' => $this->channels(),
+            'iptvItems' => $this->iptvItemOptions($worldCupMatch),
             'groups' => $this->groups(),
             'statuses' => WorldCupMatch::STATUSES,
         ]);
@@ -112,7 +126,14 @@ class WorldCupMatchController extends Controller
 
     public function update(UpdateWorldCupMatchRequest $request, WorldCupMatch $worldCupMatch): RedirectResponse
     {
-        $worldCupMatch->update($request->validated());
+        DB::transaction(function () use ($request, $worldCupMatch): void {
+            $validated = $request->validated();
+            $rows = $validated['match_iptv_items'] ?? [];
+            unset($validated['match_iptv_items']);
+
+            $worldCupMatch->update($validated);
+            $this->syncMatchIptvItems($worldCupMatch, $rows);
+        });
 
         return back()->with('status', __('World Cup match updated.'));
     }
@@ -127,12 +148,31 @@ class WorldCupMatchController extends Controller
     public function quickUpdate(Request $request, WorldCupMatch $worldCupMatch): RedirectResponse
     {
         $data = $request->validate([
-            'action' => ['required', Rule::in(['toggle_featured', 'toggle_live', 'clear_channel', 'clear_live_url'])],
+            'action' => ['required', Rule::in([
+                'toggle_featured',
+                'toggle_live',
+                'enable_live',
+                'disable_live',
+                'mark_live',
+                'mark_ended',
+                'clear_channel',
+                'clear_live_url',
+            ])],
         ]);
 
         match ($data['action']) {
             'toggle_featured' => $worldCupMatch->update(['is_featured' => ! $worldCupMatch->is_featured]),
             'toggle_live' => $worldCupMatch->update(['is_live_link_enabled' => ! $worldCupMatch->is_live_link_enabled]),
+            'enable_live' => $worldCupMatch->update(['is_live_link_enabled' => true]),
+            'disable_live' => $worldCupMatch->update(['is_live_link_enabled' => false]),
+            'mark_live' => $worldCupMatch->update([
+                'is_live_link_enabled' => true,
+                'broadcast_status' => 'live',
+            ]),
+            'mark_ended' => $worldCupMatch->update([
+                'is_live_link_enabled' => false,
+                'broadcast_status' => 'ended',
+            ]),
             'clear_channel' => $worldCupMatch->update(['selected_channel_id' => null]),
             'clear_live_url' => $worldCupMatch->update([
                 'live_url_manual' => null,
@@ -231,12 +271,12 @@ class WorldCupMatchController extends Controller
             'priority' => ['required', 'integer', 'min:0', 'max:999'],
             'channel_name' => ['nullable', 'string', 'max:160'],
             'stream_title' => ['nullable', 'string', 'max:160'],
-            'stream_type' => ['nullable', Rule::in(['hls', 'm3u8', 'mpegts', 'stream', 'mp4', 'iframe', 'external', 'channel_proxy'])],
-            'quality' => ['nullable', Rule::in(['SD', 'HD', 'FHD', '4K', 'Auto'])],
+            'stream_type' => ['nullable', Rule::in(['hls', 'mpegts', 'mp4', 'iframe', 'other'])],
+            'quality' => ['nullable', Rule::in(['SD', 'HD', 'FHD', '4K'])],
             'language' => ['nullable', 'string', 'max:60'],
             'commentator' => ['nullable', 'string', 'max:120'],
             'server_label' => ['nullable', 'string', 'max:80'],
-            'health_status' => ['nullable', Rule::in(['unknown', 'online', 'offline', 'failed'])],
+            'health_status' => ['nullable', Rule::in(['unknown', 'online', 'offline'])],
             'starts_at' => ['nullable', 'date'],
             'expires_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
         ]);
@@ -267,6 +307,47 @@ class WorldCupMatchController extends Controller
             ->where('is_active', true)
             ->orderBy('name')
             ->get();
+    }
+
+    private function iptvItemOptions(WorldCupMatch $worldCupMatch)
+    {
+        $selectedIds = collect([
+            $worldCupMatch->selected_iptv_item_id,
+            ...$worldCupMatch->iptvItems->pluck('id')->all(),
+        ])->filter()->unique()->values();
+
+        return $this->publicIptvItems()
+            ->when($selectedIds->isNotEmpty(), fn (Builder $query) => $query->orWhereIn('id', $selectedIds))
+            ->orderBy('name')
+            ->limit(300)
+            ->get();
+    }
+
+    private function syncMatchIptvItems(WorldCupMatch $worldCupMatch, array $rows): void
+    {
+        $sync = collect($rows)
+            ->filter(fn (array $row): bool => filled($row['iptv_item_id'] ?? null))
+            ->keyBy(fn (array $row): int => (int) $row['iptv_item_id'])
+            ->mapWithKeys(function (array $row, int $itemId): array {
+                return [$itemId => [
+                    'is_active' => filter_var($row['is_active'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'priority' => (int) ($row['priority'] ?? 1),
+                    'channel_name' => $row['channel_name'] ?? null,
+                    'stream_title' => $row['stream_title'] ?? null,
+                    'stream_type' => $row['stream_type'] ?? null,
+                    'quality' => $row['quality'] ?? null,
+                    'language' => $row['language'] ?? null,
+                    'commentator' => $row['commentator'] ?? null,
+                    'server_label' => $row['server_label'] ?? null,
+                    'is_recommended' => filter_var($row['is_recommended'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'health_status' => $row['health_status'] ?? null,
+                    'starts_at' => $row['starts_at'] ?? null,
+                    'expires_at' => $row['expires_at'] ?? null,
+                ]];
+            })
+            ->all();
+
+        $worldCupMatch->iptvItems()->sync($sync);
     }
 
     private function publicIptvItems(): Builder

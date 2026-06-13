@@ -1,4 +1,29 @@
-@php($selectedChannelId = (string) old('selected_channel_id', $worldCupMatch->selected_channel_id))
+@php
+    $selectedChannelId = (string) old('selected_channel_id', $worldCupMatch->selected_channel_id);
+    $selectedIptvItemId = (string) old('selected_iptv_item_id', $worldCupMatch->selected_iptv_item_id);
+    $oldRows = old('match_iptv_items');
+    $matchIptvRows = is_array($oldRows)
+        ? collect($oldRows)
+        : $worldCupMatch->iptvItems
+            ->sortBy(fn ($item) => $item->pivot->priority)
+            ->values()
+            ->map(fn ($item) => [
+                'iptv_item_id' => $item->id,
+                'is_active' => $item->pivot->is_active,
+                'priority' => $item->pivot->priority,
+                'channel_name' => $item->pivot->channel_name,
+                'stream_title' => $item->pivot->stream_title,
+                'stream_type' => $item->pivot->stream_type,
+                'quality' => $item->pivot->quality,
+                'language' => $item->pivot->language,
+                'commentator' => $item->pivot->commentator,
+                'server_label' => $item->pivot->server_label,
+                'is_recommended' => $item->pivot->is_recommended,
+                'health_status' => $item->pivot->health_status,
+                'starts_at' => $item->pivot->starts_at ? \Illuminate\Support\Carbon::parse($item->pivot->starts_at)->format('Y-m-d\TH:i') : '',
+                'expires_at' => $item->pivot->expires_at ? \Illuminate\Support\Carbon::parse($item->pivot->expires_at)->format('Y-m-d\TH:i') : '',
+            ]);
+@endphp
 
 <div class="wc-match-form">
     <section class="surface-card">
@@ -22,8 +47,6 @@
             <div class="field"><label for="morocco_kickoff_at">{{ __("Morocco kickoff") }}</label><input id="morocco_kickoff_at" type="datetime-local" name="morocco_kickoff_at" value="{{ old('morocco_kickoff_at', $worldCupMatch->morocco_kickoff_at?->format('Y-m-d\TH:i')) }}"></div>
             <div class="field"><label for="local_kickoff_at">{{ __("Stadium-local kickoff") }}</label><input id="local_kickoff_at" type="datetime-local" name="local_kickoff_at" value="{{ old('local_kickoff_at', $worldCupMatch->local_kickoff_at?->format('Y-m-d\TH:i')) }}"></div>
             <div class="field"><label for="local_timezone">{{ __("Local timezone") }}</label><input id="local_timezone" name="local_timezone" value="{{ old('local_timezone', $worldCupMatch->local_timezone) }}" placeholder="{{ __("America/New_York") }}"></div>
-            <div class="field"><label for="watch_opens_at">{{ __("Custom watch opening") }}</label><input id="watch_opens_at" type="datetime-local" name="watch_opens_at" value="{{ old('watch_opens_at', $worldCupMatch->getRawOriginal('watch_opens_at') ? $worldCupMatch->watch_opens_at?->format('Y-m-d\TH:i') : '') }}"><small class="field__hint">{{ __("Leave empty to open one hour before kickoff.") }}</small></div>
-            <div class="field"><label for="watch_expires_at">{{ __("Custom watch expiry") }}</label><input id="watch_expires_at" type="datetime-local" name="watch_expires_at" value="{{ old('watch_expires_at', $worldCupMatch->getRawOriginal('watch_expires_at') ? $worldCupMatch->watch_expires_at?->format('Y-m-d\TH:i') : '') }}"><small class="field__hint">{{ __("Leave empty to close three hours after kickoff.") }}</small></div>
             <div class="field"><label for="venue">{{ __("Venue") }}</label><input id="venue" name="venue" maxlength="160" value="{{ old('venue', $worldCupMatch->venue) }}"></div>
             <div class="field"><label for="city">{{ __("City") }}</label><input id="city" name="city" maxlength="120" value="{{ old('city', $worldCupMatch->city) }}"></div>
             <div class="field"><label for="country">{{ __("Country") }}</label><input id="country" name="country" maxlength="120" value="{{ old('country', $worldCupMatch->country) }}"></div>
@@ -38,7 +61,8 @@
     </section>
 
     <section class="surface-card">
-        <div class="surface-card__header"><div><p class="surface-card__eyebrow">{{ __("3. Broadcast setup") }}</p><h2>{{ __("Channel and commentator") }}</h2></div></div>
+        <div class="surface-card__header"><div><p class="surface-card__eyebrow">{{ __("3. Live Stream / Player Settings") }}</p><h2>{{ __("Player source and broadcast status") }}</h2></div></div>
+        <div class="legal-callout"><strong>{{ __("Rights reminder") }}</strong><p>{{ __("Only add links you own or are allowed to publish.") }}</p></div>
         <div class="field form-grid__wide wc-channel-picker" data-channel-picker>
             <label for="channel_search">{{ __("Search existing channels") }}</label>
             <input id="channel_search" type="search" placeholder="{{ __("Type beIN, Arryadia, HD, Arabic...") }}" data-channel-search>
@@ -62,22 +86,54 @@
                 @endif
             </div>
         </div>
+        <div class="field form-grid__wide wc-channel-picker">
+            <label for="selected_iptv_item_id">{{ __("Selected IPTV item") }}</label>
+            <input type="search" placeholder="{{ __("Search IPTV item options...") }}" data-local-select-search="selected_iptv_item_id">
+            <select id="selected_iptv_item_id" name="selected_iptv_item_id" size="7">
+                <option value="">{{ __("No selected IPTV item") }}</option>
+                @foreach($iptvItems as $item)
+                    @php($itemContext = collect([$item->qualityLabel(), $item->category?->name ?? $item->group_title, $item->playlist?->name])->filter()->implode(' - '))
+                    <option
+                        value="{{ $item->id }}"
+                        data-search="{{ str($item->name.' '.$itemContext)->lower() }}"
+                        @selected($selectedIptvItemId === (string) $item->id)
+                    >{{ $item->name }}{{ $itemContext ? ' - '.$itemContext : '' }}</option>
+                @endforeach
+            </select>
+            <small class="field__hint">{{ __("Used after the manual URL and before the multi-server list.") }}</small>
+        </div>
         <div class="form-grid">
-            <div class="field"><label for="channel_name_manual">{{ __("Manual channel fallback") }}</label><input id="channel_name_manual" name="channel_name_manual" maxlength="120" value="{{ old('channel_name_manual', $worldCupMatch->channel_name_manual) }}" placeholder="{{ __("Channel to be confirmed") }}"></div>
+            <div class="field"><label for="broadcast_status">{{ __("Broadcast status") }}</label><select id="broadcast_status" name="broadcast_status" required>@foreach($statuses as $status)<option value="{{ $status }}" @selected(old('broadcast_status', $worldCupMatch->broadcast_status) === $status)>{{ str($status)->headline() }}</option>@endforeach</select></div>
+            <div class="field"><label for="live_url_manual">{{ __("Manual live URL") }}</label><input id="live_url_manual" type="url" name="live_url_manual" maxlength="2048" value="{{ old('live_url_manual', $worldCupMatch->live_url_manual) }}" placeholder="https://approved.example.com/live.m3u8"></div>
+            <div class="field"><label for="channel_name_manual">{{ __("Manual channel name") }}</label><input id="channel_name_manual" name="channel_name_manual" maxlength="120" value="{{ old('channel_name_manual', $worldCupMatch->channel_name_manual) }}" placeholder="{{ __("Channel to be confirmed") }}"></div>
             <div class="field"><label for="broadcaster">{{ __("Broadcaster") }}</label><input id="broadcaster" name="broadcaster" maxlength="120" value="{{ old('broadcaster', $worldCupMatch->broadcaster) }}"></div>
             <div class="field"><label for="commentator">{{ __("Commentator") }}</label><input id="commentator" name="commentator" maxlength="120" value="{{ old('commentator', $worldCupMatch->commentator) }}" placeholder="{{ __("Commentator to be confirmed") }}"></div>
-            <div class="field"><label for="broadcast_status">{{ __("Broadcast status") }}</label><select id="broadcast_status" name="broadcast_status" required>@foreach($statuses as $status)<option value="{{ $status }}" @selected(old('broadcast_status', $worldCupMatch->broadcast_status) === $status)>{{ str($status)->headline() }}</option>@endforeach</select></div>
+            <div class="field"><label for="watch_opens_at_stream">{{ __("Watch opens at") }}</label><input id="watch_opens_at_stream" type="datetime-local" name="watch_opens_at" value="{{ old('watch_opens_at', $worldCupMatch->getRawOriginal('watch_opens_at') ? $worldCupMatch->watch_opens_at?->format('Y-m-d\TH:i') : '') }}"></div>
+            <div class="field"><label for="watch_expires_at_stream">{{ __("Watch expires at") }}</label><input id="watch_expires_at_stream" type="datetime-local" name="watch_expires_at" value="{{ old('watch_expires_at', $worldCupMatch->getRawOriginal('watch_expires_at') ? $worldCupMatch->watch_expires_at?->format('Y-m-d\TH:i') : '') }}"></div>
+        </div>
+        <div class="toggle-row">
+            <label class="checkbox-field"><input type="checkbox" name="is_live_link_enabled" value="1" @checked(old('is_live_link_enabled', $worldCupMatch->is_live_link_enabled))><span>{{ __("Enable live player") }}</span></label>
+            <label class="checkbox-field"><input type="checkbox" name="use_manual_live_url" value="1" @checked(old('use_manual_live_url', $worldCupMatch->use_manual_live_url))><span>{{ __("Use manual URL instead of selected channel") }}</span></label>
+            <label class="checkbox-field"><input type="checkbox" name="is_featured" value="1" @checked(old('is_featured', $worldCupMatch->is_featured))><span>{{ __("Featured match") }}</span></label>
         </div>
     </section>
 
     <section class="surface-card">
-        <div class="surface-card__header"><div><p class="surface-card__eyebrow">{{ __("4. Watch link") }}</p><h2>{{ __("Public playback") }}</h2></div></div>
-        <div class="legal-callout"><strong>{{ __("Rights reminder") }}</strong><p>{{ __("Only add links you own or are allowed to publish.") }}</p></div>
-        <div class="field"><label for="live_url_manual">{{ __("Manual live URL") }}</label><input id="live_url_manual" type="url" name="live_url_manual" maxlength="2048" value="{{ old('live_url_manual', $worldCupMatch->live_url_manual) }}" placeholder="https://approved.example.com/watch"></div>
-        <div class="toggle-row">
-            <label class="checkbox-field"><input type="checkbox" name="is_live_link_enabled" value="1" @checked(old('is_live_link_enabled', $worldCupMatch->is_live_link_enabled))><span>{{ __("Enable Watch Live publicly") }}</span></label>
-            <label class="checkbox-field"><input type="checkbox" name="use_manual_live_url" value="1" @checked(old('use_manual_live_url', $worldCupMatch->use_manual_live_url))><span>{{ __("Use manual URL instead of selected channel") }}</span></label>
-            <label class="checkbox-field"><input type="checkbox" name="is_featured" value="1" @checked(old('is_featured', $worldCupMatch->is_featured))><span>{{ __("Featured match") }}</span></label>
+        <div class="surface-card__header">
+            <div><p class="surface-card__eyebrow">{{ __("4. Match Channels / Servers") }}</p><h2>{{ __("Attached IPTV items") }}</h2></div>
+            <button class="button button--ghost" type="button" data-add-match-iptv-row>{{ __("Add IPTV server") }}</button>
+        </div>
+        <div class="wc-match-iptv-repeater" data-match-iptv-repeater>
+            <template data-match-iptv-template>
+                @include('admin.world-cup-matches.partials.iptv-row', ['row' => [], 'rowIndex' => '__INDEX__'])
+            </template>
+            <div data-match-iptv-rows>
+                @forelse($matchIptvRows as $rowIndex => $row)
+                    @include('admin.world-cup-matches.partials.iptv-row', ['row' => $row, 'rowIndex' => $rowIndex])
+                @empty
+                    <p class="empty-state">{{ __("No match servers attached yet.") }}</p>
+                @endforelse
+            </div>
         </div>
     </section>
 
@@ -93,5 +149,8 @@
 
 <div class="wc-sticky-save">
     <button class="button button--primary" type="submit">{{ $submitLabel }}</button>
+    @if($worldCupMatch->exists)
+        <a class="button button--ghost" href="{{ route('matches.watch', $worldCupMatch) }}" target="_blank" rel="noopener">{{ __("Preview Watch Page") }}</a>
+    @endif
     <a class="button button--ghost" href="{{ route('admin.world-cup-matches.index') }}">{{ __("Back to matches") }}</a>
 </div>
