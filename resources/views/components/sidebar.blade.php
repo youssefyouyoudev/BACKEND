@@ -1,6 +1,6 @@
 @props(['channels' => [], 'activeId' => null])
 
-<aside class="rm-related-panel" aria-label="{{ __("Related live streams") }}">
+<aside class="rm-related-panel" aria-label="{{ __("Related match coverage") }}">
     <div class="rm-related-panel__header">
         <x-logo compact />
         <span>{{ __("Related live") }}</span>

@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', __("Watch - RifiMedia IPTV Player"))
+@section('title', __("Available Options | RiFiTV"))
+@section('robots', 'noindex,nofollow')
 
 @section('content')
     <section class="iptv-shell">

@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', __("Football Live Scores & TV Channels | RifiMedia"))
-@section('description', __("Today football matches, recent results, upcoming fixtures, and TV channels with direct watch links from RifiMedia playlists."))
+@section('title', $seo['title'])
+@section('description', $seo['description'])
 
 @section('content')
 <div
@@ -13,6 +13,7 @@
     data-results-url="{{ route('api.football.results') }}"
     data-event-url-template="{{ url('/api/football/event/__EVENT_ID__') }}"
     data-tv-url-template="{{ url('/api/football/event/__EVENT_ID__/tv') }}"
+    data-initial-filter="{{ $initialView }}"
 >
     <nav class="football-breadcrumb" aria-label="{{ __("Breadcrumb") }}">
         <a href="{{ route('home') }}">{{ __("Home") }}</a>
@@ -22,13 +23,13 @@
 
     <section class="football-live-hero" style="--rm-hero-photo: url('{{ config('rifimedia_visuals.images.stadium_night') }}')">
         <div data-reveal>
-            <span class="rm-kicker"><x-icon name="football" /> {{ __("RifiMedia") }}</span>
-            <h1>{{ __("Football live scores, fixtures, and TV channels") }}</h1>
-            <p>{{ __("Track live matches, kickoff times, results, and broadcast availability from a match-day dashboard built for quick scanning.") }}</p>
+            <span class="rm-kicker"><x-icon name="football" /> {{ __("RiFiTV") }}</span>
+            <h1>{{ __("Football scores, fixtures, and schedules") }}</h1>
+            <p>{{ __("Track matches, kickoff times, results, and TV guide information in Africa/Casablanca time.") }}</p>
             <div class="rm-hero-microstats" aria-label="{{ __("Football page highlights") }}">
                 <span><x-icon name="calendar" /> {{ __("Date filters") }}</span>
                 <span><x-icon name="trophy" /> {{ __("League grouping") }}</span>
-                <span><x-icon name="tv" /> {{ __("Watch indicators") }}</span>
+                <span><x-icon name="tv" /> {{ __("TV information") }}</span>
             </div>
         </div>
         <button type="button" class="football-refresh-btn rm-btn rm-btn-secondary" data-football-refresh>
@@ -39,12 +40,12 @@
 
     <section class="football-filter-panel" aria-label="{{ __("Football filters") }}">
         <div class="football-quick-filters chip-scroll" role="tablist" aria-label="{{ __("Match range") }}">
-            <button type="button" data-football-filter="today" class="chip is-active chip-active"><x-icon name="calendar" />{{ __("Today") }}</button>
+            <button type="button" data-football-filter="today" class="chip {{ $initialView === 'today' ? 'is-active chip-active' : '' }}"><x-icon name="calendar" />{{ __("Today") }}</button>
             <button type="button" data-football-filter="live" class="chip"><x-icon name="signal" />{{ __('live.label') }}</button>
-            <button type="button" data-football-filter="tomorrow" class="chip"><x-icon name="calendar" />{{ __("Tomorrow") }}</button>
+            <button type="button" data-football-filter="tomorrow" class="chip {{ $initialView === 'tomorrow' ? 'is-active chip-active' : '' }}"><x-icon name="calendar" />{{ __("Tomorrow") }}</button>
             <button type="button" data-football-filter="yesterday" class="chip"><x-icon name="clock" />{{ __("Yesterday") }}</button>
-            <button type="button" data-football-filter="upcoming" class="chip"><x-icon name="trending" />{{ __("Upcoming") }}</button>
-            <button type="button" data-football-filter="results" class="chip"><x-icon name="scores" />{{ __("Results") }}</button>
+            <button type="button" data-football-filter="upcoming" class="chip {{ $initialView === 'schedules' ? 'is-active chip-active' : '' }}"><x-icon name="trending" />{{ __("Upcoming") }}</button>
+            <button type="button" data-football-filter="results" class="chip {{ $initialView === 'results' ? 'is-active chip-active' : '' }}"><x-icon name="scores" />{{ __("Results") }}</button>
         </div>
 
         <div class="football-date-filter">

@@ -13,7 +13,8 @@ class WorldCupController extends Controller
 {
     public function index(Request $request): View
     {
-        $tab = $request->string('tab', 'upcoming')->toString();
+        $section = (string) $request->route('section', 'schedule');
+        $tab = $request->string('tab', $section === 'groups' ? 'groups' : 'upcoming')->toString();
 
         $matches = WorldCupMatch::query()
             ->publicVisible()
@@ -31,6 +32,14 @@ class WorldCupController extends Controller
                     ->orWhere('away_team', 'like', "%{$search}%"));
             })
             ->when($request->filled('group'), fn (Builder $query) => $query->where('group_name', $request->string('group')))
+            ->when($section === 'morocco', fn (Builder $query) => $query
+                ->where(fn (Builder $teamQuery) => $teamQuery
+                    ->where('home_team', 'Morocco')
+                    ->orWhere('away_team', 'Morocco')))
+            ->when($section === 'africa', fn (Builder $query) => $query
+                ->where(fn (Builder $teamQuery) => $teamQuery
+                    ->whereIn('home_team_code', ['MA', 'DZ', 'TN', 'EG', 'SN', 'GH', 'CI', 'ZA', 'CV', 'CD'])
+                    ->orWhereIn('away_team_code', ['MA', 'DZ', 'TN', 'EG', 'SN', 'GH', 'CI', 'ZA', 'CV', 'CD'])))
             ->when($request->filled('date'), fn (Builder $query) => $query->whereDate('morocco_kickoff_at', $request->string('date')->toString()))
             ->when($request->filled('channel'), function (Builder $query) use ($request): void {
                 $channel = $request->string('channel')->trim()->toString();
@@ -60,6 +69,7 @@ class WorldCupController extends Controller
                 ->map(fn (WorldCupMatch $match): string => $match->morocco_kickoff_at->toDateString())
                 ->unique()
                 ->values(),
+            'section' => $section,
         ]);
     }
 }

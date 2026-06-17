@@ -3,6 +3,7 @@
     'sources' => [],
     'poster' => null,
     'autoplay' => true,
+    'embedOnly' => false,
 ])
 
 @php
@@ -14,22 +15,25 @@
         'sources' => collect($sources)->values()->all(),
         'poster' => $poster,
         'autoplay' => $autoplay,
+        'debug' => auth()->user()?->isAdmin() || config('app.debug'),
     ];
 @endphp
 
-<section class="rifitv-match-player" data-match-player data-player-id="{{ $playerId }}">
+<section class="rifitv-match-player {{ $embedOnly ? 'rifitv-match-player--embed-only' : '' }}" data-match-player data-player-id="{{ $playerId }}" @if($embedOnly) data-embed-player-only="1" @endif>
     <script type="application/json" data-match-player-config>@json($payload)</script>
 
-    <header class="rifitv-player-now">
-        <div>
-            <span class="rifitv-player-now__eyebrow">{{ __('Now playing') }}</span>
-            <strong data-match-player-channel>{{ __('Preparing stream...') }}</strong>
-            <small data-match-player-meta></small>
-        </div>
-        <span class="rifitv-player-health" data-match-player-health>{{ __('Loading') }}</span>
-    </header>
+    @unless($embedOnly)
+        <header class="rifitv-player-now">
+            <div>
+                <span class="rifitv-player-now__eyebrow">{{ __('Now playing') }}</span>
+                <strong data-match-player-channel>{{ __('Preparing stream...') }}</strong>
+                <small data-match-player-meta></small>
+            </div>
+            <span class="rifitv-player-health" data-match-player-health>{{ __('Loading') }}</span>
+        </header>
+    @endunless
 
-    <div class="rifitv-player-shell">
+    <div class="rifitv-player-shell player-frame">
         <video
             id="{{ $playerId }}"
             class="rifitv-player-video"
@@ -42,9 +46,8 @@
         <iframe
             class="rifitv-player-iframe"
             data-match-player-iframe
-            title="{{ __('Live match player') }}"
-            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-            allowfullscreen
+            title="{{ __('Match coverage player') }}"
+            allow="fullscreen; autoplay; encrypted-media; picture-in-picture"
             referrerpolicy="no-referrer"
             loading="eager"
             hidden
@@ -61,30 +64,42 @@
         </button>
     </div>
 
-    <div class="rifitv-player-controls" aria-label="{{ __('Player controls') }}">
-        <button type="button" data-match-player-reload><x-icon name="signal" /> {{ __('Reload stream') }}</button>
-        <button type="button" data-match-player-next><x-icon name="arrow-right" /> {{ __('Try next server') }}</button>
-        <button type="button" data-match-player-mute><x-icon name="volume" /> {{ __('Mute / unmute') }}</button>
-        <button type="button" data-match-player-fullscreen><x-icon name="tv" /> {{ __('Fullscreen') }}</button>
-        <a href="#" data-match-player-external target="_blank" rel="nofollow noopener noreferrer" hidden>
-            <x-icon name="arrow-up-right" /> {{ __('Open external stream') }}
-        </a>
-    </div>
+    @unless($embedOnly)
+        <div class="rifitv-player-controls player-controls" aria-label="{{ __('Player controls') }}">
+            <button type="button" data-match-player-reload><x-icon name="signal" /> {{ __('Retry') }}</button>
+            <button type="button" data-match-player-next><x-icon name="arrow-right" /> {{ __('Try next server') }}</button>
+            <button type="button" data-match-player-mute><x-icon name="volume" /> {{ __('Mute / unmute') }}</button>
+            <button type="button" data-match-player-fullscreen><x-icon name="tv" /> {{ __('Fullscreen') }}</button>
+            <a href="#" data-match-player-external target="_blank" rel="nofollow noopener noreferrer" hidden>
+                <x-icon name="arrow-up-right" /> {{ __('Open external stream') }}
+            </a>
+            <a href="{{ route('contact') }}"><x-icon name="signal" /> {{ __('Report issue') }}</a>
+        </div>
 
-    <div class="rifitv-player-options">
-        <section>
-            <div class="rifitv-player-options__heading">
-                <div><span>{{ __('Available channels') }}</span><strong>{{ __('Choose a broadcast') }}</strong></div>
-                <small>{{ __('The recommended option is selected first.') }}</small>
-            </div>
-            <div class="rifitv-channel-tabs" data-match-player-channels role="tablist"></div>
-        </section>
+        <div class="rifitv-player-options">
+            <section>
+                <div class="rifitv-player-options__heading">
+                    <div><span>{{ __('Channel options') }}</span><strong>{{ __('Choose a broadcast option') }}</strong></div>
+                    <small>{{ __('The recommended option is selected first.') }}</small>
+                </div>
+                <div class="rifitv-channel-tabs" data-match-player-channels role="tablist"></div>
+            </section>
 
-        <section>
-            <div class="rifitv-player-options__heading">
-                <div><span>{{ __('Servers and quality') }}</span><strong data-match-player-server-heading>{{ __('Select a server') }}</strong></div>
-            </div>
-            <div class="rifitv-server-grid" data-match-player-servers></div>
-        </section>
-    </div>
+            <section>
+                <div class="rifitv-player-options__heading">
+                    <div><span>{{ __('Servers and quality') }}</span><strong data-match-player-server-heading>{{ __('Select a server') }}</strong></div>
+                </div>
+                <div class="rifitv-server-grid" data-match-player-servers></div>
+            </section>
+        </div>
+    @else
+        <a href="#" data-match-player-external target="_blank" rel="nofollow noopener noreferrer" hidden></a>
+    @endunless
+
+    @if(auth()->user()?->isAdmin() || config('app.debug'))
+        <details class="player-debug-panel">
+            <summary>{{ __("Player debug") }}</summary>
+            <pre data-player-debug></pre>
+        </details>
+    @endif
 </section>

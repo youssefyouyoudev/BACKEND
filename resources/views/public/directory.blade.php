@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', $title.' | RifiMedia')
+@section('title', $title.' | RiFiTV')
 @section('description', $description)
 
 @section('content')

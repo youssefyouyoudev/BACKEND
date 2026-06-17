@@ -1,11 +1,11 @@
 <section class="rtv-landing-section" aria-labelledby="rtv-channels-title">
     <div class="rtv-section-heading">
         <div>
-            <span class="rtv-kicker">{{ __('landing.channels.eyebrow') }}</span>
-            <h2 id="rtv-channels-title">{{ __('landing.channels.title') }}</h2>
-            <p>{{ __('landing.channels.subtitle') }}</p>
+            <span class="rtv-kicker">{{ __('TV guide') }}</span>
+            <h2 id="rtv-channels-title">{{ __('Featured broadcaster information') }}</h2>
+            <p>{{ __('Browse channel names, categories, and quality information available in the RiFiTV match guide.') }}</p>
         </div>
-        <a class="rtv-text-link" href="{{ route('live-tv') }}">{{ __('landing.channels.browse') }} <x-icon name="arrow-up-right" /></a>
+        <a class="rtv-text-link" href="{{ route('tv-guide.index') }}">{{ __('Open TV guide') }} <x-icon name="arrow-up-right" /></a>
     </div>
 
     @if($featuredChannels->isNotEmpty())
@@ -19,7 +19,7 @@
                     <span class="rtv-channel-card__body">
                         <small>{{ $channel->category?->name ?? $channel->group_title ?: __('landing.channels.category') }}</small>
                         <strong>{{ $channel->clean_display_name }}</strong>
-                        <em>{{ __('landing.channels.open') }} <x-icon name="arrow-up-right" /></em>
+                        <em>{{ __('Channel information') }} <x-icon name="arrow-up-right" /></em>
                     </span>
                 </a>
             @endforeach

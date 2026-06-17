@@ -20,8 +20,19 @@ class WorldCupMatch extends Model
         'to_confirm',
         'scheduled',
         'live',
+        'halftime',
         'ended',
+        'postponed',
         'cancelled',
+    ];
+
+    public const STATUS_ENDED = 'ended';
+
+    public const AUTO_END_STATUSES = [
+        'to_confirm',
+        'scheduled',
+        'live',
+        'halftime',
     ];
 
     protected $fillable = [
@@ -54,6 +65,9 @@ class WorldCupMatch extends Model
         'use_manual_live_url',
         'is_live_link_enabled',
         'broadcast_status',
+        'ended_at',
+        'status_updated_by',
+        'slug',
         'is_featured',
         'admin_notes',
         'source_name',
@@ -70,6 +84,7 @@ class WorldCupMatch extends Model
             'local_kickoff_at' => 'immutable_datetime',
             'watch_opens_at' => 'immutable_datetime',
             'watch_expires_at' => 'immutable_datetime',
+            'ended_at' => 'immutable_datetime',
             'use_manual_live_url' => 'boolean',
             'is_live_link_enabled' => 'boolean',
             'is_featured' => 'boolean',
@@ -181,6 +196,46 @@ class WorldCupMatch extends Model
     public function getExpectedEndsAtAttribute(): ?CarbonImmutable
     {
         return $this->kickoff_at_morocco?->addHours(2);
+    }
+
+    public function getPublicStatusAttribute(): string
+    {
+        if ($this->virtualBroadcastStatus() === self::STATUS_ENDED) {
+            return 'finished';
+        }
+
+        return $this->virtualBroadcastStatus();
+    }
+
+    public function getPublicStatusLabelAttribute(): string
+    {
+        return match ($this->public_status) {
+            'to_confirm', 'scheduled' => 'Upcoming',
+            'live' => 'Live',
+            'halftime' => 'Half Time',
+            'finished' => 'Finished',
+            'postponed' => 'Postponed',
+            'cancelled' => 'Cancelled',
+            default => str($this->public_status)->headline()->toString(),
+        };
+    }
+
+    public function virtualBroadcastStatus(?CarbonImmutable $now = null): string
+    {
+        $status = (string) $this->broadcast_status;
+
+        if (in_array($status, ['ended', 'finished', 'cancelled', 'postponed'], true)) {
+            return $status === 'finished' ? self::STATUS_ENDED : $status;
+        }
+
+        $kickoff = $this->kickoff_at_morocco;
+        $now ??= CarbonImmutable::now(self::MOROCCO_TIMEZONE);
+
+        if ($kickoff && $kickoff->lessThanOrEqualTo($now->subHours(3))) {
+            return self::STATUS_ENDED;
+        }
+
+        return $status === 'to_confirm' ? 'scheduled' : $status;
     }
 
     public function getWatchExpiresAtAttribute(): ?CarbonImmutable

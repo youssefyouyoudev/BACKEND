@@ -8,7 +8,7 @@
     <x-page-hero
         eyebrow="{{ __("Sports") }}"
         title="{{ __("Football scores, fixtures, and channels") }}"
-        description="{{ __("Sports starts with football on RifiMedia: real match data, clean cards, and direct watch links when channels exist in the live TV playlist.") }}"
+        description="{{ __("Football scores, fixtures, results, schedules, and TV guide information in Morocco time on RiFiTV.") }}"
     >
         <div class="rm-hero-actions">
             <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-primary">{{ __("Open Football") }}</a>

@@ -40,12 +40,14 @@
         ];
         $mainNav = [
             ['label' => __('landing.nav.home'), 'icon' => 'home', 'href' => route('home'), 'active' => request()->routeIs('home')],
-            ['label' => __('landing.nav.matches'), 'icon' => 'scores', 'href' => route('sports.football'), 'active' => request()->routeIs('sports.football*', 'football.*', 'scores', 'live-scores', 'fixtures')],
-            ['label' => __('landing.nav.world_cup'), 'icon' => 'trophy', 'href' => route('world-cup.index'), 'active' => request()->routeIs('world-cup.*')],
-            ['label' => __('landing.nav.channels'), 'icon' => 'tv', 'href' => route('live-tv'), 'active' => request()->routeIs('live', 'live-tv', 'channels.show')],
+            ['label' => __('Football'), 'icon' => 'football', 'href' => route('football.index'), 'active' => request()->routeIs('sports.football*', 'football.*')],
+            ['label' => __('Scores'), 'icon' => 'scores', 'href' => route('football.today'), 'active' => request()->routeIs('scores', 'live-scores')],
+            ['label' => __('landing.nav.world_cup'), 'icon' => 'trophy', 'href' => route('world-cup-2026.index'), 'active' => request()->routeIs('world-cup*')],
+            ['label' => __('TV Guide'), 'icon' => 'tv', 'href' => route('tv-guide.index'), 'active' => request()->routeIs('tv-guide.*')],
+            ['label' => __('News'), 'icon' => 'news', 'href' => route('news.index'), 'active' => request()->routeIs('news.*')],
             ['label' => __('landing.nav.contact'), 'icon' => 'message', 'href' => route('contact'), 'active' => request()->routeIs('contact')],
         ];
-        $mobileQuickNav = $mainNav;
+        $mobileQuickNav = collect($mainNav)->only([0, 1, 2, 3, 4])->values()->all();
     @endphp
     <x-seo
         :title="$seoTitle"
@@ -130,7 +132,6 @@
                 </nav>
 
                 <div class="rm-navbar__actions">
-                    <span class="wc-nav-live"><i></i> {{ __('landing.hero.live') }}</span>
                     <a href="{{ route('search') }}" class="rm-icon-btn" aria-label="{{ __('landing.nav.search') }}">
                         <x-icon name="search" />
                     </a>
@@ -149,7 +150,7 @@
                     @else
                         <a href="{{ route('admin.login') }}" class="rm-profile-btn rm-cta-btn"><x-icon name="login" />{{ __('landing.nav.login') }}</a>
                     @endauth
-                    <a href="{{ route('sports.football') }}" class="wc-nav-watch"><x-icon name="play" /> {{ __('landing.nav.explore') }}</a>
+                    <a href="{{ route('football.today') }}" class="wc-nav-watch"><x-icon name="calendar" /> {{ __('Today') }}</a>
                     <button
                         type="button"
                         class="rm-mobile-nav"
@@ -166,7 +167,7 @@
 
             <nav class="rm-navbar__drawer" x-show="mobileNavOpen" x-transition.opacity.origin.top @click.outside="mobileNavOpen = false" aria-label="{{ __("Mobile menu") }}">
                 <div class="wc-nav-drawer__header">
-                    <span class="wc-nav-live"><i></i> {{ __('landing.hero.live') }}</span>
+                    <span class="wc-nav-live"><i></i> {{ __('Morocco time') }}</span>
                     <strong>{{ __('landing.world_cup.trophy_label') }}</strong>
                 </div>
                 @foreach($mainNav as $item)
@@ -176,7 +177,7 @@
                     <a href="{{ route('language.switch', 'en') }}" class="{{ app()->isLocale('en') ? 'is-active' : '' }}" lang="en">{{ __("English") }}</a>
                     <a href="{{ route('language.switch', 'ar') }}" class="{{ app()->isLocale('ar') ? 'is-active' : '' }}" lang="ar">{{ __('landing.nav.arabic') }}</a>
                 </div>
-                <a href="{{ route('sports.football') }}" class="wc-nav-drawer__watch"><x-icon name="play" /> {{ __('landing.nav.explore') }}</a>
+                <a href="{{ route('football.today') }}" class="wc-nav-drawer__watch"><x-icon name="calendar" /> {{ __('Today') }}</a>
                 @auth
                     @if(auth()->user()?->isAdmin())
                         <a href="{{ route('admin.dashboard') }}">{{ __('landing.nav.admin') }}</a>
@@ -206,6 +207,8 @@
             <span class="rm-theme-icon rm-theme-icon--sun" aria-hidden="true"><x-icon name="sun" /></span>
         </button>
 
+        <x-ad-slot name="sticky_mobile" type="sticky" label="{{ __('Sponsored') }}" />
+
         <footer class="rm-footer rm-premium-footer" aria-label="{{ __("Site footer") }}">
             <div class="rm-footer__inner">
                 <div class="rm-footer__brand">
@@ -215,10 +218,10 @@
                 <nav aria-label="{{ __("Footer navigation") }}" class="rm-footer__groups">
                     <span>
                         <strong>{{ __('landing.footer.football') }}</strong>
-                        <a href="{{ route('sports.football') }}">{{ __('landing.footer.scores') }}</a>
-                        <a href="{{ route('sports.football') }}">{{ __('landing.footer.fixtures') }}</a>
-                        <a href="{{ route('world-cup.index') }}">{{ __('landing.footer.world_cup') }}</a>
-                        <a href="{{ route('live-tv') }}">{{ __('landing.footer.channels') }}</a>
+                        <a href="{{ route('football.today') }}">{{ __('landing.footer.scores') }}</a>
+                        <a href="{{ route('football.schedules') }}">{{ __('landing.footer.fixtures') }}</a>
+                        <a href="{{ route('world-cup-2026.index') }}">{{ __('landing.footer.world_cup') }}</a>
+                        <a href="{{ route('tv-guide.index') }}">{{ __('TV Guide') }}</a>
                     </span>
                     <span>
                         <strong>{{ __('landing.footer.company') }}</strong>
@@ -250,5 +253,25 @@
     @if(config('ads.enabled') && !request()->is('admin*') && trim($__env->yieldContent('ads')) !== 'disabled')
         @include('partials.ads.global-scripts')
     @endif
+    <script>
+        document.addEventListener('click', (event) => {
+            const close = event.target.closest('[data-ad-dismiss]');
+            if (!close) {
+                return;
+            }
+
+            const slot = close.closest('[data-ad-slot]');
+            if (slot) {
+                sessionStorage.setItem(`rifitv_ad_closed_${slot.dataset.adSlot}`, '1');
+                slot.remove();
+            }
+        });
+
+        document.querySelectorAll('[data-ad-slot]').forEach((slot) => {
+            if (sessionStorage.getItem(`rifitv_ad_closed_${slot.dataset.adSlot}`) === '1') {
+                slot.remove();
+            }
+        });
+    </script>
 </body>
 </html>

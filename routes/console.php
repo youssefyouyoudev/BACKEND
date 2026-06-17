@@ -57,3 +57,9 @@ Schedule::command('streams:check-health --limit=500')
     ->onOneServer()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/stream-health.log'));
+
+Schedule::command('matches:auto-end-old')
+    ->everyFiveMinutes()
+    ->withoutOverlapping(10)
+    ->onOneServer()
+    ->appendOutputTo(storage_path('logs/matches-auto-end.log'));

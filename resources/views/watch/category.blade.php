@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
-@section('title', ($category?->name ?? __('Search')).' - RifiMedia Watch')
+@section('title', ($category?->name ?? __('Search')).' - Available Options | RiFiTV')
+@section('robots', 'noindex,nofollow')
 
 @section('content')
     <section class="iptv-shell">

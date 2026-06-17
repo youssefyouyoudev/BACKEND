@@ -957,6 +957,75 @@ input {
     opacity: 0.7;
 }
 
+.iptv-source-admin-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(20rem, 0.85fr);
+    gap: 1rem;
+}
+
+.iptv-admin-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-block: 1rem;
+}
+
+.iptv-admin-checks label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-weight: 700;
+}
+
+.iptv-source-list {
+    display: grid;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+}
+
+.iptv-source-list article {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.65rem;
+    border-bottom: 1px solid var(--border);
+    padding-block: 0.75rem;
+}
+
+.iptv-source-list article div,
+.iptv-source-list article span,
+.iptv-source-list article small {
+    display: block;
+    min-width: 0;
+}
+
+.iptv-source-priority-form {
+    display: grid;
+    grid-template-columns: minmax(8rem, 1fr) auto auto 4.5rem;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.iptv-source-priority-form label,
+.iptv-source-priority-form small {
+    grid-column: span 2;
+}
+
+.iptv-source-priority-form input,
+.iptv-source-priority-form select {
+    min-width: 0;
+}
+
+@media (max-width: 900px) {
+    .iptv-source-admin-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .iptv-source-priority-form {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
 .iptv-admin-item {
     display: flex;
     align-items: center;
@@ -10055,12 +10124,20 @@ html.theme-light .wc-title {
     font-size: clamp(1rem, 2vw, 1.3rem);
 }
 
+.rm-receiver-error h3 {
+    margin: 0;
+    font-size: 1.35rem;
+}
+
 .rm-receiver-error div {
     display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 0.6rem;
 }
 
 .rm-receiver-error button,
+.rm-receiver-error a,
 .rm-receiver-controls button,
 .rm-receiver-view-toggle button,
 .rm-receiver-categories button,
@@ -10071,6 +10148,32 @@ html.theme-light .wc-title {
     color: #e2e8f0;
     background: rgba(30, 41, 59, 0.72);
     font-weight: 800;
+    cursor: pointer;
+}
+
+.rm-receiver-error a {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    padding-inline: 1rem;
+    text-decoration: none;
+}
+
+.rm-receiver-tap-play {
+    position: absolute;
+    z-index: 4;
+    inset: 50% auto auto 50%;
+    display: inline-flex;
+    min-height: 52px;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.75rem 1.1rem;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 0.75rem;
+    color: #fff;
+    background: rgba(4, 120, 87, 0.94);
+    font-weight: 900;
     cursor: pointer;
 }
 
@@ -14555,6 +14658,34 @@ body,
     box-shadow: var(--shadow-soft);
 }
 
+.iptv-player-source-picker {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-block: 0.75rem;
+}
+
+.iptv-player-source-picker button {
+    min-width: 7rem;
+    min-height: 3rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+}
+
+.iptv-player-source-picker button.is-active {
+    border-color: var(--primary);
+    box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.iptv-player-source-picker strong,
+.iptv-player-source-picker small {
+    display: block;
+}
+
 .iptv-hero h1,
 .iptv-page-head h1,
 .iptv-player-meta h1 {
@@ -14708,6 +14839,37 @@ body,
 
 .iptv-player-state[hidden] {
     display: none;
+}
+
+.iptv-player-state__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    padding-inline: 1rem;
+}
+
+.player-debug-panel {
+    margin-top: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    background: var(--surface);
+}
+
+.player-debug-panel summary {
+    padding: 0.7rem 0.85rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.player-debug-panel pre {
+    max-height: 20rem;
+    overflow: auto;
+    margin: 0;
+    padding: 0.85rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+    white-space: pre-wrap;
 }
 
 .iptv-spinner {
@@ -20894,5 +21056,352 @@ html[dir="rtl"] video {
 
     .wc-date-nav {
         top: 74px;
+    }
+}
+.monetization-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.monetization-card {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.38);
+}
+
+.monetization-card__header,
+.monetization-card__limits,
+.toggle-line,
+.form-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.monetization-card__header {
+    justify-content: space-between;
+}
+
+.monetization-card__header span {
+    display: block;
+    color: var(--muted);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+}
+
+.monetization-card textarea {
+    min-height: 8rem;
+    resize: vertical;
+}
+
+.monetization-card__limits > .field {
+    flex: 1 1 0;
+}
+
+.toggle-line {
+    color: var(--text);
+    font-weight: 700;
+}
+
+.form-actions {
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+.match-watch-page {
+    --page-bg: color-mix(in srgb, var(--bg) 92%, #ffffff 8%);
+    --card-bg: color-mix(in srgb, var(--panel) 94%, #ffffff 6%);
+    --border: rgba(148, 163, 184, 0.18);
+    --text: var(--text);
+    --muted: var(--muted);
+    --brand: #ef4444;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --radius-lg: 18px;
+    --shadow-soft: 0 20px 60px rgba(0, 0, 0, 0.24);
+    max-width: 1280px;
+    margin-inline: auto;
+    padding-inline: clamp(0.9rem, 2vw, 1.5rem);
+    overflow-x: clip;
+}
+
+[data-theme="light"] .match-watch-page {
+    --page-bg: #f3f5f8;
+    --card-bg: #ffffff;
+    --border: rgba(15, 23, 42, 0.12);
+    --text: #111827;
+    --muted: #667085;
+    --shadow-soft: 0 18px 44px rgba(15, 23, 42, 0.08);
+}
+
+.watch-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.32fr);
+    gap: clamp(1.25rem, 2vw, 1.75rem);
+    align-items: start;
+}
+
+.watch-main,
+.watch-sidebar {
+    min-width: 0;
+    display: grid;
+    gap: clamp(1rem, 1.8vw, 1.35rem);
+}
+
+.watch-sidebar {
+    position: sticky;
+    top: 5.5rem;
+}
+
+.match-watch-hero,
+.match-watch-state,
+.match-watch-player,
+.match-info-card,
+.match-watch-upcoming,
+.rifitv-match-player {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+    box-shadow: var(--shadow-soft);
+}
+
+.match-watch-player {
+    padding: 0;
+    overflow: hidden;
+}
+
+.rifitv-match-player {
+    display: grid;
+    gap: 1rem;
+    padding: clamp(0.9rem, 1.8vw, 1.25rem);
+}
+
+.rifitv-player-now {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.rifitv-player-now__eyebrow {
+    display: block;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.player-frame,
+.rifitv-player-shell {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: #070b16;
+    position: relative;
+}
+
+.player-frame video,
+.player-frame iframe,
+.rifitv-player-video,
+.rifitv-player-iframe {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    border: 0;
+}
+
+.player-controls,
+.rifitv-player-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.player-controls :is(button, a),
+.rifitv-player-controls :is(button, a) {
+    min-height: 44px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--card-bg) 84%, var(--brand) 16%);
+    color: var(--text);
+    font-weight: 800;
+}
+
+.rifitv-player-options {
+    display: grid;
+    gap: 1rem;
+}
+
+.rifitv-channel-tabs,
+.rifitv-server-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+}
+
+.rifitv-channel-tab,
+.rifitv-server-card {
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--card-bg) 92%, #64748b 8%);
+    color: var(--text);
+}
+
+.rifitv-channel-tab.is-active,
+.rifitv-server-card.is-active {
+    border-color: color-mix(in srgb, var(--brand) 70%, #ffffff 30%);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 55%, transparent);
+}
+
+.rifitv-player-health,
+.rifitv-server-card.is-online b,
+.rifitv-server-card.is-active b {
+    color: var(--success);
+}
+
+.match-info-card {
+    padding: 1rem;
+}
+
+.match-info-card dl {
+    display: grid;
+    gap: 0.8rem;
+    margin: 1rem 0 0;
+}
+
+.match-info-card div {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.match-info-card dt {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.match-info-card dd {
+    margin: 0;
+    color: var(--text);
+    font-weight: 700;
+}
+
+.watch-related-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.match-embed-html,
+.match-embed-body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #070b16;
+}
+
+.embed-player-only,
+.rifitv-match-player--embed-only {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #070b16;
+    box-shadow: none;
+}
+
+.rifitv-match-player--embed-only .player-frame {
+    height: 100vh;
+    aspect-ratio: auto;
+    border-radius: 0;
+}
+
+@media (max-width: 1280px) {
+    .watch-layout {
+        grid-template-columns: minmax(0, 1fr) minmax(260px, 0.34fr);
+    }
+}
+
+@media (max-width: 1024px) {
+    .watch-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .watch-sidebar {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .match-watch-page {
+        padding-inline: 0.85rem;
+    }
+
+    .rifitv-channel-tabs {
+        display: flex;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        padding-bottom: 0.2rem;
+    }
+
+    .rifitv-channel-tab {
+        min-width: min(82vw, 280px);
+        scroll-snap-align: start;
+    }
+}
+
+@media (max-width: 640px) {
+    .player-controls,
+    .rifitv-player-controls {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .player-controls :is(button, a),
+    .rifitv-player-controls :is(button, a) {
+        width: 100%;
+        min-width: 0;
+        padding-inline: 0.55rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .match-scoreboard {
+        gap: 0.65rem;
+    }
+
+    .match-scoreboard__team strong,
+    .rifitv-player-now strong {
+        font-size: 0.95rem;
+    }
+
+    .player-controls,
+    .rifitv-player-controls {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (min-width: 1600px) {
+    .match-watch-page {
+        max-width: 1440px;
+    }
+
+    .player-controls :is(button, a),
+    .rifitv-player-controls :is(button, a) {
+        min-height: 52px;
+        font-size: 1rem;
     }
 }

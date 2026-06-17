@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdSetting;
 use App\Models\Channel;
 use App\Models\ChannelStream;
 use App\Models\Playlist;
@@ -36,6 +37,13 @@ class DashboardController extends Controller
                 ->count(),
             'world_cup_missing_commentator' => WorldCupMatch::query()->whereNull('commentator')->count(),
             'world_cup_live_enabled' => WorldCupMatch::query()->where('is_live_link_enabled', true)->count(),
+            'matches_today' => WorldCupMatch::query()
+                ->whereBetween('kickoff_at', [now('UTC')->startOfDay(), now('UTC')->endOfDay()])
+                ->count(),
+            'matches_live' => WorldCupMatch::query()->where('broadcast_status', 'live')->count(),
+            'matches_upcoming' => WorldCupMatch::query()->whereIn('broadcast_status', ['to_confirm', 'scheduled'])->count(),
+            'matches_finished' => WorldCupMatch::query()->where('broadcast_status', WorldCupMatch::STATUS_ENDED)->count(),
+            'ad_slots_enabled' => AdSetting::query()->where('enabled', true)->count(),
         ];
 
         $playlists = Playlist::query()

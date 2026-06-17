@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController
 use App\Http\Controllers\Web\Admin\ChannelManagementController as AdminChannelController;
 use App\Http\Controllers\Web\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Web\Admin\IptvItemController as AdminIptvItemController;
+use App\Http\Controllers\Web\Admin\MonetizationController as AdminMonetizationController;
 use App\Http\Controllers\Web\Admin\PlaylistController as AdminPlaylistController;
 use App\Http\Controllers\Web\Admin\ProgramController as AdminProgramController;
 use App\Http\Controllers\Web\Admin\WorldCupMatchController as AdminWorldCupMatchController;
@@ -30,6 +31,21 @@ Route::get('/lang/{locale}', LocaleController::class)
 Route::get('/sports', SportsController::class)->name('sports.index');
 Route::get('/world-cup', [WorldCupController::class, 'index'])->name('world-cup.index');
 Route::get('/world-cup/group-stage', [WorldCupController::class, 'index'])->name('world-cup.group-stage');
+Route::get('/world-cup-2026', [WorldCupController::class, 'index'])
+    ->defaults('section', 'overview')
+    ->name('world-cup-2026.index');
+Route::get('/world-cup-2026/schedule', [WorldCupController::class, 'index'])
+    ->defaults('section', 'schedule')
+    ->name('world-cup-2026.schedule');
+Route::get('/world-cup-2026/groups', [WorldCupController::class, 'index'])
+    ->defaults('section', 'groups')
+    ->name('world-cup-2026.groups');
+Route::get('/world-cup-2026/morocco', [WorldCupController::class, 'index'])
+    ->defaults('section', 'morocco')
+    ->name('world-cup-2026.morocco');
+Route::get('/world-cup-2026/africa', [WorldCupController::class, 'index'])
+    ->defaults('section', 'africa')
+    ->name('world-cup-2026.africa');
 Route::get('/match/{worldCupMatch}/watch', [MatchWatchController::class, 'show'])
     ->name('matches.watch');
 Route::get('/match/{worldCupMatch}/embed', [MatchWatchController::class, 'embed'])
@@ -52,6 +68,11 @@ Route::get('/sports/football/event/{eventId}', [FootballController::class, 'even
     ->whereNumber('eventId')
     ->name('sports.football.event');
 Route::get('/football', [FootballController::class, 'index'])->name('football.index');
+Route::get('/football/today', [FootballController::class, 'index'])->defaults('view', 'today')->name('football.today');
+Route::get('/football/tomorrow', [FootballController::class, 'index'])->defaults('view', 'tomorrow')->name('football.tomorrow');
+Route::get('/football/results', [FootballController::class, 'index'])->defaults('view', 'results')->name('football.results');
+Route::get('/football/schedules', [FootballController::class, 'index'])->defaults('view', 'schedules')->name('football.schedules');
+Route::get('/football/news', fn () => redirect()->route('news.index'))->name('football.news');
 Route::get('/football/event/{eventId}', [FootballController::class, 'event'])
     ->whereNumber('eventId')
     ->name('football.event');
@@ -76,19 +97,29 @@ Route::get('/movies', ComingSoonController::class)->defaults('section', 'movies'
 Route::get('/tv-shows', ComingSoonController::class)->defaults('section', 'tv-shows')->name('tv-shows');
 Route::get('/anime', ComingSoonController::class)->defaults('section', 'anime')->name('anime');
 Route::get('/news', [SportsPageController::class, 'news'])->name('news.index');
+Route::permanentRedirect('/football-news', '/news')->name('football-news');
 Route::get('/news/{slug}', [SportsPageController::class, 'article'])->name('news.show');
-Route::permanentRedirect('/scores', '/sports/football')->name('scores');
-Route::permanentRedirect('/live-scores', '/sports/football')->name('live-scores');
-Route::permanentRedirect('/fixtures', '/sports/football')->name('fixtures');
-Route::permanentRedirect('/matches', '/sports/football')->name('matches.index');
+Route::permanentRedirect('/scores', '/football/today')->name('scores');
+Route::permanentRedirect('/live-scores', '/football/today')->name('live-scores');
+Route::permanentRedirect('/fixtures', '/football/schedules')->name('fixtures');
+Route::permanentRedirect('/matches', '/football/today')->name('matches.index');
+Route::permanentRedirect('/matches/today', '/football/today')->name('matches.today');
+Route::permanentRedirect('/matches/tomorrow', '/football/tomorrow')->name('matches.tomorrow');
+Route::permanentRedirect('/matches/yesterday', '/football/results')->name('matches.yesterday');
 Route::get('/leagues', [SportsPageController::class, 'leagues'])->name('leagues.index');
 Route::get('/leagues/{slug}', [SportsPageController::class, 'league'])->name('leagues.show');
+Route::get('/competitions', [SportsPageController::class, 'leagues'])->name('competitions.index');
+Route::get('/competitions/{slug}', [SportsPageController::class, 'league'])->name('competitions.show');
 Route::get('/teams', [SportsPageController::class, 'teams'])->name('teams.index');
 Route::get('/teams/{slug}', [SportsPageController::class, 'team'])->name('teams.show');
 Route::get('/matches/{slug}', [SportsPageController::class, 'match'])->name('matches.show');
+Route::get('/tv-guide', [SportsPageController::class, 'tvGuide'])->name('tv-guide.index');
+Route::get('/tv-guide/morocco', [SportsPageController::class, 'tvGuide'])->defaults('region', 'morocco')->name('tv-guide.morocco');
 Route::get('/standings', [SportsPageController::class, 'standings'])->name('standings');
 Route::get('/highlights', [SportsPageController::class, 'highlights'])->name('highlights');
 Route::get('/search', [SportsPageController::class, 'search'])->middleware('throttle:search')->name('search');
+Route::permanentRedirect('/africa-football', '/world-cup-2026/africa')->name('africa-football');
+Route::permanentRedirect('/morocco-football', '/world-cup-2026/morocco')->name('morocco-football');
 Route::get('/about', [SportsPageController::class, 'staticPage'])->defaults('page', 'about')->name('about');
 Route::get('/contact', [SportsPageController::class, 'staticPage'])->defaults('page', 'contact')->name('contact');
 Route::get('/privacy-policy', [SportsPageController::class, 'staticPage'])->defaults('page', 'privacy-policy')->name('privacy');
@@ -125,6 +156,29 @@ Route::get('/bridge-channel/{channel}', [StreamBridgeController::class, 'playCha
 Route::get('/play/iptv/{item}', [StreamBridgeController::class, 'playIptvItem'])
     ->middleware(['signed:relative', 'throttle:streams'])
     ->name('stream.bridge.iptv-item');
+Route::options('/play/iptv/{item}', fn () => response('', 204, [
+    'Cache-Control' => 'no-cache, no-store, must-revalidate',
+    'Pragma' => 'no-cache',
+    'Expires' => '0',
+    'Access-Control-Allow-Origin' => '*',
+    'Access-Control-Allow-Headers' => 'Range, Origin, Accept, Content-Type',
+    'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
+    'Accept-Ranges' => 'bytes',
+    'X-Accel-Buffering' => 'no',
+]))->name('stream.bridge.iptv-item.options');
+Route::get('/play/iptv-source/{source}', [StreamBridgeController::class, 'playIptvItemSource'])
+    ->middleware(['signed:relative', 'throttle:streams'])
+    ->name('stream.bridge.iptv-source');
+Route::options('/play/iptv-source/{source}', fn () => response('', 204, [
+    'Cache-Control' => 'no-cache, no-store, must-revalidate',
+    'Pragma' => 'no-cache',
+    'Expires' => '0',
+    'Access-Control-Allow-Origin' => '*',
+    'Access-Control-Allow-Headers' => 'Range, Origin, Accept, Content-Type',
+    'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
+    'Accept-Ranges' => 'bytes',
+    'X-Accel-Buffering' => 'no',
+]))->name('stream.bridge.iptv-source.options');
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/admin/login', [AdminAuthController::class, 'create'])->name('admin.login');
@@ -136,12 +190,28 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
     Route::get('/', AdminDashboardController::class)->name('admin.dashboard');
     Route::post('/logout', [AdminAuthController::class, 'destroy'])->name('admin.logout');
+    Route::get('/monetization', [AdminMonetizationController::class, 'edit'])
+        ->name('admin.monetization.edit');
+    Route::put('/monetization', [AdminMonetizationController::class, 'update'])
+        ->name('admin.monetization.update');
     Route::get('/iptv-items', [AdminIptvItemController::class, 'index'])
         ->name('admin.iptv-items.index');
     Route::patch('/iptv-items/visibility', [AdminIptvItemController::class, 'updateAllVisibility'])
         ->name('admin.iptv-items.visibility.all');
     Route::patch('/iptv-items/{item}/visibility', [AdminIptvItemController::class, 'updateVisibility'])
         ->name('admin.iptv-items.visibility');
+    Route::get('/iptv-items/{item}/edit', [AdminIptvItemController::class, 'edit'])
+        ->name('admin.iptv-items.edit');
+    Route::put('/iptv-items/{item}', [AdminIptvItemController::class, 'update'])
+        ->name('admin.iptv-items.update');
+    Route::post('/iptv-items/{item}/sources', [AdminIptvItemController::class, 'storeSource'])
+        ->name('admin.iptv-items.sources.store');
+    Route::put('/iptv-items/{item}/sources/{source}', [AdminIptvItemController::class, 'updateSource'])
+        ->name('admin.iptv-items.sources.update');
+    Route::post('/iptv-items/{item}/sources/{source}/test', [AdminIptvItemController::class, 'testSource'])
+        ->name('admin.iptv-items.sources.test');
+    Route::delete('/iptv-items/{item}/sources/{source}', [AdminIptvItemController::class, 'destroySource'])
+        ->name('admin.iptv-items.sources.destroy');
     Route::resource('categories', AdminCategoryController::class)
         ->except(['create', 'show'])
         ->names('admin.categories');
@@ -153,6 +223,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
         ->names('admin.programs');
     Route::patch('/world-cup-matches/{world_cup_match}/quick-update', [AdminWorldCupMatchController::class, 'quickUpdate'])
         ->name('admin.world-cup-matches.quick-update');
+    Route::post('/world-cup-matches/auto-end-old', [AdminWorldCupMatchController::class, 'autoEndOld'])
+        ->name('admin.world-cup-matches.auto-end-old');
     Route::get('/world-cup-matches/iptv-items/search', [AdminWorldCupMatchController::class, 'iptvItems'])
         ->name('admin.world-cup-matches.iptv-items');
     Route::patch('/world-cup-matches/{world_cup_match}/iptv-item', [AdminWorldCupMatchController::class, 'assignIptvItem'])
@@ -167,6 +239,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
         ->name('admin.playlists.index');
     Route::get('/playlists/create', [AdminPlaylistController::class, 'create'])
         ->name('admin.playlists.create');
+    Route::post('/playlists/clear-cache', [AdminPlaylistController::class, 'clearCache'])
+        ->name('admin.playlists.clear-cache');
+    Route::post('/playlists/rebuild-index', [AdminPlaylistController::class, 'rebuildIndex'])
+        ->name('admin.playlists.rebuild-index');
+    Route::post('/playlists/merge-duplicates', [AdminPlaylistController::class, 'mergeDuplicates'])
+        ->name('admin.playlists.merge-duplicates');
     Route::post('/playlists', [AdminPlaylistController::class, 'store'])
         ->middleware('throttle:playlists')
         ->name('admin.playlists.store');

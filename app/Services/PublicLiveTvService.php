@@ -39,7 +39,21 @@ class PublicLiveTvService
     public function channels(Builder $query): Collection
     {
         return $query
-            ->with('category:id,name')
+            ->with([
+                'category:id,name',
+                'sources' => fn ($sourceQuery) => $sourceQuery
+                    ->where('is_active', true)
+                    ->orderBy('priority')
+                    ->select([
+                        'id',
+                        'iptv_item_id',
+                        'label',
+                        'type',
+                        'quality_label',
+                        'priority',
+                        'health_status',
+                    ]),
+            ])
             ->orderBy('name')
             ->limit((int) config('streaming.public_catalog_limit', 500))
             ->get();
@@ -55,13 +69,19 @@ class PublicLiveTvService
         return [
             'id' => $item->id,
             'name' => $item->name,
+            'normalized_name' => $item->normalized_name,
             'original_name' => $item->name,
             'logo' => $this->safeImageUrl($item->logo),
             'category' => $category,
             'group_title' => $category,
             'quality' => $item->qualityLabel(),
             'quality_label' => $item->qualityLabel(),
-            'stream_type' => $item->extension ?: 'stream',
+            'stream_type' => $item->stream_type && $item->stream_type !== 'auto'
+                ? $item->stream_type
+                : ($item->extension ?: 'auto'),
+            'featured' => $item->is_featured,
+            'health_status' => $item->health_status,
+            'source_count' => max(1, $item->sources->count()),
             'public_play_url' => $includePlayUrl ? StreamUrl::iptvItemBridge($item->id) : null,
             'watch_url' => route('watch.item', $item),
             'playback_status' => [

@@ -111,7 +111,7 @@ it('shows the selected channel publicly and links to the dedicated match page', 
         ->assertSee('RiFi Sports')
         ->assertSee('images/flags/ma.svg', false)
         ->assertSee('images/flags/br.svg', false)
-        ->assertSee('Watch Match')
+        ->assertSee('Match details')
         ->assertSee(route('matches.watch', $match), false)
         ->assertDontSee(route('channels.show', $channel->slug), false);
 
@@ -287,7 +287,7 @@ it('unlocks assigned IPTV items one hour before kickoff', function () {
 
     $this->get(route('world-cup.index', ['tab' => 'all']))
         ->assertSuccessful()
-        ->assertSee('Watch Match')
+        ->assertSee('Match details')
         ->assertSee(route('matches.watch', $match), false)
         ->assertDontSee(route('watch.item', $item), false)
         ->assertDontSee(route('watch.item', $secondItem), false);

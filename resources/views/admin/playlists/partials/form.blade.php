@@ -47,6 +47,7 @@
     <div class="field" data-playlist-field="xtream">
         <label for="output">{{ __("Output") }}</label>
         <select id="output" name="output">
+            <option value="auto" @selected(old('output', $playlist->output ?? 'auto') === 'auto')>{{ __("Auto") }}</option>
             <option value="mpegts" @selected(old('output', $playlist->output ?? 'mpegts') === 'mpegts')>{{ __("mpegts") }}</option>
             <option value="hls" @selected(old('output', $playlist->output ?? 'mpegts') === 'hls')>{{ __("hls") }}</option>
         </select>

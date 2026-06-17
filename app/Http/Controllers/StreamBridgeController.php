@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Channel;
 use App\Models\ChannelStream;
 use App\Models\IptvItem;
+use App\Models\IptvItemSource;
 use App\Models\WorldCupMatch;
 use App\Services\StreamingPolicy;
 use App\Support\StreamUrl;
@@ -28,11 +29,15 @@ class StreamBridgeController extends Controller
         $this->abortUnlessAllowedStreamUrl($url);
         $this->logBridgeAttempt($request, $url);
 
-        return $this->bridge($url);
+        return $this->bridge($url, $request);
     }
 
     public function playIptvItem(Request $request, IptvItem $item): Response
     {
+        if ($request->isMethod('OPTIONS')) {
+            return $this->preflightResponse();
+        }
+
         abort_unless(
             IptvItem::query()->publicLive()->whereKey($item->getKey())->exists(),
             Response::HTTP_NOT_FOUND
@@ -52,7 +57,8 @@ class StreamBridgeController extends Controller
             );
         }
 
-        $this->abortUnlessAllowedStreamUrl($item->stream_url);
+        $url = $item->primaryStreamUrl();
+        $this->abortUnlessAllowedStreamUrl($url);
 
         if (app()->isLocal()) {
             Log::debug('live-tv.play', [
@@ -63,11 +69,44 @@ class StreamBridgeController extends Controller
             ]);
         }
 
-        return $this->bridge($item->stream_url);
+        return $this->bridge($url, $request);
+    }
+
+    public function playIptvItemSource(Request $request, IptvItemSource $source): Response
+    {
+        if ($request->isMethod('OPTIONS')) {
+            return $this->preflightResponse();
+        }
+
+        $source->load('item');
+
+        abort_unless(
+            $source->is_active
+            && $source->item
+            && IptvItem::query()->publicLive()->whereKey($source->item->getKey())->exists(),
+            Response::HTTP_NOT_FOUND
+        );
+
+        $this->abortUnlessAllowedStreamUrl($source->url);
+
+        if (app()->isLocal()) {
+            Log::debug('stream.bridge.iptv-source', [
+                'iptv_item_id' => $source->iptv_item_id,
+                'iptv_item_source_id' => $source->id,
+                'url' => StreamUrl::masked($source->url),
+                'ip_hash' => hash('sha256', (string) $request->ip()),
+            ]);
+        }
+
+        return $this->bridge($source->url, $request);
     }
 
     public function playChannel(Request $request, Channel $channel): Response
     {
+        if ($request->isMethod('OPTIONS')) {
+            return $this->preflightResponse();
+        }
+
         $this->abortUnlessBridgeEnabled();
 
         abort_unless(
@@ -102,23 +141,27 @@ class StreamBridgeController extends Controller
         $this->abortUnlessPolicyAllows($url);
         $this->logBridgeAttempt($request, $url, $channel, $stream);
 
-        return $this->bridge($url);
+        return $this->bridge($url, $request);
     }
 
-    private function bridge(string $url): Response
+    private function bridge(string $url, Request $request): Response
     {
         if (StreamUrl::isLikelyPlaylistUrl($url)) {
             return $this->bridgePlaylist($url);
         }
 
-        return $this->bridgeStream($url);
+        return $this->bridgeStream($url, $request);
     }
 
     private function bridgePlaylist(string $url): Response
     {
+        set_time_limit(0);
+        ignore_user_abort(true);
+
         try {
-            $response = Http::connectTimeout(8)
-                ->timeout(12)
+            $response = Http::connectTimeout(10)
+                ->timeout(30)
+                ->retry(1, 250)
                 ->accept('application/vnd.apple.mpegurl, application/x-mpegURL, text/plain, */*')
                 ->withHeaders([
                     'User-Agent' => 'VLC/3.0.20 LibVLC/3.0.20 RifiMediaBrowserBridge/1.0',
@@ -134,22 +177,33 @@ class StreamBridgeController extends Controller
 
         return response($this->rewritePlaylist((string) $response->body(), $url), Response::HTTP_OK, [
             'Content-Type' => 'application/vnd.apple.mpegurl',
-            'Cache-Control' => 'no-store, no-cache, must-revalidate',
-            'Access-Control-Allow-Origin' => '*',
+            ...$this->streamHeaders(),
         ]);
     }
 
-    private function bridgeStream(string $url): Response
+    private function bridgeStream(string $url, Request $request): Response
     {
+        set_time_limit(0);
+        ignore_user_abort(true);
+
+        $range = $request->header('Range');
+        $headers = [
+            'Accept' => '*/*',
+            'Icy-MetaData' => '1',
+            'User-Agent' => 'VLC/3.0.20 LibVLC/3.0.20 RifiMediaBrowserBridge/1.0',
+        ];
+
+        if (is_string($range) && preg_match('/^bytes=\d*-\d*$/', $range) === 1) {
+            $headers['Range'] = $range;
+        }
+
         try {
             $response = Http::withOptions(['stream' => true])
-                ->connectTimeout(8)
+                ->connectTimeout(10)
                 ->timeout(0)
-                ->withHeaders([
-                    'Accept' => '*/*',
-                    'Icy-MetaData' => '1',
-                    'User-Agent' => 'VLC/3.0.20 LibVLC/3.0.20 RifiMediaBrowserBridge/1.0',
-                ])
+                ->retry(1, 250)
+                ->withOptions(['read_timeout' => 30])
+                ->withHeaders($headers)
                 ->get($url);
         } catch (ConnectionException) {
             abort(Response::HTTP_BAD_GATEWAY, __('Stream source could not be reached.'));
@@ -162,22 +216,57 @@ class StreamBridgeController extends Controller
         $contentType = StreamUrl::contentTypeFor($url, $response->header('Content-Type'));
         $body = $response->toPsrResponse()->getBody();
 
-        return response()->stream(function () use ($body): void {
-            while (! $body->eof()) {
-                echo $body->read(1024 * 64);
-
-                if (ob_get_level() > 0) {
-                    ob_flush();
-                }
-
-                flush();
-            }
-        }, Response::HTTP_OK, [
+        $status = $response->status() === Response::HTTP_PARTIAL_CONTENT
+            ? Response::HTTP_PARTIAL_CONTENT
+            : Response::HTTP_OK;
+        $responseHeaders = [
             'Content-Type' => $contentType,
-            'Cache-Control' => 'no-store, no-cache, must-revalidate',
+            ...$this->streamHeaders(),
+        ];
+
+        foreach (['Content-Range', 'Accept-Ranges', 'Content-Length'] as $header) {
+            if ($response->header($header)) {
+                $responseHeaders[$header] = $response->header($header);
+            }
+        }
+
+        return response()->stream(function () use ($body): void {
+            try {
+                while (! $body->eof() && ! connection_aborted()) {
+                    echo $body->read(1024 * 64);
+
+                    if (ob_get_level() > 0) {
+                        ob_flush();
+                    }
+
+                    flush();
+                }
+            } finally {
+                $body->close();
+            }
+        }, $status, $responseHeaders);
+    }
+
+    private function preflightResponse(): Response
+    {
+        return response('', Response::HTTP_NO_CONTENT, $this->streamHeaders());
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function streamHeaders(): array
+    {
+        return [
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
             'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Headers' => 'Range, Origin, Accept, Content-Type',
+            'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
+            'Accept-Ranges' => 'bytes',
             'X-Accel-Buffering' => 'no',
-        ]);
+        ];
     }
 
     private function rewritePlaylist(string $body, string $baseUrl): string
@@ -276,6 +365,10 @@ class StreamBridgeController extends Controller
 
     private function logBridgeAttempt(Request $request, string $url, ?Channel $channel = null, ?ChannelStream $stream = null): void
     {
+        if (! app()->isLocal()) {
+            return;
+        }
+
         Log::info('stream.bridge', [
             'channel_id' => $channel?->id,
             'channel_stream_id' => $stream?->id,

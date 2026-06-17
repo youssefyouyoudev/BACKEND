@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', ($match['home_team']['name'] ?? __('Match')).' '.__('vs').' '.($match['away_team']['name'] ?? __('Match')).' | '.__('Football Match Center'))
-@section('description', __("Football match details, status, score, venue, and TV channel availability with direct watch links."))
+@section('description', __("Football match details, status, score, venue, kickoff time, and TV guide information."))
 @section('image', $match['home_team']['badge'] ?? asset('assets/images/promo/rifitv-world-football-2026-1122.webp'))
 
 @section('content')
@@ -35,7 +35,7 @@
                 <span class="rm-kicker">{{ __("Broadcasts") }}</span>
                 <h2>{{ __("Available TV channels") }}</h2>
             </div>
-            <a href="{{ route('sports.football') }}">{{ __("Back to live scores") }}</a>
+            <a href="{{ route('football.today') }}">{{ __("Back to scores") }}</a>
         </div>
         <div data-event-tv-channels>
             <div class="football-state football-state--loading"><strong>{{ __("Finding broadcast options") }}</strong><p>{{ __("Checking available TV channels for this match.") }}</p></div>

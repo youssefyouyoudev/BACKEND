@@ -21,6 +21,7 @@ class PlaylistImporter
         private readonly UrlSafetyService $urlSafetyService,
         private readonly XtreamImporter $xtreamImporter,
         private readonly StreamingPolicy $streamingPolicy,
+        private readonly IptvChannelNormalizer $normalizer,
     ) {}
 
     public function import(Playlist $playlist): Playlist
@@ -60,6 +61,7 @@ class PlaylistImporter
         } catch (Throwable $exception) {
             $playlist->forceFill([
                 'status' => 'failed',
+                'provider_status' => 'offline',
                 'last_error' => $exception->getMessage(),
             ])->save();
 
@@ -85,8 +87,9 @@ class PlaylistImporter
 
         $now = now();
         $counts = ['live' => 0, 'movie' => 0, 'series' => 0];
+        $sourceRows = [];
 
-        DB::transaction(function () use ($playlist, $items, $now, &$counts): void {
+        DB::transaction(function () use ($playlist, $items, $now, &$counts, &$sourceRows): void {
             $publicationChoices = $playlist->iptvItems()
                 ->get(['type', 'external_id', 'is_public'])
                 ->mapWithKeys(fn (IptvItem $item): array => [
@@ -127,17 +130,22 @@ class PlaylistImporter
                         'type' => $type,
                         'external_id' => $externalId,
                         'name' => $item['name'] ?? 'Untitled',
+                        'normalized_name' => $this->normalizer->normalize($item['name'] ?? 'Untitled'),
                         'stream_url' => $item['stream_url'] ?? null,
                         'logo' => $item['logo'] ?? $item['tvg_logo'] ?? null,
                         'tvg_id' => $item['tvg_id'] ?? null,
+                        'tvg_name' => $item['tvg_name'] ?? null,
                         'group_title' => $item['group_title'] ?? null,
                         'extension' => $item['extension'] ?? null,
+                        'stream_type' => $this->normalizer->streamType($item['stream_url'] ?? null, $item['extension'] ?? null),
+                        'quality_label' => $this->normalizer->quality($item['name'] ?? null, $item['extension'] ?? null),
                         'rating' => $item['rating'] ?? null,
                         'description' => $item['description'] ?? null,
                         'year' => $item['year'] ?? null,
                         'is_adult' => (bool) ($item['is_adult'] ?? IptvItem::isAdultName($item['group_title'] ?? $item['name'] ?? null)),
                         'is_active' => true,
                         'is_public' => $publicationChoices->get($type.'|'.$externalId, true),
+                        'health_status' => 'unknown',
                         'raw_data' => json_encode($item['raw_data'] ?? $item),
                         'created_at' => $now,
                         'updated_at' => $now,
@@ -147,8 +155,33 @@ class PlaylistImporter
                 IptvItem::query()->insert($rows);
             }
 
+            $playlist->iptvItems()
+                ->select(['id', 'name', 'stream_url', 'stream_type', 'quality_label'])
+                ->whereNotNull('stream_url')
+                ->chunkById(self::CHUNK_SIZE, function ($importedItems) use ($now, &$sourceRows): void {
+                    foreach ($importedItems as $importedItem) {
+                        $sourceRows[] = [
+                            'iptv_item_id' => $importedItem->id,
+                            'label' => $importedItem->quality_label !== 'Auto' ? $importedItem->quality_label : 'Primary',
+                            'url' => encrypt($importedItem->stream_url),
+                            'type' => $importedItem->stream_type,
+                            'quality_label' => $importedItem->quality_label,
+                            'priority' => 1,
+                            'is_active' => true,
+                            'health_status' => 'unknown',
+                            'created_at' => $now,
+                            'updated_at' => $now,
+                        ];
+                    }
+                });
+
+            foreach (array_chunk($sourceRows, self::CHUNK_SIZE) as $sourceChunk) {
+                DB::table('iptv_item_sources')->insert($sourceChunk);
+            }
+
             $playlist->forceFill([
                 'status' => 'active',
+                'provider_status' => 'online',
                 'imported_channels_count' => $counts['live'] ?? 0,
                 'imported_movies_count' => $counts['movie'] ?? 0,
                 'imported_series_count' => $counts['series'] ?? 0,

@@ -7,7 +7,13 @@
         <h1>{{ __("World Cup 2026 matches.") }}</h1>
         <p class="page-header__copy">{{ __("Assign channels, commentators, broadcast status, and approved watch links without changing your channel catalog.") }}</p>
     </div>
-    <a class="button button--primary" href="{{ route('admin.world-cup-matches.create') }}">{{ __("Add match") }}</a>
+    <div class="page-header__actions">
+        <form method="POST" action="{{ route('admin.world-cup-matches.auto-end-old') }}">
+            @csrf
+            <button class="button button--ghost" type="submit">{{ __("Mark old matches finished") }}</button>
+        </form>
+        <a class="button button--primary" href="{{ route('admin.world-cup-matches.create') }}">{{ __("Add match") }}</a>
+    </div>
 </section>
 
 <section class="surface-card wc-admin-filters">
@@ -85,7 +91,7 @@
                     <p>{{ $match->venue }}, {{ $match->city }}</p>
                 </div>
                 <div class="wc-admin-match-card__broadcast">
-                    <span class="status-pill status-pill--{{ str($match->broadcast_status)->slug('-') }}">{{ str($match->broadcast_status)->headline() }}</span>
+                    <span class="status-pill status-pill--{{ str($match->public_status)->slug('-') }}">{{ $match->public_status_label }}</span>
                     <strong data-assigned-iptv-name>{{ $match->public_channel_name }}</strong>
                     <small>{{ $match->commentator ?: __('Commentator to be confirmed') }}</small>
                     <small

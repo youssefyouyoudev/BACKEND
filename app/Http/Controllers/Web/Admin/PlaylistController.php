@@ -5,13 +5,17 @@ namespace App\Http\Controllers\Web\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Web\Admin\StorePlaylistRequest;
 use App\Http\Requests\Web\Admin\UpdatePlaylistRequest;
+use App\Models\IptvCategory;
+use App\Models\IptvItem;
 use App\Models\Playlist;
+use App\Services\IptvChannelNormalizer;
 use App\Services\PlaylistImporter;
 use App\Services\PlaylistImportService;
 use App\Services\UrlSafetyService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -28,12 +32,18 @@ class PlaylistController extends Controller
     public function index(): View
     {
         $playlists = Playlist::query()
-            ->withCount('iptvItems')
+            ->withCount(['iptvItems', 'iptvCategories'])
             ->latest()
             ->paginate(15);
 
         return view('admin.playlists.index', [
             'playlists' => $playlists,
+            'summary' => [
+                'channels' => IptvItem::query()->where('type', IptvItem::TYPE_LIVE)->count(),
+                'active' => IptvItem::query()->where('type', IptvItem::TYPE_LIVE)->where('is_active', true)->count(),
+                'failed' => IptvItem::query()->where('health_status', 'offline')->count(),
+                'categories' => IptvCategory::query()->count(),
+            ],
         ]);
     }
 
@@ -258,6 +268,44 @@ class PlaylistController extends Controller
         return redirect()
             ->route('admin.playlists.index')
             ->with('status', __('Playlist ":name" deleted.', ['name' => $name]));
+    }
+
+    public function clearCache(): RedirectResponse
+    {
+        foreach ([
+            'public-live:iptv-total-count',
+            'public-live:iptv-category-counts',
+            'public-live:iptv-initial-items',
+            'api-tv:categories',
+            'api-tv:curated-sports-categories-v1',
+            'api-tv:live-categories-v2',
+        ] as $key) {
+            Cache::forget($key);
+        }
+
+        return back()->with('status', __('IPTV catalog cache cleared.'));
+    }
+
+    public function rebuildIndex(IptvChannelNormalizer $normalizer): RedirectResponse
+    {
+        IptvItem::query()
+            ->select(['id', 'name', 'normalized_name'])
+            ->chunkById(500, function ($items) use ($normalizer): void {
+                foreach ($items as $item) {
+                    $item->update(['normalized_name' => $normalizer->normalize($item->name)]);
+                }
+            });
+
+        $this->clearCache();
+
+        return back()->with('status', __('Channel index rebuilt.'));
+    }
+
+    public function mergeDuplicates(): RedirectResponse
+    {
+        Artisan::call('channels:merge-duplicates');
+
+        return back()->with('status', __('Duplicate channel maintenance completed.'));
     }
 
     private function storeUploadedPlaylist(UploadedFile $uploadedFile): string

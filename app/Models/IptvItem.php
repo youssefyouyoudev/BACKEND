@@ -25,17 +25,26 @@ class IptvItem extends Model
         'type',
         'external_id',
         'name',
+        'normalized_name',
         'stream_url',
         'logo',
         'tvg_id',
+        'tvg_name',
         'group_title',
         'extension',
+        'stream_type',
+        'quality_label',
+        'language',
+        'country',
         'rating',
         'description',
         'year',
         'is_adult',
         'is_active',
         'is_public',
+        'is_featured',
+        'health_status',
+        'last_checked_at',
         'raw_data',
     ];
 
@@ -45,6 +54,8 @@ class IptvItem extends Model
             'is_adult' => 'boolean',
             'is_active' => 'boolean',
             'is_public' => 'boolean',
+            'is_featured' => 'boolean',
+            'last_checked_at' => 'datetime',
             'raw_data' => 'array',
         ];
     }
@@ -67,6 +78,18 @@ class IptvItem extends Model
     public function watchHistories(): HasMany
     {
         return $this->hasMany(WatchHistory::class);
+    }
+
+    public function sources(): HasMany
+    {
+        return $this->hasMany(IptvItemSource::class)
+            ->orderBy('priority')
+            ->orderBy('id');
+    }
+
+    public function activeSources(): HasMany
+    {
+        return $this->sources()->where('is_active', true);
     }
 
     public function worldCupMatches(): BelongsToMany
@@ -114,6 +137,10 @@ class IptvItem extends Model
 
     public function qualityLabel(): string
     {
+        if (filled($this->quality_label) && $this->quality_label !== 'Auto') {
+            return $this->quality_label;
+        }
+
         if (preg_match('/\b(?:4K|UHD|2160P)\b/i', $this->name) === 1) {
             return '4K';
         }
@@ -187,5 +214,14 @@ class IptvItem extends Model
             || str_contains($value, 'xxx')
             || str_contains($value, '18+')
             || str_contains($value, 'porn');
+    }
+
+    public function primaryStreamUrl(): ?string
+    {
+        $source = $this->relationLoaded('sources')
+            ? $this->sources->firstWhere('is_active', true)
+            : $this->activeSources()->first();
+
+        return $source?->url ?: $this->stream_url;
     }
 }

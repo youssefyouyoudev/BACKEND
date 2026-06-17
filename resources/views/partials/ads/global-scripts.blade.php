@@ -1,46 +1,37 @@
-<!-- RiFiTV global ad scripts: centralized to avoid duplication. Do not paste these scripts in individual pages. -->
 @once
     @if(config('ads.enabled') && !request()->is('admin*'))
         @php
-            $adRuntime = <<<'HTML'
-<!doctype html>
-<html>
-<head><meta charset="utf-8"><meta name="referrer" content="strict-origin-when-cross-origin"></head>
-<body>
-<script>
-    (function (s) {
-        s.dataset.zone = '11137954';
-        s.src = 'https://n6wxm.com/vignette.min.js';
-        s.async = true;
-    })(document.body.appendChild(document.createElement('script')));
-</script>
-<script>
-    (function (s) {
-        s.dataset.zone = '11137952';
-        s.src = 'https://nap5k.com/tag.min.js';
-        s.async = true;
-    })(document.body.appendChild(document.createElement('script')));
-</script>
-<script>
-    (function (s) {
-        s.dataset.zone = '11137947';
-        s.src = 'https://al5sm.com/tag.min.js';
-        s.async = true;
-    })(document.body.appendChild(document.createElement('script')));
-</script>
-<script src="https://5gvci.com/act/files/tag.min.js?z=11137945" data-cfasync="false" async></script>
-<script src="https://quge5.com/88/tag.min.js" data-zone="248721" async data-cfasync="false"></script>
-</body>
-</html>
-HTML;
+            $scriptSettings = collect(['multitag', 'in_page_push', 'vignette'])
+                ->map(fn (string $placement) => \App\Models\AdSetting::enabledForPlacement($placement))
+                ->filter(fn ($setting) => filled($setting?->script_code));
         @endphp
-        <iframe
-            class="rifitv-ad-runtime"
-            title="{{ __('Sponsored content runtime') }}"
-            aria-hidden="true"
-            tabindex="-1"
-            sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-top-navigation-by-user-activation"
-            srcdoc="{{ $adRuntime }}"
-        ></iframe>
+        @foreach($scriptSettings as $setting)
+            <div
+                class="rifitv-ad-runtime"
+                data-ad-script="{{ $setting->placement_key }}"
+                data-frequency-seconds="{{ $setting->frequency_seconds }}"
+                data-max-per-session="{{ $setting->max_per_session }}"
+                hidden
+            >{!! $setting->script_code !!}</div>
+        @endforeach
+        <script>
+            document.querySelectorAll('[data-ad-script]').forEach((node) => {
+                const key = `rifitv_ad_${node.dataset.adScript}`;
+                const frequency = Number(node.dataset.frequencySeconds || 0) * 1000;
+                const max = Number(node.dataset.maxPerSession || 1);
+                const now = Date.now();
+                const lastShown = Number(localStorage.getItem(`${key}_last`) || 0);
+                const count = Number(sessionStorage.getItem(`${key}_count`) || 0);
+
+                if (count >= max || (frequency > 0 && now - lastShown < frequency)) {
+                    node.remove();
+                    return;
+                }
+
+                localStorage.setItem(`${key}_last`, String(now));
+                sessionStorage.setItem(`${key}_count`, String(count + 1));
+                node.hidden = false;
+            });
+        </script>
     @endif
 @endonce

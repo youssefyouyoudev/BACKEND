@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', __("Football Standings & League Tables | RifiMedia"))
-@section('description', __("Follow football standings, league tables, points, form, and league movement on RifiMedia."))
+@section('title', __("Football Standings and League Tables | RiFiTV"))
+@section('description', __("Follow football standings, league tables, points, form, and competition updates on RiFiTV."))
 
 @php
     $standings = collect($standings ?? []);
@@ -12,7 +12,7 @@
     <section class="rm-page-hero rm-standings-hero" style="--rm-hero-photo: url('{{ config('rifimedia_visuals.images.stadium_night') }}')">
         <span class="rm-kicker"><x-icon name="trophy" /> {{ __("Standings") }}</span>
         <h1>{{ __("Football standings and league tables") }}</h1>
-        <p>{{ __("Track league positions, points, form, and match-day movement in a clean RifiMedia table view.") }}</p>
+        <p>{{ __("Track league positions, points, form, and match-day movement in a clean RiFiTV table view.") }}</p>
     </section>
 
     <x-ad-slot name="standings_leaderboard" size="leaderboard" />
@@ -76,7 +76,7 @@
                     <p>{{ __("Check football scores and fixtures while league tables are updated.") }}</p>
                     <div class="rm-hero-actions">
                         <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-primary"><x-icon name="scores" />{{ __("View Scores") }}</a>
-                        <a href="{{ route('live-tv') }}" class="rm-btn rm-btn-secondary"><x-icon name="play" />{{ __("Explore Live TV") }}</a>
+                        <a href="{{ route('tv-guide.index') }}" class="rm-btn rm-btn-secondary"><x-icon name="tv" />{{ __("Open TV Guide") }}</a>
                     </div>
                 </section>
             @endif

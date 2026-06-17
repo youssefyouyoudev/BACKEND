@@ -43,6 +43,10 @@
                     <span class="sidebar__icon">WC</span>
                     <span>{{ __("World Cup Matches") }}</span>
                 </a>
+                <a href="{{ route('admin.monetization.edit') }}" class="sidebar__link {{ request()->routeIs('admin.monetization.*') ? 'is-active' : '' }}">
+                    <span class="sidebar__icon">$</span>
+                    <span>{{ __("Monetization") }}</span>
+                </a>
                 <a href="{{ route('admin.world-cup-matches.index', ['missing_channel' => 1]) }}" class="sidebar__link">
                     <span class="sidebar__icon">?</span>
                     <span>{{ __("Missing Channels") }}</span>

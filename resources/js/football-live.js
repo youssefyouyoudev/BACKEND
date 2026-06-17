@@ -33,11 +33,21 @@ export function initFootballLivescore() {
 
     if (state.root) {
         bindFootballPage();
-        fetchTodayMatches();
+        loadInitialMatches();
         autoRefreshLiveMatches();
     }
 
     initFootballEventPage();
+}
+
+function loadInitialMatches() {
+    const initial = state.root?.dataset.initialFilter || 'today';
+
+    if (initial === 'tomorrow') return fetchMatchesByDate(offsetDate(1));
+    if (initial === 'results') return fetchResults();
+    if (initial === 'schedules') return fetchUpcomingMatches();
+
+    return fetchTodayMatches();
 }
 
 export async function fetchTodayMatches() {

@@ -6,7 +6,7 @@
     $availableTvChannels = $tvChannels->where('available', true);
 @endphp
 
-@section('title', $pageName.' Match Center | RifiMedia')
+@section('title', 'Match Center - '.$pageName.' | RiFiTV')
 @section('description', $item['description'] ?? __('Match center coverage with previews, fixtures, stats, standings, and related sports updates.'))
 
 @section('content')
@@ -33,12 +33,12 @@
         @if($tvChannels->isEmpty())
             <x-empty-state
                 class="rm-match-tv__empty"
-                title="{{ __("Broadcast listings are being verified") }}"
-                message="{{ __("Open the live channel guide or check scores while broadcast data is refreshed.") }}"
-                action="{{ __("Browse channels") }}"
-                :href="route('live-tv')"
-                secondary-action="{{ __("View live scores") }}"
-                :secondary-href="route('sports.football')"
+                title="{{ __("Official TV information has not been confirmed yet.") }}"
+                message="{{ __("Check the football schedule again when broadcaster details are available.") }}"
+                action="{{ __("View schedules") }}"
+                :href="route('football.schedules')"
+                secondary-action="{{ __("View scores") }}"
+                :secondary-href="route('football.today')"
             />
         @else
             @if($availableTvChannels->isEmpty())
@@ -62,7 +62,7 @@
                                     <small>{{ $channel['country'] }}</small>
                                 @endif
                             </span>
-                            <span class="rm-match-tv-card__badge">{{ __("Watch") }}</span>
+                            <span class="rm-match-tv-card__badge">{{ __("Available") }}</span>
                         </a>
                     @else
                         <div class="rm-match-tv-card rm-match-tv-card--unavailable" aria-disabled="true">
@@ -90,8 +90,8 @@
                     <h2>{{ $tab }}</h2>
                     <p>Verified {{ strtolower($tab) }} information will appear here when reliable match data is connected.</p>
                     <div class="rm-hero-actions">
-                        <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-secondary rm-btn-sm">{{ __("View live scores") }}</a>
-                        <a href="{{ route('live-tv') }}" class="rm-btn rm-btn-secondary rm-btn-sm">{{ __("Browse channels") }}</a>
+                        <a href="{{ route('football.today') }}" class="rm-btn rm-btn-secondary rm-btn-sm">{{ __("View scores") }}</a>
+                        <a href="{{ route('tv-guide.index') }}" class="rm-btn rm-btn-secondary rm-btn-sm">{{ __("TV guide") }}</a>
                     </div>
                 </section>
             @endforeach

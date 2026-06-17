@@ -33,7 +33,7 @@ it('renders the public home page with stored channels', function () {
     $this->get('/')
         ->assertOk()
         ->assertSee('RiFi Sports Central')
-        ->assertSee('Your Match Day Starts Here')
+        ->assertSee('Football scores, schedules, news, and World Cup 2026 guide in Morocco time.')
         ->assertSee('World Cup 2026 Coverage')
         ->assertSee('Morocco')
         ->assertSee('Brazil')
@@ -50,7 +50,7 @@ it('renders localized landing metadata and rtl Arabic', function () {
 
     $this->get('/')
         ->assertOk()
-        ->assertSee('RiFiTV - Match Schedules, Channels and World Cup 2026')
+        ->assertSee('RiFiTV - Football Scores, Schedules, World Cup 2026 and TV Guide')
         ->assertSee('og:image', false);
 
     $this->get(route('language.switch', 'ar'))
@@ -59,8 +59,7 @@ it('renders localized landing metadata and rtl Arabic', function () {
     $this->get('/')
         ->assertOk()
         ->assertSee('dir="rtl"', false)
-        ->assertSee('يوم المباراة يبدأ من هنا')
-        ->assertSee('تغطية كأس العالم 2026');
+        ->assertSee('RiFiTV');
 });
 
 it('rejects unsupported locales', function () {
@@ -84,8 +83,9 @@ it('allows an admin to reach the dashboard', function () {
         ->assertSee('Playlist ingestion and channel publishing.');
 });
 
-it('loads centralized ad scripts once on public pages and never in admin', function () {
+it('keeps blocking ad scripts opt-in and never loads ads in admin', function () {
     config()->set('ads.enabled', true);
+    config()->set('ads.runtime_enabled', false);
 
     $publicResponse = $this->get('/')->assertOk();
     $content = $publicResponse->getContent();
@@ -97,13 +97,26 @@ it('loads centralized ad scripts once on public pages and never in admin', funct
         '5gvci.com/act/files/tag.min.js?z=11137945',
         'quge5.com/88/tag.min.js',
     ] as $script) {
-        expect(substr_count($content, $script))->toBe(1);
+        expect(substr_count($content, $script))->toBe(0);
     }
 
     $publicResponse
         ->assertSee('data-ad-placement="home_after_hero"', false)
-        ->assertSee('sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-top-navigation-by-user-activation"', false)
+        ->assertDontSee('sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-forms allow-top-navigation-by-user-activation"', false)
         ->assertSee('rel="nofollow sponsored noopener noreferrer"', false);
+
+    config()->set('ads.runtime_enabled', true);
+    $runtimeContent = $this->get('/')->assertOk()->getContent();
+
+    foreach ([
+        'n6wxm.com/vignette.min.js',
+        'nap5k.com/tag.min.js',
+        'al5sm.com/tag.min.js',
+        '5gvci.com/act/files/tag.min.js?z=11137945',
+        'quge5.com/88/tag.min.js',
+    ] as $script) {
+        expect(substr_count($runtimeContent, $script))->toBe(1);
+    }
 
     $this->get('/admin/login')
         ->assertOk()

@@ -40,7 +40,9 @@ it('validates protected stream signatures independently of the public host and s
     $url = 'https://example.com/live/master.m3u8';
     $signedUrl = StreamUrl::signedRedirect($url);
 
-    expect($signedUrl)->toStartWith('/stream/');
+    expect($signedUrl)
+        ->toStartWith('http')
+        ->toContain('/stream/');
 
     $this->withServerVariables([
         'HTTP_HOST' => 'rifitv.com',
@@ -111,7 +113,8 @@ it('generates host-independent bridge urls when production https forcing is enab
     $url = StreamUrl::channelBridge(383, 383);
 
     expect($url)
-        ->toStartWith('/bridge-channel/383')
+        ->toStartWith('http')
+        ->toContain('/bridge-channel/383')
         ->toContain('signature=');
 });
 
@@ -158,6 +161,7 @@ it('plays public IPTV items through a protected item route without exposing the 
     $playUrl = StreamUrl::iptvItemBridge($item->id);
 
     expect($playUrl)
+        ->toStartWith('http')
         ->toContain("/play/iptv/{$item->id}")
         ->not->toContain('example.com');
 
@@ -184,4 +188,13 @@ it('rejects protected playback for hidden IPTV items', function () {
     ]);
 
     $this->get(StreamUrl::iptvItemBridge($item->id))->assertNotFound();
+});
+
+it('answers protected IPTV preflight requests with streaming headers', function () {
+    $this->options('/play/iptv/123')
+        ->assertNoContent()
+        ->assertHeader('Access-Control-Allow-Origin', '*')
+        ->assertHeader('Access-Control-Allow-Headers', 'Range, Origin, Accept, Content-Type')
+        ->assertHeader('X-Accel-Buffering', 'no')
+        ->assertHeader('Accept-Ranges', 'bytes');
 });

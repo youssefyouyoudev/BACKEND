@@ -1,4 +1,6 @@
 import { initResilientPlayer } from './live-player-resilience';
+import { detectStreamType } from './stream-detection.js';
+import { toAbsoluteUrl } from './stream-detection.js';
 import { t } from './i18n';
 
 const storageKey = (matchId) => `rifitv-match-player:${matchId || 'unknown'}`;
@@ -6,14 +8,11 @@ const normalize = (value) => String(value || '').trim().toLocaleLowerCase();
 
 const streamType = (source) => {
     const type = normalize(source?.type);
-    const url = normalize(source?.url);
 
     if (['iframe', 'external'].includes(type)) return type;
-    if (['hls', 'm3u', 'm3u8'].includes(type) || url.includes('.m3u8')) return 'hls';
-    if (['mpegts', 'ts', 'stream', 'channel_proxy'].includes(type)) return 'mpegts';
-    if (type === 'mp4' || url.includes('.mp4')) return 'mp4';
+    if (type === 'other') return type;
 
-    return type || 'mpegts';
+    return detectStreamType(source?.url, type);
 };
 
 const statusLabel = (status) => ({
@@ -35,8 +34,8 @@ class MatchPlayer {
                 id: source.id ?? index,
                 channel: source.channel || this.config.title || source.title || t('Live channel'),
                 label: source.label || `${t('Server')} ${index + 1}`,
-                url: source.browser_url || source.url,
-                external_url: source.external_url || source.url,
+                url: toAbsoluteUrl(source.browser_url || source.url || source.embed_url),
+                external_url: toAbsoluteUrl(source.external_url || source.url || source.embed_url),
             }))
             : [];
         this.video = root.querySelector('video');
@@ -52,10 +51,12 @@ class MatchPlayer {
         this.serverHeading = root.querySelector('[data-match-player-server-heading]');
         this.external = root.querySelector('[data-match-player-external]');
         this.playButton = root.querySelector('[data-match-player-play]');
+        this.debugPanel = root.querySelector('[data-player-debug]');
         this.controller = null;
         this.activeIndex = this.initialIndex();
         this.failed = new Set();
         this.loading = new Set();
+        this.embedOnly = root.dataset.embedPlayerOnly === '1';
         this.bindControls();
     }
 
@@ -114,8 +115,10 @@ class MatchPlayer {
         const type = streamType(source);
         if (type === 'external') {
             this.video.hidden = true;
-            this.external.href = source.external_url || source.url;
-            this.external.hidden = false;
+            if (this.external) {
+                this.external.href = toAbsoluteUrl(source.external_url || source.url);
+                this.external.hidden = this.embedOnly;
+            }
             this.showError(t('This stream opens in an external player.'));
             return;
         }
@@ -123,9 +126,11 @@ class MatchPlayer {
         if (type === 'iframe') {
             this.video.hidden = true;
             this.iframe.hidden = false;
-            this.iframe.src = source.url;
-            this.external.href = source.external_url || source.url;
-            this.external.hidden = false;
+            this.iframe.src = toAbsoluteUrl(source.url);
+            if (this.external) {
+                this.external.href = toAbsoluteUrl(source.external_url || source.url);
+                this.external.hidden = this.embedOnly;
+            }
             this.loading.delete(index);
             this.hideOverlay();
             this.renderOptions();
@@ -134,17 +139,22 @@ class MatchPlayer {
 
         if (type === 'other' || !source.url) {
             this.video.hidden = true;
-            this.external.href = source.external_url || source.url || '#';
-            this.external.hidden = !source.url;
+            if (this.external) {
+                this.external.href = source.url ? toAbsoluteUrl(source.external_url || source.url) : '#';
+                this.external.hidden = !source.url || this.embedOnly;
+            }
             this.loading.delete(index);
             this.showError(t('This stream type is not supported by the browser player.'));
             this.renderOptions();
             return;
         }
 
-        this.external.hidden = true;
-        this.controller = initResilientPlayer(this.video, source.url, {
+        if (this.external) this.external.hidden = true;
+        this.controller = initResilientPlayer(this.video, toAbsoluteUrl(source.url), {
             streamType: type,
+            channelId: this.config.matchId,
+            sourceId: source.id,
+            maxReconnects: 3,
             autoplay: this.config.autoplay,
             onLoading: () => this.showLoading(t('Preparing stream...'), t('Connecting to :server', {
                 server: source.label || t('Server'),
@@ -152,17 +162,21 @@ class MatchPlayer {
             onCanPlay: () => this.showLoading(t('Stream ready'), t('Press play if playback does not start automatically.')),
             onPlaying: () => {
                 this.loading.delete(index);
-                this.playButton.hidden = true;
+                if (this.playButton) this.playButton.hidden = true;
                 this.hideOverlay();
                 this.renderOptions();
             },
             onAutoplayBlocked: () => {
-                this.playButton.hidden = false;
-                this.hideOverlay();
+                if (this.playButton) this.playButton.hidden = false;
+                this.showLoading(t('Tap to start playback'), t('Your browser needs a playback gesture.'));
             },
+            onDebug: (details) => {
+                if (this.debugPanel) this.debugPanel.textContent = JSON.stringify(details, null, 2);
+            },
+            onMixedContent: (message) => this.showError(message),
             onReconnecting: (message) => this.showLoading(t('Reconnecting...'), message),
             onForbidden: () => this.showError(t('This protected stream link has expired. Refresh the match page.')),
-            onFatal: (message) => this.failover(message),
+            onFatal: () => this.failover(t('Channel temporarily unavailable. Try another server.')),
         });
     }
 
@@ -178,7 +192,7 @@ class MatchPlayer {
             return;
         }
 
-        this.showError(message || t('No available server could be started. Choose another channel or try again.'));
+        this.showError(message || t('We tried reconnecting and switching sources. Try again, choose another source, or open another channel.'));
         this.renderOptions();
     }
 
@@ -196,18 +210,20 @@ class MatchPlayer {
     }
 
     updateIdentity(source) {
-        this.channelName.textContent = source.channel || source.title || t('Live channel');
-        this.meta.textContent = [
+        if (this.channelName) this.channelName.textContent = source.channel || source.title || t('Live channel');
+        if (this.meta) this.meta.textContent = [
             source.label,
             source.quality,
             source.language,
             source.commentator,
         ].filter(Boolean).join(' · ');
-        this.health.textContent = statusLabel(source.health_status || 'unknown');
-        this.serverHeading.textContent = source.channel || t('Select a server');
+        if (this.health) this.health.textContent = statusLabel(source.health_status || 'unknown');
+        if (this.serverHeading) this.serverHeading.textContent = source.channel || t('Select a server');
     }
 
     renderOptions() {
+        if (!this.channels || !this.servers) return;
+
         const active = this.activeSource();
         const activeChannel = normalize(active?.channel);
         const groups = [...this.channelGroups().values()];
@@ -262,11 +278,11 @@ class MatchPlayer {
         });
         this.playButton?.addEventListener('click', () => {
             this.video.play().then(() => {
-                this.playButton.hidden = true;
+                if (this.playButton) this.playButton.hidden = true;
             }).catch(() => this.showError(t('Playback needs another tap.')));
         });
         this.root.querySelector('[data-match-player-fullscreen]')?.addEventListener('click', () => {
-            this.root.querySelector('.rifitv-player-shell')?.requestFullscreen?.();
+            this.root.querySelector('.player-frame')?.requestFullscreen?.();
         });
         window.addEventListener('pagehide', () => this.controller?.destroy(), { once: true });
     }
@@ -281,7 +297,7 @@ class MatchPlayer {
     showError(message) {
         this.overlay.hidden = false;
         this.overlay.classList.add('is-error');
-        this.stateTitle.textContent = t('Stream unavailable');
+        this.stateTitle.textContent = t('Channel temporarily unavailable');
         this.stateMessage.textContent = message;
     }
 

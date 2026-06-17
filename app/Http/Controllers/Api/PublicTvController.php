@@ -63,10 +63,36 @@ class PublicTvController extends Controller
     public function playUrl(IptvItem $item): JsonResponse
     {
         $this->abortUnlessPublicLive($item);
+        $item->load(['sources' => fn ($query) => $query->where('is_active', true)->orderBy('priority')]);
+
+        $sources = $item->sources
+            ->map(fn ($source): array => [
+                'id' => $source->id,
+                'label' => $source->label,
+                'type' => $source->type,
+                'quality' => $source->quality_label,
+                'priority' => $source->priority,
+                'health_status' => $source->health_status,
+                'url' => StreamUrl::iptvItemSourceBridge($source->id),
+            ])
+            ->values();
+
+        if ($sources->isEmpty()) {
+            $sources->push([
+                'id' => null,
+                'label' => $item->qualityLabel() === 'Auto' ? 'Primary' : $item->qualityLabel(),
+                'type' => $item->stream_type ?: $item->extension ?: 'auto',
+                'quality' => $item->qualityLabel(),
+                'priority' => 1,
+                'health_status' => $item->health_status,
+                'url' => StreamUrl::iptvItemBridge($item->id),
+            ]);
+        }
 
         return response()->json([
             'success' => true,
-            'url' => StreamUrl::iptvItemBridge($item->id),
+            'url' => $sources->first()['url'],
+            'sources' => $sources,
             'expires_in' => 1800,
         ]);
     }

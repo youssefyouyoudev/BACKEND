@@ -2,11 +2,11 @@
     <div class="rtv-section-heading">
         <div>
             <span class="rtv-kicker">{{ __('landing.matches.eyebrow') }}</span>
-            <h2 id="rtv-matches-title">{{ $showingUpcomingFallback ? __('Next Upcoming Matches') : __('Today’s Matches') }}</h2>
-            <p>{{ __('landing.matches.subtitle') }}</p>
+            <h2 id="rtv-matches-title">{{ $showingUpcomingFallback ? __('Next upcoming matches') : __("Today's matches") }}</h2>
+            <p>{{ __('Kickoff times, competitions, teams, and TV information in Morocco time.') }}</p>
         </div>
-        <a class="rtv-text-link" href="{{ route('world-cup.index', ['tab' => 'upcoming']) }}">
-            {{ __('landing.matches.view_all') }} <x-icon name="arrow-up-right" />
+        <a class="rtv-text-link" href="{{ route('football.today') }}">
+            {{ __('All matches') }} <x-icon name="arrow-up-right" />
         </a>
     </div>
 
@@ -14,30 +14,21 @@
         <div class="rtv-match-grid">
             @foreach($previewMatches as $match)
                 @php
-                    $watchStatus = $match->watchStatus();
-                    $opensSoon = $watchStatus === 'opens_soon'
-                        && now('Africa/Casablanca')->diffInMinutes($match->watch_opens_at, false) <= 60;
-                    $statusLabel = match ($watchStatus) {
-                        'open' => app()->isLocale('ar') ? 'مباشر الآن' : 'Live Now',
-                        'expired' => app()->isLocale('ar') ? 'انتهت المباراة' : 'Ended',
-                        default => $opensSoon
-                            ? (app()->isLocale('ar') ? 'تفتح قريباً' : 'Opens Soon')
-                            : (app()->isLocale('ar') ? 'قادمة' : 'Upcoming'),
-                    };
-                    $statusClass = match ($watchStatus) {
-                        'open' => 'live',
-                        'expired' => 'ended',
-                        default => $opensSoon ? 'soon' : 'upcoming',
+                    $statusLabel = $match->public_status_label;
+                    $statusClass = match ($match->public_status) {
+                        'live', 'halftime' => 'live',
+                        'finished', 'cancelled', 'postponed' => 'ended',
+                        default => 'upcoming',
                     };
                 @endphp
                 <article class="rtv-match-card match-card" data-reveal>
                     <header>
-                        <span>{{ $match->competition }}{{ $match->group_name ? ' · '.$match->group_name : '' }}</span>
+                        <span>{{ $match->competition }}{{ $match->group_name ? ' - '.$match->group_name : '' }}</span>
                         <b class="match-window-badge match-window-badge--{{ $statusClass }}">{{ $statusLabel }}</b>
                     </header>
                     <div class="rtv-match-card__time">
                         <strong>{{ $match->kickoff_at_morocco?->format('H:i') ?: '--:--' }}</strong>
-                        <span>{{ $match->kickoff_at_morocco?->translatedFormat('M d') }} · {{ app()->isLocale('ar') ? 'بتوقيت المغرب' : 'Morocco Time' }}</span>
+                        <span>{{ $match->kickoff_at_morocco?->translatedFormat('M d') }} - {{ __('Morocco time') }}</span>
                     </div>
                     <div class="rtv-match-card__teams">
                         <strong><x-team-flag :team="$match->home_team" :src="$match->home_flag" size="lg" /><span>{{ $match->home_team }}</span></strong>
@@ -48,28 +39,11 @@
                         <p class="rtv-match-card__venue">{{ collect([$match->venue, $match->city])->filter()->implode(', ') }}</p>
                     @endif
                     <dl>
-                        <div>
-                            <dt>{{ __('landing.matches.channel') }}</dt>
-                            <dd>
-                                <span class="channel-confirmation channel-confirmation--{{ in_array($match->broadcast_status, ['scheduled', 'live'], true) ? 'confirmed' : 'pending' }}">
-                                    {{ in_array($match->broadcast_status, ['scheduled', 'live'], true)
-                                        ? (app()->isLocale('ar') ? 'مؤكدة' : 'Confirmed')
-                                        : (app()->isLocale('ar') ? 'غير مؤكدة' : 'Not confirmed') }}
-                                </span>
-                                {{ $match->public_channel_name }}
-                            </dd>
-                        </div>
-                        <div><dt>{{ __('landing.matches.commentator') }}</dt><dd>{{ $match->commentator ?: __('landing.matches.commentator_tbc') }}</dd></div>
+                        <div><dt>{{ __('TV info') }}</dt><dd>{{ $match->public_channel_name }}</dd></div>
+                        <div><dt>{{ __('Commentator') }}</dt><dd>{{ $match->commentator ?: __('Not confirmed yet') }}</dd></div>
                     </dl>
                     <a class="rtv-button rtv-button--primary rtv-match-card__action" href="{{ route('matches.watch', $match) }}">
-                        <x-icon name="play" />
-                        @if($watchStatus === 'expired')
-                            {{ app()->isLocale('ar') ? 'انتهت المباراة' : 'Match Ended' }}
-                        @elseif($watchStatus === 'opens_soon')
-                            {{ app()->isLocale('ar') ? 'تفتح على الساعة' : 'Opens at' }} {{ $match->watch_opens_at?->format('H:i') }}
-                        @else
-                            {{ app()->isLocale('ar') ? 'شاهد المباراة' : 'Watch Match' }}
-                        @endif
+                        <x-icon name="chevron-right" /> {{ __('Match details') }}
                     </a>
                 </article>
                 @if($loop->iteration % 4 === 0 && ! $loop->last)
@@ -79,17 +53,10 @@
         </div>
     @else
         <div class="rtv-landing-empty" data-reveal>
-            <x-promo-banner compact />
             <span><x-icon name="calendar" /></span>
-            <h3>{{ __('landing.matches.empty_title') }}</h3>
-            <p>{{ __('landing.matches.empty_copy') }}</p>
-            <a class="rtv-button rtv-button--secondary" href="{{ route('world-cup.index', ['tab' => 'upcoming']) }}">{{ __('landing.matches.upcoming_cta') }}</a>
+            <h3>{{ __('No matches found for this date.') }}</h3>
+            <p>{{ __('Try another date or open the upcoming football schedule.') }}</p>
+            <a class="rtv-button rtv-button--secondary" href="{{ route('football.schedules') }}">{{ __('View schedules') }}</a>
         </div>
     @endif
-
-    <p class="match-window-note">
-        {{ app()->isLocale('ar')
-            ? 'تفتح صفحة المشاهدة قبل ساعة من البداية وتغلق بعد ساعة من نهاية المباراة.'
-            : 'Watch page opens 1 hour before kickoff and closes 1 hour after the match ends.' }}
-    </p>
 </section>

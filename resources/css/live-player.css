@@ -31,6 +31,61 @@
     font-size: 0.85rem;
 }
 
+.rm-receiver-sources {
+    position: absolute;
+    right: 1rem;
+    bottom: 4.75rem;
+    z-index: 8;
+    display: flex;
+    max-width: calc(100% - 2rem);
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding: 0.35rem;
+}
+
+.rm-receiver-sources button {
+    min-width: 7.5rem;
+    min-height: 2.75rem;
+    border: 1px solid rgb(255 255 255 / 22%);
+    border-radius: 6px;
+    background: rgb(5 12 24 / 88%);
+    color: #fff;
+    padding: 0.45rem 0.65rem;
+    text-align: left;
+}
+
+.rm-receiver-sources button.is-active {
+    border-color: var(--receiver-accent);
+    box-shadow: inset 0 0 0 1px var(--receiver-accent);
+}
+
+.rm-receiver-sources span,
+.rm-receiver-sources small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rm-receiver-sources small {
+    color: rgb(255 255 255 / 65%);
+    font-size: 0.72rem;
+}
+
+@media (max-width: 767px) {
+    .rm-receiver-player {
+        position: sticky;
+        top: 0.5rem;
+        z-index: 20;
+    }
+
+    .rm-receiver-sources {
+        right: 0.5rem;
+        bottom: 3.75rem;
+        max-width: calc(100% - 1rem);
+    }
+}
+
 .rm-live-fallback {
     position: absolute;
     z-index: 6;

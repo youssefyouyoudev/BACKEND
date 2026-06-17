@@ -9,6 +9,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 class HomeController extends Controller
@@ -23,8 +24,6 @@ class HomeController extends Controller
             $now = CarbonImmutable::now(WorldCupMatch::MOROCCO_TIMEZONE);
             $todayStartUtc = $now->startOfDay()->utc();
             $todayEndUtc = $now->endOfDay()->utc();
-            $watchCutoffUtc = $now->subHours(3)->utc();
-
             $matchQuery = fn (): Builder => WorldCupMatch::query()
                 ->publicVisible()
                 ->with([
@@ -34,18 +33,17 @@ class HomeController extends Controller
                     'iptvItems.playlist',
                 ]);
 
-            $todayMatches = $matchQuery()
+            $todayMatches = Cache::remember('home:matches:today', now()->addMinutes(2), fn () => $matchQuery()
                 ->whereBetween('kickoff_at', [$todayStartUtc, $todayEndUtc])
-                ->where('kickoff_at', '>=', $watchCutoffUtc)
                 ->orderBy('kickoff_at')
                 ->limit(8)
-                ->get();
+                ->get());
 
-            $upcomingMatches = $matchQuery()
+            $upcomingMatches = Cache::remember('home:matches:upcoming', now()->addMinutes(2), fn () => $matchQuery()
                 ->where('kickoff_at', '>', $todayMatches->isEmpty() ? $now->utc() : $todayEndUtc)
                 ->orderBy('kickoff_at')
                 ->limit(8)
-                ->get();
+                ->get());
 
             $worldCupMatchesCount = WorldCupMatch::query()->groupStage()->count();
         }

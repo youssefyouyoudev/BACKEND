@@ -5,10 +5,11 @@
 ## Playback Architecture
 
 - Laravel generates short-lived signed playback routes.
-- `/stream/{encodedUrl}` and `/go/{channel}` validate the signature and source URL, log masked metadata, then return a redirect to the upstream stream.
+- `/stream/{encodedUrl}` and `/go/{channel}` validate the signature and source URL, log masked metadata in local development, then return a redirect to the upstream stream.
+- `/play/iptv/{item}` and `/play/iptv-source/{source}` are same-origin protected bridge routes for browser players that need CORS-safe HLS/MPEG-TS. They must return no-buffering headers and should be used sparingly for player compatibility.
 - The browser, native player, or external player connects to the IPTV host directly after the redirect.
 - Plain HTTP streams are marked as external-player sources on HTTPS pages. The embedded web player skips them and shows a clear fallback instead of forcing mixed-content playback.
-- Do not add `response()->stream()`, Guzzle streaming, or PHP chunk loops for IPTV playback.
+- Prefer signed redirects when the browser can reach the upstream host directly. Use the Laravel bridge only for browser playback compatibility, and keep Nginx/PHP-FPM no-buffering settings enabled.
 
 ## Cloudflare Tunnel
 
@@ -36,6 +37,7 @@ Laravel should stay responsive even when IPTV origins fail:
 - Stream health is checked by `php artisan streams:check-health`, scheduled for popular sources every five minutes and all active sources hourly.
 - Health results are stored on `channel_streams` and in `stream_server_statuses`.
 - Admin dashboard cards expose online/offline/unknown counts and recent failed sources.
+- Bridge responses set `X-Accel-Buffering: no`, `Accept-Ranges: bytes`, no-cache headers, and CORS headers for `Range`, `Origin`, `Accept`, and `Content-Type`.
 
 Useful production checks:
 
@@ -48,3 +50,32 @@ php artisan queue:work --timeout=60 --tries=3
 ## Optional Nginx Stream Proxy
 
 If a stream must be proxied to solve provider restrictions, keep that proxy outside Laravel. Use Nginx or a dedicated media gateway with strict allowlists, rate limits, connection limits, and cache/buffer settings. Laravel may issue a signed redirect to that gateway, but PHP-FPM should not hold the video connection open.
+
+## Nginx No-Buffering For Browser Bridge
+
+When `/play/iptv/` is enabled, keep buffering disabled so PHP does not accumulate live video in memory:
+
+```nginx
+location /play/iptv/ {
+    proxy_buffering off;
+    proxy_request_buffering off;
+    fastcgi_buffering off;
+    fastcgi_request_buffering off;
+    gzip off;
+    add_header X-Accel-Buffering no always;
+}
+
+location /play/iptv-source/ {
+    proxy_buffering off;
+    proxy_request_buffering off;
+    fastcgi_buffering off;
+    fastcgi_request_buffering off;
+    gzip off;
+    add_header X-Accel-Buffering no always;
+}
+
+location ~ \.php$ {
+    fastcgi_read_timeout 3600s;
+    fastcgi_send_timeout 3600s;
+}
+```

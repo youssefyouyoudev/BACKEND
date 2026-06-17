@@ -39,6 +39,7 @@
                 <span class="iptv-public-toggle__track"><i></i></span>
                 <span data-toggle-label>{{ $item->is_public ? __('Public') : __('Hidden') }}</span>
             </button>
+            <a class="button button--ghost" href="{{ route('admin.iptv-items.edit', $item) }}">{{ __("Edit") }}</a>
         </td>
     </tr>
 @empty

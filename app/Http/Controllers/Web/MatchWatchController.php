@@ -152,6 +152,8 @@ class MatchWatchController extends Controller
 
     private function manualPlayerSource(WorldCupMatch $match): array
     {
+        $playbackType = $this->streamTypeForUrl($match->live_url_manual, $match->player_type);
+
         return [
             'id' => 'manual-'.$match->getKey(),
             'source' => 'manual',
@@ -161,7 +163,10 @@ class MatchWatchController extends Controller
             'quality' => 'Auto',
             'language' => null,
             'commentator' => $match->commentator,
-            'type' => $this->streamTypeForUrl($match->live_url_manual, $match->player_type),
+            'type' => $playbackType,
+            'playback_type' => $playbackType,
+            'url' => $this->playbackUrl($match->live_url_manual, $match->player_type),
+            'external_url' => $match->live_url_manual,
             'recommended' => true,
             'health_status' => 'unknown',
             'embed_url' => $this->embedUrl($match, ['source' => 'manual']),
@@ -170,6 +175,8 @@ class MatchWatchController extends Controller
 
     private function iptvPlayerSource(WorldCupMatch $match, IptvItem $item, int $index): array
     {
+        $playbackType = $this->streamTypeForUrl($item->stream_url, $item->pivot?->stream_type ?: $item->extension);
+
         return [
             'id' => $item->getKey(),
             'source' => 'item-'.$item->getKey(),
@@ -179,7 +186,14 @@ class MatchWatchController extends Controller
             'quality' => $item->pivot?->quality ?: $item->qualityLabel(),
             'language' => $item->pivot?->language,
             'commentator' => $item->pivot?->commentator ?: $match->commentator,
-            'type' => $this->streamTypeForUrl($item->stream_url, $item->pivot?->stream_type ?: $item->extension),
+            'type' => $playbackType,
+            'playback_type' => $playbackType,
+            'url' => StreamUrl::matchIptvItemBridge(
+                $item->getKey(),
+                $match->getKey(),
+                $match->watch_expires_at,
+            ),
+            'external_url' => null,
             'recommended' => (bool) ($item->pivot?->is_recommended ?? false),
             'health_status' => $item->pivot?->health_status ?: 'unknown',
             'embed_url' => $this->embedUrl($match, ['source' => 'item', 'item' => $item->getKey()]),
@@ -188,6 +202,8 @@ class MatchWatchController extends Controller
 
     private function channelPlayerSource(WorldCupMatch $match): array
     {
+        $playbackType = $match->selectedChannel->stream_type ?: 'stream';
+
         return [
             'id' => 'channel-'.$match->selectedChannel->getKey(),
             'source' => 'channel-'.$match->selectedChannel->getKey(),
@@ -197,7 +213,14 @@ class MatchWatchController extends Controller
             'quality' => $match->selectedChannel->quality_label ?: 'Auto',
             'language' => null,
             'commentator' => $match->commentator,
-            'type' => $match->selectedChannel->stream_type ?: 'stream',
+            'type' => $playbackType,
+            'playback_type' => $playbackType,
+            'url' => StreamUrl::matchChannelBridge(
+                $match->selectedChannel->getKey(),
+                $match->getKey(),
+                $match->watch_expires_at,
+            ),
+            'external_url' => null,
             'recommended' => true,
             'health_status' => 'unknown',
             'embed_url' => $this->embedUrl($match, ['source' => 'channel', 'channel' => $match->selectedChannel->getKey()]),
@@ -206,12 +229,12 @@ class MatchWatchController extends Controller
 
     private function embedUrl(WorldCupMatch $match, array $parameters): string
     {
-        return URL::temporarySignedRoute(
+        return url(URL::temporarySignedRoute(
             'matches.embed',
             $match->watch_expires_at,
             ['worldCupMatch' => $match, ...$parameters],
             absolute: false,
-        );
+        ));
     }
 
     private function resolveEmbedSource(WorldCupMatch $match, Request $request): ?array
@@ -227,6 +250,7 @@ class MatchWatchController extends Controller
 
             return [
                 ...$this->manualPlayerSource($match),
+                'type' => $this->streamTypeForUrl($match->live_url_manual, $match->player_type),
                 'url' => $this->playbackUrl($match->live_url_manual, $match->player_type),
             ];
         }
@@ -244,6 +268,7 @@ class MatchWatchController extends Controller
 
             return [
                 ...$this->iptvPlayerSource($match, $item, is_int($index) ? $index : 0),
+                'type' => $this->streamTypeForUrl($item->stream_url, $item->pivot?->stream_type ?: $item->extension),
                 'url' => StreamUrl::matchIptvItemBridge(
                     $item->getKey(),
                     $match->getKey(),
@@ -261,6 +286,7 @@ class MatchWatchController extends Controller
 
             return [
                 ...$this->channelPlayerSource($match),
+                'type' => $channel->stream_type ?: 'stream',
                 'url' => StreamUrl::matchChannelBridge(
                     $channel->getKey(),
                     $match->getKey(),
@@ -296,12 +322,12 @@ class MatchWatchController extends Controller
             return null;
         }
 
-        return URL::temporarySignedRoute(
+        return url(URL::temporarySignedRoute(
             'matches.watch-link.manual',
             $match->watch_expires_at,
             ['worldCupMatch' => $match],
             absolute: false,
-        );
+        ));
     }
 
     private function streamTypeForUrl(?string $url, ?string $type = null): string

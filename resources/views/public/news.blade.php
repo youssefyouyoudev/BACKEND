@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', __("Sports News, Football Updates & Match Previews | RifiMedia"))
-@section('description', __("Read RifiMedia sports news, football updates, match previews, channel news, and league coverage in a clean premium newsroom."))
+@section('title', __("Football News, Morocco and World Cup 2026 | RiFiTV"))
+@section('description', __("Read RiFiTV football news, Morocco updates, World Cup 2026 coverage, match previews, results, transfers, and TV guide news."))
 
 @php
     $featuredArticle = $articles->first();
@@ -11,9 +11,9 @@
 @section('content')
 <div class="rm-page rm-page--editorial">
     <section class="rm-page-hero rm-news-hero" style="--rm-hero-photo: url('{{ config('rifimedia_visuals.images.stadium_night') }}')">
-        <span class="rm-kicker"><x-icon name="news" /> {{ __("RifiMedia News") }}</span>
+        <span class="rm-kicker"><x-icon name="news" /> {{ __("RiFiTV News") }}</span>
         <h1>{{ __("Sports news and football updates") }}</h1>
-        <p>{{ __("Match previews, football updates, channel news, and league coverage from the RifiMedia desk.") }}</p>
+        <p>{{ __("Match previews, results, Morocco coverage, World Cup 2026 updates, and football news from the RiFiTV desk.") }}</p>
     </section>
 
     <x-ad-slot name="news_leaderboard" size="leaderboard" />
@@ -23,10 +23,10 @@
             <span class="rm-news-empty__icon"><x-icon name="news" /></span>
             <p class="rm-eyebrow">{{ __("Newsroom") }}</p>
             <h2 id="rm-news-empty-title">{{ __("Newsroom is being prepared") }}</h2>
-            <p>{{ __("Meanwhile, explore live scores and channels. Published stories will appear here only when real editorial content is ready.") }}</p>
+            <p>{{ __("Published football stories will appear here when verified editorial content is ready.") }}</p>
             <div class="rm-hero-actions">
-                <a href="{{ route('live-tv') }}" class="rm-btn rm-btn-primary"><x-icon name="play" />{{ __("Explore Live TV") }}</a>
-                <a href="{{ route('sports.football') }}" class="rm-btn rm-btn-secondary"><x-icon name="scores" />{{ __("View Football Scores") }}</a>
+                <a href="{{ route('football.today') }}" class="rm-btn rm-btn-primary"><x-icon name="scores" />{{ __("View Football Scores") }}</a>
+                <a href="{{ route('tv-guide.index') }}" class="rm-btn rm-btn-secondary"><x-icon name="tv" />{{ __("Open TV Guide") }}</a>
             </div>
         </section>
     @else
@@ -64,7 +64,7 @@
                 <div class="rm-section-header">
                     <div>
                         <p class="rm-eyebrow">{{ __("Latest stories") }}</p>
-                        <h2 id="rm-news-grid-title">{{ __("More from RifiMedia") }}</h2>
+                        <h2 id="rm-news-grid-title">{{ __("More from RiFiTV") }}</h2>
                     </div>
                 </div>
 

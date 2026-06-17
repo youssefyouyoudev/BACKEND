@@ -12,14 +12,14 @@
         <h2 id="rtv-world-cup-title">{{ __('landing.world_cup.title') }}</h2>
         <p>{{ __('landing.world_cup.subtitle') }}</p>
         <div class="rtv-world-cup-points">
-            @foreach(['schedule', 'channels', 'commentators', 'time', 'links'] as $point)
+            @foreach(['schedule', 'channels', 'commentators', 'time'] as $point)
                 <span><x-icon name="check" />{{ __('landing.world_cup.'.$point) }}</span>
             @endforeach
         </div>
         @if($worldCupMatchesCount > 0)
             <strong class="rtv-world-cup-count">{{ __('landing.world_cup.matches_count', ['count' => $worldCupMatchesCount]) }}</strong>
         @endif
-        <a class="rtv-button rtv-button--primary" href="{{ route('world-cup.index') }}">
+        <a class="rtv-button rtv-button--primary" href="{{ route('world-cup-2026.index') }}">
             <x-icon name="trophy" />{{ __('landing.world_cup.cta') }}
         </a>
     </div>

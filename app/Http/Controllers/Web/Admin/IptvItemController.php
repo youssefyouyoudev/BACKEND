@@ -3,18 +3,32 @@
 namespace App\Http\Controllers\Web\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Web\Admin\StoreIptvItemSourceRequest;
+use App\Http\Requests\Web\Admin\UpdateIptvItemRequest;
+use App\Http\Requests\Web\Admin\UpdateIptvItemSourceRequest;
 use App\Http\Requests\Web\Admin\UpdateIptvItemVisibilityRequest;
 use App\Models\IptvCategory;
 use App\Models\IptvItem;
+use App\Models\IptvItemSource;
 use App\Models\Playlist;
+use App\Services\IptvChannelNormalizer;
+use App\Services\StreamingPolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
+use Throwable;
 
 class IptvItemController extends Controller
 {
+    public function __construct(
+        private readonly IptvChannelNormalizer $normalizer,
+        private readonly StreamingPolicy $streamingPolicy,
+    ) {}
+
     public function index(Request $request): View|JsonResponse
     {
         $items = $this->filteredItems($request)
@@ -80,6 +94,108 @@ class IptvItemController extends Controller
             'updated' => $updated,
             'is_public' => $isPublic,
         ]);
+    }
+
+    public function edit(IptvItem $item): View
+    {
+        return view('admin.iptv-items.edit', [
+            'item' => $item->load(['playlist:id,name', 'category:id,name', 'sources']),
+            'categories' => IptvCategory::query()
+                ->where('playlist_id', $item->playlist_id)
+                ->where('type', $item->type)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+        ]);
+    }
+
+    public function update(UpdateIptvItemRequest $request, IptvItem $item): RedirectResponse
+    {
+        $validated = $request->validated();
+        $validated['normalized_name'] = $this->normalizer->normalize($validated['name']);
+        $validated['is_active'] = $request->boolean('is_active');
+        $validated['is_public'] = $request->boolean('is_public');
+        $validated['is_featured'] = $request->boolean('is_featured');
+
+        $item->update($validated);
+        $this->clearPublicCatalogCaches();
+
+        return back()->with('status', __('Channel details updated.'));
+    }
+
+    public function storeSource(StoreIptvItemSourceRequest $request, IptvItem $item): RedirectResponse
+    {
+        $item->sources()->create([
+            ...$request->validated(),
+            'is_active' => $request->boolean('is_active', true),
+        ]);
+
+        $this->clearPublicCatalogCaches();
+
+        return back()->with('status', __('Backup source added.'));
+    }
+
+    public function destroySource(IptvItem $item, IptvItemSource $source): RedirectResponse
+    {
+        abort_unless($source->iptv_item_id === $item->id, 404);
+        $source->delete();
+        $this->clearPublicCatalogCaches();
+
+        return back()->with('status', __('Source removed.'));
+    }
+
+    public function updateSource(
+        UpdateIptvItemSourceRequest $request,
+        IptvItem $item,
+        IptvItemSource $source
+    ): RedirectResponse {
+        abort_unless($source->iptv_item_id === $item->id, 404);
+
+        $source->update([
+            ...$request->validated(),
+            'is_active' => $request->boolean('is_active'),
+        ]);
+        $this->clearPublicCatalogCaches();
+
+        return back()->with('status', __('Source priority updated.'));
+    }
+
+    public function testSource(IptvItem $item, IptvItemSource $source): RedirectResponse
+    {
+        abort_unless($source->iptv_item_id === $item->id, 404);
+
+        $started = microtime(true);
+        $status = 'offline';
+        $responseCode = null;
+        $error = null;
+
+        try {
+            $this->streamingPolicy->assertStreamUrlAllowed($source->url);
+            $response = Http::connectTimeout(3)
+                ->timeout(8)
+                ->withHeaders(['Range' => 'bytes=0-2048', 'Accept' => '*/*'])
+                ->get($source->url);
+            $responseCode = $response->status();
+            $status = $response->successful() || in_array($responseCode, [206, 301, 302, 403, 405], true)
+                ? 'online'
+                : 'offline';
+        } catch (Throwable $exception) {
+            $error = $exception->getMessage();
+        }
+
+        $source->update([
+            'health_status' => $status,
+            'latency_ms' => (int) round((microtime(true) - $started) * 1000),
+            'response_code' => $responseCode,
+            'last_error' => $status === 'online' ? null : $error,
+            'last_checked_at' => now(),
+            'last_success_at' => $status === 'online' ? now() : $source->last_success_at,
+            'success_count' => $status === 'online' ? $source->success_count + 1 : $source->success_count,
+            'failure_count' => $status === 'online' ? $source->failure_count : $source->failure_count + 1,
+        ]);
+
+        return back()->with('status', $status === 'online'
+            ? __('Source is responding.')
+            : __('This source is not responding.'));
     }
 
     private function filteredItems(Request $request): Builder

@@ -1,6 +1,6 @@
 @props([
-    'title' => __('RifiMedia - Live TV, Football Scores & Sports Streaming'),
-    'description' => __('Follow football news, live scores, fixtures, standings, match previews, live TV channels, and sports updates on RifiMedia.'),
+    'title' => __('RiFiTV - Football Scores, Schedules, News and TV Guide'),
+    'description' => __('Football scores, schedules, results, news, World Cup 2026 coverage, and TV guide information for Morocco and MENA.'),
     'canonical' => url()->current(),
     'image' => asset('brand/rifi-logo.png'),
     'type' => 'website',

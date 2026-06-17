@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Article;
 use App\Models\Channel;
+use App\Models\WorldCupMatch;
 use App\Services\TheSportsDbService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -45,11 +46,11 @@ class SportsPageController extends Controller
             'dateModified' => $article->updated_at?->toAtomString(),
             'author' => [
                 '@type' => 'Person',
-                'name' => $article->author?->name ?? 'RifiMedia Desk',
+                'name' => $article->author?->name ?? 'RiFiTV Desk',
             ],
             'publisher' => [
                 '@type' => 'Organization',
-                'name' => 'RifiMedia',
+                'name' => 'RiFiTV',
                 'logo' => [
                     '@type' => 'ImageObject',
                     'url' => asset('brand/rifi-logo.png'),
@@ -92,7 +93,7 @@ class SportsPageController extends Controller
             'kind' => 'leagues',
             'items' => $this->leagueDirectory(),
             'title' => __('Football Leagues'),
-            'description' => __('Follow football league pages, standings, fixtures, and match coverage on RifiMedia.'),
+            'description' => __('Follow football competition pages, standings, fixtures, and match coverage on RiFiTV.'),
         ]);
     }
 
@@ -154,6 +155,24 @@ class SportsPageController extends Controller
         ]);
     }
 
+    public function tvGuide(Request $request): View
+    {
+        $matches = Schema::hasTable('world_cup_matches')
+            ? WorldCupMatch::query()
+                ->publicVisible()
+                ->with(['selectedChannel', 'selectedIptvItem'])
+                ->where('kickoff_at', '>=', now()->subHours(3))
+                ->orderBy('kickoff_at')
+                ->limit(60)
+                ->get()
+            : collect();
+
+        return view('public.tv-guide', [
+            'matches' => $matches,
+            'region' => (string) $request->route('region', 'all'),
+        ]);
+    }
+
     public function search(Request $request): View
     {
         $query = Str::of($request->string('q')->toString())->squish()->limit(80, '')->toString();
@@ -196,39 +215,39 @@ class SportsPageController extends Controller
     {
         $pages = [
             'about' => [
-                'title' => __('About RifiMedia'),
-                'description' => __('RifiMedia is a sports media platform for football news, fixtures, live score information, standings, and match updates.'),
-                'body' => __('RifiMedia brings football scores, live TV channels, sports updates, and entertainment into one clean platform.'),
+                'title' => __('About RiFiTV'),
+                'description' => __('RiFiTV is a football scores, schedules, news, match information, and TV guide platform for Morocco and MENA.'),
+                'body' => __('RiFiTV brings football scores, fixtures, results, World Cup 2026 coverage, editorial news, and TV guide information into one clear platform.'),
             ],
             'contact' => [
-                'title' => __('Contact RifiMedia'),
-                'description' => __('Contact the RifiMedia team for editorial, partnership, and platform questions.'),
-                'body' => __('For editorial, copyright, advertising, or technical questions, use the official contact channel configured for RifiMedia.'),
+                'title' => __('Contact RiFiTV'),
+                'description' => __('Contact the RiFiTV team for editorial, rights, partnership, advertising, and platform questions.'),
+                'body' => __('For editorial, rights, advertising, or technical questions, use the official contact method configured for RiFiTV.'),
             ],
             'privacy-policy' => [
                 'title' => __('Privacy Policy'),
-                'description' => __('Read the RifiMedia privacy policy.'),
-                'body' => __('This page explains the privacy principles for RifiMedia, including data minimization, account security, analytics, and communication preferences.'),
+                'description' => __('Read the RiFiTV privacy policy.'),
+                'body' => __('RiFiTV may use essential cookies, analytics, and advertising services. We limit data collection, protect account information, and explain available privacy choices.'),
             ],
             'terms' => [
                 'title' => __('Terms of Use'),
-                'description' => __('Read the RifiMedia terms of use.'),
-                'body' => __('Users must use RifiMedia lawfully and are responsible for ensuring they have rights to any playlist, stream source, or content they submit.'),
+                'description' => __('Read the RiFiTV terms of use.'),
+                'body' => __('Users must use RiFiTV lawfully, respect intellectual property rights, avoid abuse, and follow all applicable terms for submitted or accessed content.'),
             ],
             'copyright' => [
                 'title' => __('Copyright and DMCA'),
-                'description' => __('Copyright and takedown information for RifiMedia.'),
-                'body' => __('RifiMedia respects copyright. Rights holders can request review or removal of allegedly infringing user-submitted sources through the configured contact process.'),
+                'description' => __('Copyright, DMCA, and rights information for RiFiTV.'),
+                'body' => __('RiFiTV respects copyright. Rights holders may request review or removal through the contact method on this website. Broadcast rights belong to their respective owners.'),
             ],
             'advertise' => [
-                'title' => __('Advertise With RifiMedia'),
-                'description' => __('Advertising and sponsorship opportunities across RifiMedia news, scores, fixtures, and match coverage.'),
-                'body' => __('RifiMedia is prepared for responsible sponsorships across editorial pages, live scores, fixtures, league pages, and match center experiences.'),
+                'title' => __('Advertise With RiFiTV'),
+                'description' => __('Advertising and sponsorship opportunities across RiFiTV news, scores, fixtures, and match coverage.'),
+                'body' => __('RiFiTV supports responsible sponsorships across editorial pages, scores, fixtures, competition pages, and match-center experiences.'),
             ],
             'editorial-policy' => [
                 'title' => __('Editorial Policy'),
-                'description' => __('RifiMedia editorial standards for sports coverage.'),
-                'body' => __('RifiMedia aims to publish accurate, clearly labeled, useful sports coverage. Articles should identify authors, dates, updates, sources, and corrections when needed.'),
+                'description' => __('RiFiTV editorial standards for football coverage.'),
+                'body' => __('RiFiTV aims to publish accurate, clearly labeled football coverage. Articles should identify authors, dates, updates, sources, and corrections when needed.'),
             ],
         ];
 
@@ -241,18 +260,22 @@ class SportsPageController extends Controller
     {
         $urls = collect([
             route('home'),
-            route('sports.index'),
-            route('sports.football'),
-            route('world-cup.index'),
-            route('live-tv'),
-            route('movies'),
-            route('tv-shows'),
-            route('anime'),
+            route('football.index'),
+            route('football.today'),
+            route('football.tomorrow'),
+            route('football.results'),
+            route('football.schedules'),
+            route('world-cup-2026.index'),
+            route('world-cup-2026.schedule'),
+            route('world-cup-2026.groups'),
+            route('world-cup-2026.morocco'),
+            route('world-cup-2026.africa'),
+            route('tv-guide.index'),
+            route('tv-guide.morocco'),
             route('news.index'),
-            route('leagues.index'),
+            route('competitions.index'),
+            route('teams.index'),
             route('standings'),
-            route('highlights'),
-            route('search'),
             route('about'),
             route('contact'),
             route('privacy'),
@@ -329,12 +352,11 @@ class SportsPageController extends Controller
     private function searchPages(string $query): Collection
     {
         $pages = collect([
-            ['title' => __('Live TV'), 'description' => __('Browse approved live TV channels.'), 'url' => route('live-tv')],
-            ['title' => __('Football Scores'), 'description' => __('Today, upcoming, and recent football matches.'), 'url' => route('sports.football')],
-            ['title' => __('Movies'), 'description' => __('Entertainment discovery on RifiMedia.'), 'url' => route('movies')],
-            ['title' => __('TV Shows'), 'description' => __('Entertainment discovery on RifiMedia.'), 'url' => route('tv-shows')],
-            ['title' => __('Anime'), 'description' => __('Entertainment discovery on RifiMedia.'), 'url' => route('anime')],
-            ['title' => __('News'), 'description' => __('Published RifiMedia articles.'), 'url' => route('news.index')],
+            ['title' => __('Football Scores'), 'description' => __('Today, upcoming, and recent football matches.'), 'url' => route('football.today')],
+            ['title' => __('Football Schedules'), 'description' => __('Fixtures and kickoff times in Morocco time.'), 'url' => route('football.schedules')],
+            ['title' => __('World Cup 2026'), 'description' => __('Fixtures, groups, Morocco coverage, and results.'), 'url' => route('world-cup-2026.index')],
+            ['title' => __('TV Guide'), 'description' => __('Football broadcaster and schedule information.'), 'url' => route('tv-guide.index')],
+            ['title' => __('News'), 'description' => __('Published RiFiTV football articles.'), 'url' => route('news.index')],
         ]);
 
         if ($query === '') {

@@ -1,7 +1,8 @@
 @extends('layouts.app')
 
-@section('title', __("World Cup 2026 Live TV Receiver | RiFi Media TV"))
-@section('description', __("Watch public live TV channels in the RiFi Media TV World Cup 2026 inspired receiver with search, quality selection, and automatic reconnect."))
+@section('title', __("Channel Options | RiFiTV"))
+@section('description', __("Browse available channel options inside the RiFiTV application."))
+@section('robots', 'noindex,nofollow')
 @section('image', asset('assets/images/promo/rifitv-world-football-2026-1122.webp'))
 
 @section('content')
@@ -24,6 +25,7 @@
         initialChannelId: @js(request()->integer('channel') ?: null),
         initialCategory: @js(request()->string('category')->toString()),
         fallbackLogo: @js(asset('brand/rifi-logo.png')),
+        debugEnabled: @js(auth()->user()?->isAdmin() || config('app.debug')),
     })"
     x-init="init"
 >
@@ -57,10 +59,18 @@
                 <span>إعادة الاتصال بالبث المباشر...</span>
             </div>
 
+            <button type="button" class="rm-receiver-tap-play" x-show="needsPlaybackTap" x-cloak @click="togglePlayback">
+                <x-icon name="play" /> {{ __("Tap to start playback") }}
+            </button>
+
             <div class="rm-receiver-error" x-show="playerError" x-cloak>
                 <x-icon name="signal" />
+                <h3 x-text="playerErrorTitle"></h3>
                 <strong x-text="playerErrorMessage"></strong>
                 <div>
+                    <button type="button" @click="tryBackupSource">{{ __("Try backup source") }}</button>
+                    <button type="button" @click="chooseAnotherChannel">{{ __("Choose another channel") }}</button>
+                    <a href="{{ route('contact') }}">{{ __("Report issue") }}</a>
                     <button type="button" @click="refreshStream">{{ __("Try Again / حاول مرة أخرى") }}</button>
                     <button type="button" x-show="externalPlayerUrl" @click="openExternalPlayer">{{ __("External player") }}</button>
                 </div>
@@ -80,16 +90,37 @@
                     ></button>
                 </template>
             </div>
+
+            <div class="rm-receiver-sources" x-show="activeSources.length > 1 && !showPlayerFallback" x-cloak>
+                <button type="button" :class="{ 'is-active': activeSourceIndex === 0 }" @click="chooseSource(0)">
+                    <span>{{ __("Auto") }}</span>
+                    <small>{{ __("Recommended") }}</small>
+                </button>
+                <template x-for="(source, index) in activeSources" :key="source.id || index">
+                    <button type="button" :class="{ 'is-active': activeSourceIndex === index }" @click="chooseSource(index)">
+                        <span x-text="source.label || `${window.rifiT('Server')} ${index + 1}`"></span>
+                        <small x-text="source.health_status === 'online' ? window.rifiT('Ready') : source.quality"></small>
+                    </button>
+                </template>
+            </div>
         </div>
 
         <div class="rm-receiver-controls">
             <button type="button" @click="stepChannel(-1)" title="{{ __("Previous channel") }}"><span>↑</span> {{ __("Previous") }}</button>
             <button type="button" @click="stepChannel(1)" title="{{ __("Next channel") }}"><span>↓</span> {{ __("Next") }}</button>
             <button type="button" :class="{ 'is-active': isFavorite }" @click="toggleFavorite"><x-icon name="star" /><span x-text="window.rifiT(isFavorite ? 'Saved' : 'Favorite')"></span></button>
+            <button type="button" @click="toggleMute"><x-icon name="volume" /> {{ __("Mute") }}</button>
             <button type="button" @click="refreshStream"><x-icon name="signal" /> {{ __("Refresh") }}</button>
             <button type="button" @click="openExternalPlayer" :disabled="!externalPlayerUrl"><x-icon name="arrow-up-right" /> {{ __("External") }}</button>
             <button type="button" @click="fullscreen"><x-icon name="tv" /> {{ __("Fullscreen") }}</button>
         </div>
+
+        @if(auth()->user()?->isAdmin() || config('app.debug'))
+            <details class="player-debug-panel">
+                <summary>{{ __("Player debug") }}</summary>
+                <pre x-text="JSON.stringify(playerDebug, null, 2)"></pre>
+            </details>
+        @endif
     </section>
 
     <x-ad-slot name="live_tv_under_player" type="inline" compact />

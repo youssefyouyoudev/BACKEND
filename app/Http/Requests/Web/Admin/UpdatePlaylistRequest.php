@@ -61,7 +61,7 @@ class UpdatePlaylistRequest extends FormRequest
                 'string',
                 'max:255',
             ],
-            'output' => ['nullable', Rule::in(['mpegts', 'hls'])],
+            'output' => ['nullable', Rule::in(['auto', 'mpegts', 'hls'])],
             'playlist_file' => [
                 Rule::requiredIf(in_array($this->input('input_type'), ['upload', 'upload_file'], true) && ! ($playlist instanceof Playlist && $playlist->resolved_file_path)),
                 'nullable',

@@ -12,6 +12,7 @@ class WatchHistory extends Model
 
     protected $fillable = [
         'user_id',
+        'session_id',
         'channel_id',
         'iptv_item_id',
         'watched_at',

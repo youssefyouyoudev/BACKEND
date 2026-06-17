@@ -7,6 +7,7 @@ use App\Models\Favorite;
 use App\Models\IptvCategory;
 use App\Models\IptvItem;
 use App\Models\WatchHistory;
+use App\Services\IptvChannelNormalizer;
 use App\Support\StreamUrl;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -14,6 +15,10 @@ use Illuminate\Http\Request;
 
 class WatchController extends Controller
 {
+    public function __construct(
+        private readonly IptvChannelNormalizer $normalizer,
+    ) {}
+
     public function index(Request $request): View
     {
         return view('watch.index', [
@@ -63,6 +68,7 @@ class WatchController extends Controller
         abort_if($item->is_adult && ! $this->adultUnlocked($request), 403);
         abort_unless(filled($item->stream_url), 404);
 
+        $normalizedName = $item->normalized_name ?: $this->normalizer->normalize($item->name);
         $siblings = IptvItem::query()
             ->visible()
             ->published()
@@ -72,10 +78,42 @@ class WatchController extends Controller
             ->limit(80)
             ->get();
 
+        $variants = IptvItem::query()
+            ->publicLive()
+            ->where(function ($query) use ($item, $normalizedName): void {
+                $query->where('normalized_name', $normalizedName)
+                    ->orWhereKey($item->id);
+            })
+            ->with(['sources' => fn ($query) => $query->where('is_active', true)->orderBy('priority')])
+            ->get();
+
+        $playerSources = $variants
+            ->flatMap(function (IptvItem $variant) {
+                if ($variant->sources->isNotEmpty()) {
+                    return $variant->sources->map(fn ($source): array => [
+                        'id' => 'source-'.$source->id,
+                        'url' => StreamUrl::iptvItemSourceBridge($source->id),
+                        'type' => $source->type,
+                        'label' => $source->label,
+                        'quality' => $source->quality_label,
+                    ]);
+                }
+
+                return [[
+                    'id' => 'item-'.$variant->id,
+                    'url' => StreamUrl::iptvItemBridge($variant->id),
+                    'type' => $variant->stream_type ?: $variant->extension ?: 'auto',
+                    'label' => $variant->qualityLabel(),
+                    'quality' => $variant->qualityLabel(),
+                ]];
+            })
+            ->values();
+
         return view('watch.item', [
             'item' => $item->load('category'),
             'siblings' => $siblings,
             'browserUrl' => StreamUrl::iptvItemBridge($item->id),
+            'playerSources' => $playerSources,
         ]);
     }
 
@@ -127,6 +165,7 @@ class WatchController extends Controller
         WatchHistory::query()->updateOrCreate(
             [
                 'user_id' => $request->user()?->id,
+                'session_id' => $request->user() ? null : $request->session()->getId(),
                 'iptv_item_id' => $item->id,
             ],
             [

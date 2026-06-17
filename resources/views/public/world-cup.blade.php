@@ -1,7 +1,12 @@
 @extends('layouts.app')
 
-@section('title', __("World Cup 2026 Group Stage Schedule | RiFiTV"))
-@section('description', __("World Cup 2026 group-stage matches, Morocco kickoff times, selected channels, commentators, and approved watch links."))
+@section('title', match($section) {
+    'morocco' => 'Morocco World Cup 2026 Fixtures | RiFiTV',
+    'africa' => 'African Teams at World Cup 2026 | RiFiTV',
+    'groups' => 'World Cup 2026 Groups | RiFiTV',
+    default => 'World Cup 2026 Schedule in Morocco Time | RiFiTV',
+})
+@section('description', __("World Cup 2026 fixtures, groups, Morocco kickoff times, match details, results, and TV guide information."))
 @section('image', asset('assets/images/promo/rifitv-world-football-2026-1122.webp'))
 
 @section('content')
@@ -12,9 +17,9 @@
 <div class="wc-schedule-page">
     <section class="wc-schedule-hero">
         <div>
-            <span class="wc-badge"><b>{{ __("Live schedule") }}</b> {{ __("Morocco time") }}</span>
+            <span class="wc-badge"><b>{{ __("Tournament schedule") }}</b> {{ __("Morocco time") }}</span>
             <h1>{{ __("World Cup 2026") }} <span>{{ __("Group Stage") }}</span></h1>
-            <p>{{ __("Watch schedule, channels, commentators and match times. Channel links appear only after an administrator confirms an approved source.") }}</p>
+            <p>{{ __("Fixtures, groups, match details, commentators, and TV guide information in Africa/Casablanca time.") }}</p>
             <div class="wc-hero__actions">
                 <a class="wc-button wc-button--primary" href="#world-cup-schedule">{{ app()->isLocale('ar') ? 'شوف الجدول' : 'View schedule' }}</a>
                 <a class="wc-button wc-button--ghost" href="{{ config('ads.sponsor_url') }}" target="_blank" rel="nofollow sponsored noopener noreferrer">{{ app()->isLocale('ar') ? 'سجّل دابا' : 'See premium offer' }}</a>
@@ -121,7 +126,7 @@
                                         <p><b>{{ __("Commentator") }}</b><span>{{ $match->commentator ?: __('Commentator to be confirmed') }}</span></p>
                                     </div>
                                     <a class="wc-button wc-button--primary wc-schedule-card__watch" href="{{ route('matches.watch', $match) }}">
-                                        {{ app()->isLocale('ar') ? 'شاهد المباراة' : 'Watch Match' }}
+                                        {{ __('Match details') }}
                                     </a>
                                 </article>
                             @endforeach
@@ -147,7 +152,7 @@
         <h2>{{ app()->isLocale('ar') ? 'جدول مباريات بطولة العالم 2026 بتوقيت المغرب' : '2026 world football schedule in Morocco time' }}</h2>
         <p>{{ app()->isLocale('ar')
             ? 'تابع مباريات اليوم، مواعيد مباريات بطولة العالم 2026، القنوات الناقلة، المعلقين وتوقيت المغرب. يعمل RiFiTV على الهاتف والتلفاز والحاسوب والتابليت، وتظهر روابط المشاهدة فقط عند تفعيلها من الإدارة.'
-            : 'Follow today’s matches, the 2026 world football schedule, channel listings, commentators, and Morocco kickoff times. RiFiTV works across phones, TVs, computers, and tablets, while watch links appear only when enabled by an administrator.' }}</p>
+            : 'Follow today’s matches, the World Cup 2026 schedule, groups, TV guide information, commentators, and Morocco kickoff times on RiFiTV.' }}</p>
         <p>
             <a href="{{ route('sports.football') }}">{{ app()->isLocale('ar') ? 'مباريات اليوم' : 'Today’s matches' }}</a>
             · <a href="{{ route('live-tv') }}">{{ app()->isLocale('ar') ? 'قنوات كرة القدم' : 'Football channels' }}</a>

@@ -1,7 +1,10 @@
-import { t } from './i18n';
+import { t } from './i18n.js';
+import { detectStreamType, getBufferedAhead, toAbsoluteUrl } from './stream-detection.js';
 
-const RETRY_DELAYS = [750, 1500, 3000, 6000, 10000, 15000];
-const STALL_TIMEOUT = 20000;
+const MAX_RETRIES_PER_SOURCE = 2;
+const STALL_TIMEOUT_MS = 20000;
+const RETRY_BASE_DELAY_MS = 3000;
+const MIN_HEALTHY_BUFFER_SECONDS = 2;
 let activePlayer = null;
 
 const extractHttpStatus = (value, depth = 0) => {
@@ -39,29 +42,65 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
 
     destroyResilientPlayer();
 
+    const finalStreamUrl = toAbsoluteUrl(streamUrl);
+    debug('Final player stream URL.', {
+        url: finalStreamUrl,
+        sourceId: options.sourceId ?? null,
+    });
+
     const Hls = options.Hls || window.Hls;
     const mpegts = options.mpegts || window.mpegts;
-    const streamType = String(options.streamType || '').toLowerCase();
+    const detectedType = detectStreamType(finalStreamUrl, options.streamType);
     const listeners = [];
     let hls = null;
     let mpegPlayer = null;
     let retryTimer = null;
     let healthTimer = null;
     let stableTimer = null;
+    let finalCheckTimer = null;
     let destroyed = false;
     let retryCount = 0;
+    const maxReconnects = Math.max(3, Number(options.maxReconnects ?? MAX_RETRIES_PER_SOURCE));
     let hlsNetworkRecoveries = 0;
     let hlsMediaRecoveries = 0;
     let lastProgressAt = Date.now();
     let lastCurrentTime = 0;
     let engineKind = 'native';
-    let nativeSoftRecoveries = 0;
+    let engineOverride = null;
+    let unknownEngineFallbackUsed = false;
     let forbiddenHandled = false;
+    let autoplayBlocked = false;
+    let fatalErrorSeen = false;
+    let finalErrorShown = false;
+    let lastError = null;
+    let lastRecoveryAction = 'initializing';
+    let finalFailureMessage = null;
 
     const notify = (name, payload) => options[name]?.(payload);
     const addListener = (target, event, handler, settings) => {
         target.addEventListener(event, handler, settings);
         listeners.push(() => target.removeEventListener(event, handler, settings));
+    };
+    const debugState = () => ({
+        sourceId: options.sourceId ?? null,
+        channelId: options.channelId ?? null,
+        detectedType,
+        engine: engineKind,
+        retryCount,
+        maxRetries: maxReconnects,
+        readyState: video.readyState,
+        networkState: video.networkState,
+        bufferedAhead: Number(getBufferedAhead(video).toFixed(2)),
+        lastProgressSecondsAgo: Math.max(0, Math.round((Date.now() - lastProgressAt) / 1000)),
+        lastError,
+        lastRecoveryAction,
+        autoplayBlocked,
+    });
+    const publishDebug = () => notify('onDebug', debugState());
+    const recordAction = (action, error = null) => {
+        lastRecoveryAction = action;
+        if (error) lastError = error;
+        publishDebug();
     };
 
     const cleanupEngine = () => {
@@ -71,8 +110,21 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         }
         if (mpegPlayer) {
             try {
+                mpegPlayer.pause();
+            } catch {
+                // Some mpegts.js states do not expose a pausable media element.
+            }
+            try {
                 mpegPlayer.unload();
+            } catch {
+                // Cleanup must continue even when the provider closes first.
+            }
+            try {
                 mpegPlayer.detachMediaElement();
+            } catch {
+                // Cleanup must continue even when attachment already ended.
+            }
+            try {
                 mpegPlayer.destroy();
             } catch (error) {
                 debug('MPEG-TS cleanup skipped.', { message: error?.message });
@@ -87,17 +139,64 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         video.load();
     };
 
-    const play = () => {
-        video.play().catch((error) => {
-            debug('Autoplay is waiting for user interaction.', { message: error?.message });
-            notify('onAutoplayBlocked');
-        });
+    const safePlay = async () => {
+        autoplayBlocked = false;
+        try {
+            await video.play();
+            return;
+        } catch (error) {
+            debug('Initial autoplay was blocked.', { message: error?.message });
+        }
+
+        video.muted = true;
+        try {
+            await video.play();
+        } catch (error) {
+            autoplayBlocked = true;
+            recordAction('waiting for user playback gesture', error?.message);
+            notify('onAutoplayBlocked', t('Tap to start playback'));
+        }
     };
 
+    const isMixedContent = () => (
+        window.location.protocol === 'https:'
+        && String(finalStreamUrl).toLowerCase().startsWith('http:')
+    );
+    const isCrossOriginDirectSource = () => {
+        try {
+            return new URL(finalStreamUrl, window.location.origin).origin !== window.location.origin;
+        } catch {
+            return false;
+        }
+    };
+
+    const isReallyStalled = () => (
+        Date.now() - lastProgressAt > STALL_TIMEOUT_MS
+        && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA
+        && getBufferedAhead(video) < MIN_HEALTHY_BUFFER_SECONDS
+    );
+
     const fatal = (message) => {
+        if (finalErrorShown || destroyed) return;
+        finalErrorShown = true;
         clearTimeout(retryTimer);
+        clearTimeout(finalCheckTimer);
         retryTimer = null;
+        finalCheckTimer = null;
+        recordAction('source exhausted', message);
         notify('onFatal', message);
+    };
+
+    const finalizeWhenProven = () => {
+        if (destroyed || finalErrorShown || retryCount < maxReconnects || !fatalErrorSeen) return;
+        if (isReallyStalled()) {
+            fatal(finalFailureMessage || t('We tried reconnecting and switching sources. Try again, choose another source, or open another channel.'));
+            return;
+        }
+
+        const remaining = Math.max(1000, STALL_TIMEOUT_MS - (Date.now() - lastProgressAt) + 250);
+        clearTimeout(finalCheckTimer);
+        finalCheckTimer = window.setTimeout(finalizeWhenProven, remaining);
     };
 
     const handleForbidden = (details) => {
@@ -112,217 +211,312 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         stableTimer = null;
         cleanupEngine();
         resetMedia();
+        recordAction('protected URL rejected', `HTTP ${status}`);
         notify('onForbidden', status);
 
         return true;
     };
 
-    const load = () => {
+    const currentEngineType = () => engineOverride || detectedType;
+
+    const tryUnknownEngineFallback = (reason) => {
+        if (detectedType !== 'auto' || unknownEngineFallbackUsed || !mpegts?.isSupported()) return false;
+        unknownEngineFallbackUsed = true;
+        engineOverride = 'mpegts';
+        recordAction('unknown source switched from HLS probe to MPEG-TS', reason);
+        notify('onReconnecting', t('Trying another compatible player...'));
+        cleanupEngine();
+        retryTimer = window.setTimeout(() => {
+            retryTimer = null;
+            load();
+        }, RETRY_BASE_DELAY_MS);
+        return true;
+    };
+
+    const loadHls = () => {
+        engineKind = 'hls';
+        hls = new Hls({
+            enableWorker: true,
+            lowLatencyMode: false,
+            backBufferLength: 30,
+            maxBufferLength: 60,
+            maxMaxBufferLength: 120,
+            manifestLoadingTimeOut: 25000,
+            manifestLoadingMaxRetry: 8,
+            manifestLoadingRetryDelay: 1000,
+            levelLoadingTimeOut: 25000,
+            levelLoadingMaxRetry: 8,
+            fragLoadingTimeOut: 35000,
+            fragLoadingMaxRetry: 10,
+            fragLoadingRetryDelay: 1000,
+            startFragPrefetch: true,
+        });
+        hls.loadSource(finalStreamUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, safePlay);
+        hls.on(Hls.Events.ERROR, (_, data) => {
+            debug('HLS event.', {
+                type: data.type,
+                details: data.details,
+                fatal: data.fatal,
+                responseCode: data.response?.code,
+            });
+            if (handleForbidden(data) || !data.fatal || destroyed) return;
+
+            fatalErrorSeen = true;
+            const reason = `HLS ${data.details || data.type || 'playback'} error`;
+            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsNetworkRecoveries < 3) {
+                hlsNetworkRecoveries += 1;
+                recordAction('HLS network recovery with startLoad', reason);
+                notify('onReconnecting', t('Reconnecting to the live stream...'));
+                hls.startLoad();
+                return;
+            }
+            if (data.type === Hls.ErrorTypes.MEDIA_ERROR && hlsMediaRecoveries < 3) {
+                hlsMediaRecoveries += 1;
+                recordAction('HLS media recovery', reason);
+                notify('onReconnecting', t('Repairing video playback...'));
+                hls.recoverMediaError();
+                return;
+            }
+            if (
+                data.type === Hls.ErrorTypes.NETWORK_ERROR
+                && extractHttpStatus(data) === null
+                && isCrossOriginDirectSource()
+            ) {
+                finalFailureMessage = t('This source works in external players but the browser blocked it. Use an authorized proxy or HLS-compatible source.');
+                notify('onBrowserBlocked', finalFailureMessage);
+            }
+            if (tryUnknownEngineFallback(reason)) return;
+            scheduleReconnect(reason, true);
+        });
+    };
+
+    const loadMpegTs = () => {
+        engineKind = 'mpegts';
+        const featureList = mpegts?.getFeatureList?.();
+        if (featureList && featureList.mseLivePlayback === false) {
+            fatal(t('This browser does not support this stream. Try another server or external player.'));
+            return;
+        }
+
+        mpegPlayer = mpegts.createPlayer({
+            type: 'mpegts',
+            isLive: true,
+            url: finalStreamUrl,
+        }, {
+            enableWorker: true,
+            enableStashBuffer: true,
+            stashInitialSize: 1024 * 1024,
+            lazyLoad: false,
+            lazyLoadMaxDuration: 3 * 60,
+            lazyLoadRecoverDuration: 30,
+            deferLoadAfterSourceOpen: false,
+            autoCleanupSourceBuffer: true,
+            autoCleanupMaxBackwardDuration: 60,
+            autoCleanupMinBackwardDuration: 30,
+            fixAudioTimestampGap: true,
+            accurateSeek: false,
+        });
+        mpegPlayer.attachMediaElement(video);
+        mpegPlayer.on(mpegts.Events.ERROR, (...details) => {
+            debug('MPEG-TS playback error.', { details });
+            if (handleForbidden(details)) return;
+            fatalErrorSeen = true;
+            const errorKind = String(details[0] || details[1] || '').toLowerCase();
+            const isMediaFormatError = errorKind.includes('media') || errorKind.includes('format');
+            if (isMediaFormatError) {
+                fatal(t('This browser does not support this stream. Try another server or external player.'));
+                return;
+            }
+            if (extractHttpStatus(details) === null && isCrossOriginDirectSource()) {
+                finalFailureMessage = t('This source works in external players but the browser blocked it. Use an authorized proxy or HLS-compatible source.');
+                notify('onBrowserBlocked', finalFailureMessage);
+            }
+            scheduleReconnect('MPEG-TS playback error', true);
+        });
+        [
+            'LOADING_COMPLETE',
+            'RECOVERED_EARLY_EOF',
+            'MEDIA_INFO',
+            'STATISTICS_INFO',
+        ].forEach((eventName) => {
+            if (mpegts.Events[eventName]) {
+                mpegPlayer.on(mpegts.Events[eventName], (...details) => {
+                    debug(`MPEG-TS ${eventName}.`, { details });
+                    publishDebug();
+                });
+            }
+        });
+        mpegPlayer.load();
+        safePlay();
+    };
+
+    function load() {
         if (destroyed) return;
         cleanupEngine();
         resetMedia();
+        lastProgressAt = Date.now();
+        lastCurrentTime = 0;
+        autoplayBlocked = false;
         notify('onLoading');
 
-        const isHls = ['hls', 'm3u', 'm3u8'].includes(streamType)
-            || streamUrl.toLowerCase().includes('.m3u');
-        const isMpegTs = ['mpegts', 'ts', 'stream'].includes(streamType);
-
-        if (isHls && Hls?.isSupported()) {
-            engineKind = 'hls';
-            hls = new Hls({
-                enableWorker: true,
-                lowLatencyMode: false,
-                backBufferLength: 90,
-                maxBufferLength: 30,
-                maxMaxBufferLength: 60,
-                liveSyncDurationCount: 4,
-                liveMaxLatencyDurationCount: 10,
-                fragLoadingTimeOut: 20000,
-                fragLoadingMaxRetry: 6,
-                fragLoadingRetryDelay: 1000,
-                fragLoadingMaxRetryTimeout: 8000,
-                manifestLoadingTimeOut: 20000,
-                manifestLoadingMaxRetry: 6,
-                manifestLoadingRetryDelay: 1000,
-                levelLoadingTimeOut: 20000,
-                levelLoadingMaxRetry: 6,
-                levelLoadingRetryDelay: 1000,
-            });
-            hls.loadSource(streamUrl);
-            hls.attachMedia(video);
-            hls.on(Hls.Events.MANIFEST_PARSED, play);
-            hls.on(Hls.Events.ERROR, (_, data) => {
-                debug('HLS event.', {
-                    type: data.type,
-                    details: data.details,
-                    fatal: data.fatal,
-                    responseCode: data.response?.code,
-                });
-                if (handleForbidden(data) || !data.fatal || destroyed) return;
-
-                if (data.type === Hls.ErrorTypes.NETWORK_ERROR && hlsNetworkRecoveries < 2) {
-                    hlsNetworkRecoveries += 1;
-                    notify('onReconnecting', t('Reconnecting to the live stream...'));
-                    hls.startLoad();
-                    return;
-                }
-                if (data.type === Hls.ErrorTypes.MEDIA_ERROR && hlsMediaRecoveries < 2) {
-                    hlsMediaRecoveries += 1;
-                    notify('onReconnecting', t('Repairing video playback...'));
-                    hls.recoverMediaError();
-                    return;
-                }
-                scheduleReconnect(`HLS ${data.details || data.type || 'playback'} error`);
-            });
+        if (isMixedContent()) {
+            fatalErrorSeen = true;
+            recordAction('mixed content blocked', 'HTTP source on HTTPS page');
+            notify('onMixedContent', t('HTTP stream cannot be played directly on an HTTPS page. Use an HTTPS source or authorized secure proxy.'));
+            fatal(t('HTTP stream cannot be played directly on an HTTPS page. Use an HTTPS source or authorized secure proxy.'));
             return;
         }
 
-        if (isHls && video.canPlayType('application/vnd.apple.mpegurl')) {
+        const type = currentEngineType();
+        if ((type === 'hls' || type === 'auto') && Hls?.isSupported()) {
+            loadHls();
+            publishDebug();
+            return;
+        }
+
+        if ((type === 'hls' || type === 'auto') && video.canPlayType('application/vnd.apple.mpegurl')) {
             engineKind = 'native';
-            video.src = streamUrl;
+            video.src = finalStreamUrl;
             video.load();
-            play();
+            safePlay();
+            publishDebug();
             return;
         }
 
-        if (isMpegTs && mpegts?.isSupported()) {
-            engineKind = 'mpegts';
-            mpegPlayer = mpegts.createPlayer({
-                type: 'mpegts',
-                isLive: true,
-                url: streamUrl,
-                cors: true,
-                withCredentials: false,
-            }, {
-                enableWorker: false,
-                lazyLoad: false,
-                autoCleanupSourceBuffer: true,
-                autoCleanupMaxBackwardDuration: 45,
-                autoCleanupMinBackwardDuration: 20,
-                stashInitialSize: 384 * 1024,
-            });
-            mpegPlayer.attachMediaElement(video);
-            mpegPlayer.on(mpegts.Events.ERROR, (...details) => {
-                debug('MPEG-TS playback error.', { details });
-                if (handleForbidden(details)) return;
-                scheduleReconnect('MPEG-TS playback error');
-            });
-            mpegPlayer.load();
-            mpegPlayer.play().catch(() => {});
+        if ((type === 'mpegts' || type === 'auto') && mpegts?.isSupported()) {
+            loadMpegTs();
+            publishDebug();
             return;
         }
 
         engineKind = 'native';
-        video.src = streamUrl;
+        video.src = finalStreamUrl;
         video.load();
-        play();
-    };
+        safePlay();
+        publishDebug();
+    }
 
-    const scheduleReconnect = (reason, immediate = false) => {
-        if (destroyed || retryTimer) return;
+    function scheduleReconnect(reason, fatalError = false, immediate = false) {
+        if (destroyed || retryTimer || finalErrorShown) return;
         if (!navigator.onLine) {
+            recordAction('waiting for network connection', reason);
             notify('onReconnecting', t('No connection'));
             return;
         }
-        if (retryCount >= RETRY_DELAYS.length) {
-            fatal(t('The stream could not be restored automatically. Try again or choose another channel.'));
+
+        fatalErrorSeen ||= fatalError;
+        lastError = reason;
+        if (retryCount >= maxReconnects) {
+            finalizeWhenProven();
             return;
         }
 
-        const delay = immediate ? 0 : RETRY_DELAYS[retryCount];
+        const delay = immediate ? 0 : RETRY_BASE_DELAY_MS * (2 ** retryCount);
         retryCount += 1;
         notify('onReconnecting', t('Reconnecting... attempt :attempt of :total', {
             attempt: retryCount,
-            total: RETRY_DELAYS.length,
+            total: maxReconnects,
         }));
-        debug('Scheduling playback recovery.', { reason, attempt: retryCount, delay });
+        recordAction(`reconnecting source in ${delay} ms`, reason);
         clearTimeout(stableTimer);
         cleanupEngine();
         retryTimer = window.setTimeout(() => {
             retryTimer = null;
             load();
         }, delay);
-    };
-
-    const recover = (reason) => {
-        if (engineKind !== 'native' || nativeSoftRecoveries >= 2) {
-            scheduleReconnect(reason);
-            return;
-        }
-
-        nativeSoftRecoveries += 1;
-        notify('onReconnecting', t('Reconnecting...'));
-        debug('Trying native soft recovery.', { reason, attempt: nativeSoftRecoveries });
-        video.load();
-        play();
-        window.setTimeout(() => {
-            if (!destroyed && Date.now() - lastProgressAt >= STALL_TIMEOUT) {
-                scheduleReconnect(`${reason} after soft recovery`);
-            }
-        }, 3000);
-    };
+    }
 
     const markProgress = () => {
-        if (video.currentTime > lastCurrentTime + 0.05) {
+        const bufferedAhead = getBufferedAhead(video);
+        if (
+            video.currentTime > lastCurrentTime + 0.05
+            || bufferedAhead >= MIN_HEALTHY_BUFFER_SECONDS
+            || video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA
+        ) {
             lastCurrentTime = video.currentTime;
             lastProgressAt = Date.now();
         }
+        publishDebug();
+    };
+
+    const markPlayable = (action) => {
+        lastProgressAt = Date.now();
+        recordAction(action);
     };
 
     addListener(video, 'playing', () => {
-        lastCurrentTime = video.currentTime;
-        lastProgressAt = Date.now();
+        autoplayBlocked = false;
+        finalErrorShown = false;
+        markPlayable('playing');
         notify('onPlaying');
         clearTimeout(stableTimer);
         stableTimer = window.setTimeout(() => {
             retryCount = 0;
-            nativeSoftRecoveries = 0;
             hlsNetworkRecoveries = 0;
             hlsMediaRecoveries = 0;
-        }, 60000);
+            fatalErrorSeen = false;
+            lastError = null;
+            recordAction('stable playback');
+        }, 30000);
     });
     addListener(video, 'canplay', () => {
-        lastProgressAt = Date.now();
+        markPlayable('can play');
         notify('onCanPlay');
     });
+    addListener(video, 'loadeddata', () => markPlayable('media data loaded'));
+    addListener(video, 'progress', markProgress);
     addListener(video, 'timeupdate', markProgress);
-    addListener(video, 'waiting', () => notify('onReconnecting', t('The live stream is buffering...')));
+    addListener(video, 'waiting', () => {
+        recordAction('buffering');
+        notify('onReconnecting', t('The live stream is buffering...'));
+    });
     addListener(video, 'stalled', () => {
-        notify('onReconnecting', t('Playback stalled. Recovering...'));
-        recover('stalled event');
+        recordAction('browser reported stalled media');
+        if (isReallyStalled()) scheduleReconnect('confirmed stalled event', true);
     });
     addListener(video, 'suspend', () => debug('Browser suspended media loading.'));
     addListener(video, 'emptied', () => debug('Media buffer emptied.'));
-    addListener(video, 'pause', () => debug('Playback paused.', { ended: video.ended }));
-    addListener(video, 'ended', () => recover('stream ended'));
-    addListener(video, 'error', () => recover(`media error ${video.error?.code || 'unknown'}`));
+    addListener(video, 'pause', publishDebug);
+    addListener(video, 'ended', () => {
+        fatalErrorSeen = true;
+        if (!document.hidden) scheduleReconnect('stream ended', true);
+    });
+    addListener(video, 'error', () => {
+        fatalErrorSeen = true;
+        scheduleReconnect(`media error ${video.error?.code || 'unknown'}`, true);
+    });
     addListener(window, 'offline', () => {
         clearTimeout(retryTimer);
         retryTimer = null;
+        recordAction('offline');
         notify('onReconnecting', t('No connection'));
     });
-    addListener(window, 'online', () => scheduleReconnect('connection restored', true));
+    addListener(window, 'online', () => scheduleReconnect('connection restored', false, true));
     addListener(document, 'visibilitychange', () => {
-        if (!document.hidden && (video.error || (!video.paused && Date.now() - lastProgressAt >= STALL_TIMEOUT))) {
-            scheduleReconnect('page became visible', true);
-        }
+        if (!document.hidden && isReallyStalled()) scheduleReconnect('page became visible', true);
     });
 
     healthTimer = window.setInterval(() => {
-        if (destroyed || document.hidden || video.paused || video.ended) return;
+        if (destroyed || autoplayBlocked || document.hidden || video.paused || video.ended) return;
         markProgress();
-        if (Date.now() - lastProgressAt >= STALL_TIMEOUT) {
-            recover('playback health timeout');
-        }
-    }, 10000);
+        if (isReallyStalled()) scheduleReconnect('playback health timeout', true);
+    }, 5000);
 
     load();
 
     const controller = {
         reconnect(reason = 'manual retry') {
             retryCount = 0;
-            scheduleReconnect(reason, true);
+            fatalErrorSeen = false;
+            finalErrorShown = false;
+            scheduleReconnect(reason, false, true);
         },
+        play() {
+            safePlay();
+        },
+        debugState,
         showReconnectOverlay(message = t('Reconnecting...')) {
             notify('onReconnecting', message);
         },
@@ -333,9 +527,11 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
             destroyed = true;
             clearTimeout(retryTimer);
             clearTimeout(stableTimer);
+            clearTimeout(finalCheckTimer);
             clearInterval(healthTimer);
             retryTimer = null;
             stableTimer = null;
+            finalCheckTimer = null;
             healthTimer = null;
             listeners.splice(0).forEach((remove) => remove());
             cleanupEngine();
@@ -345,6 +541,7 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
     };
 
     activePlayer = controller;
+    publishDebug();
 
     return controller;
 }

@@ -6,6 +6,7 @@ const STORAGE = {
     favorites: 'rifi-live-tv-favorites-v2',
     recent: 'rifi-live-tv-recent-v2',
     last: 'rifi-live-tv-last-v2',
+    volume: 'rifitv-player-volume-v1',
 };
 
 const QUALITY_ORDER = ['HD', 'FHD', '4K', 'SD'];
@@ -178,22 +179,32 @@ const destroyPlayer = (state) => {
     state.stallTimer = null;
 };
 
-window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCategory = '', fallbackLogo = '' }) => ({
+window.liveTvPage = ({
+    initialChannels = [],
+    initialChannelId = null,
+    initialCategory = '',
+    fallbackLogo = '',
+    debugEnabled = false,
+}) => ({
     rawChannels: initialChannels,
     channelGroups: [],
     activeGroup: null,
     activeVariant: null,
     attemptedVariantIds: [],
+    activeSources: [],
+    activeSourceIndex: 0,
     search: '',
     activeCategory: 'All Channels',
     viewMode: 'grid',
     loadingCatalog: false,
     loadingPlayer: false,
     playerError: false,
+    playerErrorTitle: '',
     playerErrorMessage: '',
     fallbackActive: false,
     reconnecting: false,
     reconnectMessage: '',
+    needsPlaybackTap: false,
     externalPlayerUrl: '',
     fallbackLogo,
     favorites: readStorage(STORAGE.favorites, []),
@@ -213,6 +224,8 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
     playerController: null,
     keydownHandler: null,
     signedUrlRefreshes: 0,
+    debugEnabled,
+    playerDebug: {},
 
     get filteredGroups() {
         const query = fold(this.search.trim());
@@ -373,7 +386,10 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
             throw new Error('Missing protected play URL');
         }
 
-        return payload.url;
+        return {
+            url: payload.url,
+            sources: Array.isArray(payload.sources) ? payload.sources : [],
+        };
     },
 
     async playVariant(variant, announce = true, isSignedUrlRefresh = false) {
@@ -385,26 +401,31 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         this.reconnecting = isSignedUrlRefresh;
         this.reconnectMessage = isSignedUrlRefresh ? t('Stream link expired, refreshing...') : '';
         this.playerError = false;
+        this.playerErrorTitle = '';
         this.playerErrorMessage = '';
         this.fallbackActive = false;
         this.recoveryAttempts = 0;
         destroyPlayer(this);
 
         try {
-            const playUrl = await this.getFreshPlayUrl(variant.id);
+            const playback = await this.getFreshPlayUrl(variant.id);
             if (requestId !== this.requestId) return;
+            this.activeSources = playback.sources.length
+                ? playback.sources
+                : [{
+                    id: null,
+                    label: variant.quality || t('Primary'),
+                    type: variant.stream_type || variant.extension || 'auto',
+                    quality: variant.quality,
+                    url: playback.url,
+                }];
+            this.activeSourceIndex = 0;
             const freshVariant = {
                 ...variant,
-                public_play_url: playUrl,
+                public_play_url: playback.url,
             };
             this.activeVariant = freshVariant;
-            const source = playUrl ? {
-                url: playUrl,
-                browser_url: playUrl,
-                external_url: playUrl,
-                type: variant.stream_type || variant.extension || 'stream',
-                requires_external_player: false,
-            } : null;
+            const source = this.activeSources[0];
             if (!source?.url) {
                 this.tryNextVariant(
                     freshVariant.playback_status?.message || t('This channel has no approved playable source.'),
@@ -443,6 +464,9 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         destroyPlayer(this);
         this.playerController = initResilientPlayer(video, playableUrl, {
             streamType: source.type,
+            maxReconnects: 3,
+            channelId: this.activeVariant?.id,
+            sourceId: source.id,
             Hls: window.Hls,
             mpegts: window.mpegts,
             onLoading: () => {
@@ -457,6 +481,7 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
             },
             onPlaying: () => {
                 if (requestId !== this.requestId) return;
+                this.needsPlaybackTap = false;
                 this.loadingPlayer = false;
                 this.reconnecting = false;
                 this.reconnectMessage = '';
@@ -467,17 +492,59 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
                 if (requestId !== this.requestId) return;
                 this.loadingPlayer = false;
             },
+            onAutoplayBlocked: (message) => {
+                if (requestId !== this.requestId) return;
+                this.loadingPlayer = false;
+                this.reconnecting = false;
+                this.needsPlaybackTap = true;
+                this.reconnectMessage = message || t('Tap to start playback');
+            },
+            onDebug: (details) => {
+                if (this.debugEnabled && requestId === this.requestId) this.playerDebug = details;
+            },
+            onMixedContent: (message) => {
+                if (requestId === this.requestId) this.showPlayerError(message);
+            },
             onFatal: (message) => {
                 if (requestId !== this.requestId) return;
                 this.reconnecting = false;
                 this.reconnectMessage = '';
-                this.tryNextVariant(message);
+                this.tryNextSource(message);
             },
             onForbidden: () => {
                 if (requestId !== this.requestId) return;
                 this.refreshSignedUrlAfterForbidden(this.activeVariant, requestId);
             },
         });
+        const storedVolume = Number(localStorage.getItem(STORAGE.volume));
+        if (Number.isFinite(storedVolume) && storedVolume >= 0 && storedVolume <= 1) {
+            video.volume = storedVolume;
+        }
+        video.onvolumechange = () => localStorage.setItem(STORAGE.volume, String(video.volume));
+    },
+
+    tryNextSource(finalMessage) {
+        const nextIndex = this.activeSourceIndex + 1;
+
+        if (this.activeSources[nextIndex]) {
+            this.activeSourceIndex = nextIndex;
+            this.toast(t('Source unstable, switching to backup...'));
+            this.reconnecting = true;
+            this.reconnectMessage = t('Trying backup source...');
+            this.startPlayer(this.activeSources[nextIndex], this.requestId);
+            return;
+        }
+
+        this.tryNextVariant(finalMessage);
+    },
+
+    chooseSource(index) {
+        if (!this.activeSources[index]) return;
+        this.activeSourceIndex = index;
+        this.startPlayer(this.activeSources[index], ++this.requestId);
+        this.toast(t('Switched to :server', {
+            server: this.activeSources[index].label || `${t('Server')} ${index + 1}`,
+        }));
     },
 
     async refreshSignedUrlAfterForbidden(variant, requestId) {
@@ -511,7 +578,21 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         this.reconnecting = false;
         this.fallbackActive = useFallback;
         this.playerError = !useFallback;
+        this.playerErrorTitle = t('Channel temporarily unavailable');
         this.playerErrorMessage = message;
+    },
+
+    tryBackupSource() {
+        if (this.activeSources[this.activeSourceIndex + 1]) {
+            this.tryNextSource();
+            return;
+        }
+        this.tryNextVariant();
+    },
+
+    chooseAnotherChannel() {
+        this.$refs.search?.focus();
+        document.querySelector('#channels')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     },
 
     refreshStream() {
@@ -573,6 +654,22 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
         this.$refs.playerStage?.requestFullscreen?.();
     },
 
+    toggleMute() {
+        if (this.$refs.video) this.$refs.video.muted = !this.$refs.video.muted;
+    },
+
+    togglePlayback() {
+        const video = this.$refs.video;
+        if (!video) return;
+        if (video.paused) {
+            video.play().then(() => {
+                this.needsPlaybackTap = false;
+            }).catch(() => this.showPlayerError(t('Playback needs another tap.')));
+        } else {
+            video.pause();
+        }
+    },
+
     toast(message) {
         this.toastMessage = message;
         clearTimeout(this.toastTimer);
@@ -592,11 +689,13 @@ window.liveTvPage = ({ initialChannels = [], initialChannelId = null, initialCat
             return;
         }
         if (editing) return;
+        if (event.code === 'Space') { event.preventDefault(); this.togglePlayback(); }
+        if (event.key.toLowerCase() === 'm') { event.preventDefault(); this.toggleMute(); }
+        if (event.key.toLowerCase() === 'f') { event.preventDefault(); this.fullscreen(); }
         if (event.key === 'ArrowUp') { event.preventDefault(); this.stepChannel(-1); }
         if (event.key === 'ArrowDown') { event.preventDefault(); this.stepChannel(1); }
         if (event.key === 'ArrowLeft') { event.preventDefault(); this.stepQuality(-1); }
         if (event.key === 'ArrowRight') { event.preventDefault(); this.stepQuality(1); }
-        if (event.key.toLowerCase() === 'f') { event.preventDefault(); this.toggleFavorite(); }
         if (event.key === 'Enter' && this.filteredGroups[this.focusedIndex]) {
             this.watchGroup(this.filteredGroups[this.focusedIndex]);
         }

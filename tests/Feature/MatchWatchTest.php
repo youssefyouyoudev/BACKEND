@@ -123,7 +123,7 @@ it('orders recommended match streams first and exposes channel and server metada
         ->assertSee('Alkass Sports')
         ->assertSee('Server 2')
         ->assertSee('"recommended":true', false)
-        ->assertSee('\/watch-link\/'.$match->id.'\/'.$primary->id.'\/play', false);
+        ->assertSee('\/match\/'.$match->id.'\/embed?', false);
 });
 
 it('hides the player before and after the watch window', function () {
@@ -133,10 +133,10 @@ it('hides the player before and after the watch window', function () {
     Carbon::setTestNow(CarbonImmutable::parse('2026-06-13 18:59:00', WorldCupMatch::MOROCCO_TIMEZONE));
     $this->get(route('matches.watch', $match))
         ->assertSuccessful()
-        ->assertSee('Watch page opens at')
+        ->assertSee('Available options open at')
         ->assertSee('data-ad-placement="match_watch_before_content"', false)
         ->assertSee('data-ad-placement="match_watch_under_content"', false)
-        ->assertSee('n6wxm.com/vignette.min.js', false)
+        ->assertDontSee('n6wxm.com/vignette.min.js', false)
         ->assertDontSee('data-rifi-video-player', false);
 
     Carbon::setTestNow(CarbonImmutable::parse('2026-06-13 23:01:00', WorldCupMatch::MOROCCO_TIMEZONE));
@@ -184,6 +184,35 @@ it('protects the match-scoped play endpoint with a relative signature', function
 
     $this->get($url)->assertRedirect();
     $this->get(parse_url($url, PHP_URL_PATH))->assertForbidden();
+});
+
+it('serializes absolute protected stream urls inside the embed player', function () {
+    Carbon::setTestNow(CarbonImmutable::parse('2026-06-13 20:00:00', WorldCupMatch::MOROCCO_TIMEZONE));
+
+    $playlist = Playlist::factory()->create(['is_public' => true, 'approved_at' => now()]);
+    $item = createMatchIptvItem($playlist, 'Worker Safe FHD');
+    $match = createOpenMatch();
+    $match->iptvItems()->attach($item->id);
+
+    $embedUrl = URL::temporarySignedRoute(
+        'matches.embed',
+        $match->watch_expires_at,
+        ['worldCupMatch' => $match, 'source' => 'item', 'item' => $item],
+        absolute: false,
+    );
+
+    $content = $this->get($embedUrl)
+        ->assertSuccessful()
+        ->content();
+
+    expect($content)
+        ->toMatch('/https?:\\\\\/\\\\\/localhost:8000\\\\\/play\\\\\/iptv\\\\\/'.$item->id.'/')
+        ->not->toContain('"url":"\/play\/iptv\/')
+        ->toContain('data-embed-player-only')
+        ->not->toContain('rifitv-player-controls')
+        ->not->toContain('data-match-player-channels')
+        ->not->toContain('data-match-player-servers')
+        ->not->toContain('rm-navbar');
 });
 
 function createOpenMatch(): WorldCupMatch

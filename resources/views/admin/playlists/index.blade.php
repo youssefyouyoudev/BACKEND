@@ -1,13 +1,25 @@
 @extends('layouts.admin')
 
 @section('content')
+    <section class="iptv-admin-stats">
+        <article><span>{{ __("Total channels") }}</span><strong>{{ number_format($summary['channels']) }}</strong></article>
+        <article><span>{{ __("Active channels") }}</span><strong>{{ number_format($summary['active']) }}</strong></article>
+        <article><span>{{ __("Failed channels") }}</span><strong>{{ number_format($summary['failed']) }}</strong></article>
+        <article><span>{{ __("Categories") }}</span><strong>{{ number_format($summary['categories']) }}</strong></article>
+    </section>
+
     <section class="surface-card">
         <div class="surface-card__header">
             <div>
                 <p class="surface-card__eyebrow">{{ __("IPTV sources") }}</p>
                 <h1>{{ __("Playlists") }}</h1>
             </div>
-            <a href="{{ route('admin.playlists.create') }}" class="button button--primary">{{ __("Add Playlist") }}</a>
+            <div class="iptv-admin-header-actions">
+                <form method="POST" action="{{ route('admin.playlists.clear-cache') }}">@csrf<button class="button button--ghost">{{ __("Clear cache") }}</button></form>
+                <form method="POST" action="{{ route('admin.playlists.rebuild-index') }}">@csrf<button class="button button--ghost">{{ __("Rebuild channel index") }}</button></form>
+                <form method="POST" action="{{ route('admin.playlists.merge-duplicates') }}">@csrf<button class="button button--ghost">{{ __("Merge duplicates") }}</button></form>
+                <a href="{{ route('admin.playlists.create') }}" class="button button--primary">{{ __("Add Playlist") }}</a>
+            </div>
         </div>
 
         @if($playlists->isEmpty())
@@ -34,10 +46,13 @@
                             <tr>
                                 <td>
                                     <strong>{{ $playlist->name }}</strong>
-                                    <span class="table-subtle">{{ $playlist->iptv_items_count }} IPTV items</span>
+                                    <span class="table-subtle">{{ $playlist->iptv_items_count }} IPTV items · {{ $playlist->iptv_categories_count }} categories</span>
                                 </td>
                                 <td>{{ str($playlist->input_type)->replace('_', ' ')->headline() }}</td>
-                                <td><span class="status-pill status-pill--{{ str($playlist->status)->slug('-') }}">{{ str($playlist->status)->headline() }}</span></td>
+                                <td>
+                                    <span class="status-pill status-pill--{{ str($playlist->status)->slug('-') }}">{{ str($playlist->status)->headline() }}</span>
+                                    <span class="table-subtle">{{ __("Provider") }}: {{ str($playlist->provider_status)->headline() }}</span>
+                                </td>
                                 <td>
                                     <span class="table-subtle">Live: {{ number_format($playlist->imported_channels_count) }}</span>
                                     <span class="table-subtle">Movies: {{ number_format($playlist->imported_movies_count) }}</span>
@@ -54,7 +69,7 @@
                                     <a href="{{ route('admin.playlists.edit', $playlist) }}" class="button button--ghost">{{ __("Edit") }}</a>
                                     <form method="POST" action="{{ route('admin.playlists.reimport', $playlist) }}">
                                         @csrf
-                                        <button type="submit" class="button button--ghost">{{ __("Reimport") }}</button>
+                                        <button type="submit" class="button button--ghost">{{ __("Sync now") }}</button>
                                     </form>
                                     <form method="POST" action="{{ route('admin.playlists.destroy', $playlist) }}" onsubmit="return confirm(@js(__('Delete this playlist and imported IPTV items?')));">
                                         @csrf

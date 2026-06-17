@@ -1,17 +1,17 @@
 @extends('layouts.app')
 
-@section('title', __("Search RifiMedia"))
-@section('description', __("Search real RifiMedia channels, published news, and public pages."))
+@section('title', __("Search RiFiTV"))
+@section('description', __("Search RiFiTV teams, competitions, matches, football news, and public pages."))
 @section('robots', 'noindex,follow')
 
 @section('content')
 <div class="rm-page rm-media-platform-page">
-    <x-page-hero eyebrow="{{ __("Search") }}" title="{{ __("Search RifiMedia") }}" description="{{ __("Find real channels, published news, and public pages.") }}">
-        <x-search-bar :value="$query" placeholder="{{ __("Search channels, news, live TV, football") }}" />
+    <x-page-hero eyebrow="{{ __("Search") }}" title="{{ __("Search RiFiTV") }}" description="{{ __("Find teams, competitions, matches, news, and public pages.") }}">
+        <x-search-bar :value="$query" placeholder="{{ __("Search teams, matches, competitions, or news") }}" />
     </x-page-hero>
 
     @if($query === '')
-        <x-empty-state title="{{ __("Start searching") }}" message="{{ __("Enter a channel name, article topic, or page name to search RifiMedia.") }}" />
+        <x-empty-state title="{{ __("Start searching") }}" message="{{ __("Enter a team, competition, match, article topic, or page name.") }}" />
     @else
         <section class="rm-section">
             <x-section-header title="{{ __("Channels") }}" />

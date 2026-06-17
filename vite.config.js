@@ -15,4 +15,14 @@ export default defineConfig({
             ignored: ['**/storage/framework/views/**'],
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    alpine: ['alpinejs'],
+                    media: ['hls.js', 'mpegts.js', 'video.js'],
+                },
+            },
+        },
+    },
 });

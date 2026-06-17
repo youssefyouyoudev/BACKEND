@@ -11,14 +11,34 @@ use Illuminate\Support\Carbon;
 
 class FootballController extends Controller
 {
-    public function __construct(private readonly TheSportsDbService $sportsDb)
-    {
-    }
+    public function __construct(private readonly TheSportsDbService $sportsDb) {}
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $view = $request->route('view', 'today');
+        $seo = match ($view) {
+            'tomorrow' => [
+                'title' => 'Tomorrow Football Fixtures in Morocco Time | RiFiTV',
+                'description' => 'Browse tomorrow football fixtures, schedules, competitions, and kickoff times in Africa/Casablanca.',
+            ],
+            'results' => [
+                'title' => 'Football Results Today | RiFiTV',
+                'description' => 'Find recent football results, final scores, competitions, and match details on RiFiTV.',
+            ],
+            'schedules' => [
+                'title' => 'Football Schedules and Fixtures | RiFiTV',
+                'description' => 'Explore football schedules, fixtures, date filters, and kickoff times in Morocco time.',
+            ],
+            default => [
+                'title' => 'Football Matches Today in Morocco Time | RiFiTV',
+                'description' => 'Follow football scores today, fixtures, results, competitions, and kickoff times in Africa/Casablanca.',
+            ],
+        };
+
         return view('football.index', [
             'leagues' => config('football_leagues.top_leagues', []),
+            'initialView' => $view,
+            'seo' => $seo,
         ]);
     }
 

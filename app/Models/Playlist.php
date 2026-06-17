@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Builder;
 
 class Playlist extends Model
 {
@@ -44,6 +44,7 @@ class Playlist extends Model
         'original_filename',
         'stored_path',
         'status',
+        'provider_status',
         'last_synced_at',
         'is_public',
         'approved_by_admin',
@@ -54,6 +55,7 @@ class Playlist extends Model
         'imported_series_count',
         'last_imported_at',
         'last_error',
+        'notes',
     ];
 
     protected function casts(): array
@@ -65,6 +67,7 @@ class Playlist extends Model
             'is_public' => 'boolean',
             'import_summary' => 'array',
             'password' => 'encrypted',
+            'username' => 'encrypted',
         ];
     }
 

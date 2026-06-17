@@ -7,6 +7,10 @@ Disallow: /stream/
 Disallow: /api
 Disallow: /api/
 Disallow: /watch/
+Disallow: /match/
+Disallow: /live-tv
+Disallow: /play/
+Disallow: /bridge
 Disallow: /*?signature=
 Disallow: /*?search=
 

@@ -36,24 +36,22 @@ class StreamUrl
 
         $url = trim($url);
 
-        return URL::temporarySignedRoute(
+        return self::absoluteRelativeSignedRoute(
             'stream.proxy',
             now()->addMinutes($minutes),
             ['encodedUrl' => self::encodeProxyUrl($url)],
-            absolute: false,
         );
     }
 
     public static function channelRedirect(int $channelId, ?int $sourceId = null, int $minutes = 15): string
     {
-        return URL::temporarySignedRoute(
+        return self::absoluteRelativeSignedRoute(
             'stream.channel',
             now()->addMinutes($minutes),
             array_filter([
                 'channel' => $channelId,
                 'source' => $sourceId,
             ], fn ($value) => $value !== null),
-            absolute: false,
         );
     }
 
@@ -63,34 +61,40 @@ class StreamUrl
             return $url;
         }
 
-        return URL::temporarySignedRoute(
+        return self::absoluteRelativeSignedRoute(
             'stream.bridge',
             now()->addMinutes($minutes),
             ['encodedUrl' => self::encodeProxyUrl(trim($url))],
-            absolute: false,
         );
     }
 
     public static function channelBridge(int $channelId, ?int $sourceId = null, int $minutes = 15): string
     {
-        return URL::temporarySignedRoute(
+        return self::absoluteRelativeSignedRoute(
             'stream.bridge.channel',
             now()->addMinutes($minutes),
             array_filter([
                 'channel' => $channelId,
                 'source' => $sourceId,
             ], fn ($value) => $value !== null),
-            absolute: false,
         );
     }
 
     public static function iptvItemBridge(int $itemId, int $minutes = 30): string
     {
-        return URL::temporarySignedRoute(
+        return self::absoluteRelativeSignedRoute(
             'stream.bridge.iptv-item',
             now()->addMinutes($minutes),
             ['item' => $itemId],
-            absolute: false,
+        );
+    }
+
+    public static function iptvItemSourceBridge(int $sourceId, int $minutes = 30): string
+    {
+        return self::absoluteRelativeSignedRoute(
+            'stream.bridge.iptv-source',
+            now()->addMinutes($minutes),
+            ['source' => $sourceId],
         );
     }
 
@@ -99,11 +103,10 @@ class StreamUrl
         int $matchId,
         DateTimeInterface $expiresAt
     ): string {
-        return URL::temporarySignedRoute(
+        return self::absoluteRelativeSignedRoute(
             'stream.bridge.iptv-item',
             $expiresAt,
             ['item' => $itemId, 'match' => $matchId],
-            absolute: false,
         );
     }
 
@@ -112,12 +115,19 @@ class StreamUrl
         int $matchId,
         DateTimeInterface $expiresAt
     ): string {
-        return URL::temporarySignedRoute(
+        return self::absoluteRelativeSignedRoute(
             'stream.bridge.channel',
             $expiresAt,
             ['channel' => $channelId, 'match' => $matchId],
-            absolute: false,
         );
+    }
+
+    /**
+     * Return a full browser URL while preserving signatures generated for signed:relative middleware.
+     */
+    public static function absoluteRelativeSignedRoute(string $name, DateTimeInterface $expiresAt, array $parameters = []): string
+    {
+        return url(URL::temporarySignedRoute($name, $expiresAt, $parameters, absolute: false));
     }
 
     public static function encodeProxyUrl(string $url): string

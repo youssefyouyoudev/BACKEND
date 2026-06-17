@@ -54,6 +54,22 @@
             <strong>{{ number_format($stats['world_cup_matches']) }}</strong>
         </article>
         <article class="stat-card">
+            <span class="stat-card__label">{{ __("Today matches") }}</span>
+            <strong>{{ number_format($stats['matches_today']) }}</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">{{ __("Live matches") }}</span>
+            <strong>{{ number_format($stats['matches_live']) }}</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">{{ __("Upcoming matches") }}</span>
+            <strong>{{ number_format($stats['matches_upcoming']) }}</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">{{ __("Finished matches") }}</span>
+            <strong>{{ number_format($stats['matches_finished']) }}</strong>
+        </article>
+        <article class="stat-card">
             <span class="stat-card__label">{{ __("Matches with channel") }}</span>
             <strong>{{ number_format($stats['world_cup_with_channel']) }}</strong>
         </article>
@@ -68,6 +84,10 @@
         <article class="stat-card">
             <span class="stat-card__label">{{ __("Live links enabled") }}</span>
             <strong>{{ number_format($stats['world_cup_live_enabled']) }}</strong>
+        </article>
+        <article class="stat-card">
+            <span class="stat-card__label">{{ __("Enabled ad slots") }}</span>
+            <strong>{{ number_format($stats['ad_slots_enabled']) }}</strong>
         </article>
     </section>
 

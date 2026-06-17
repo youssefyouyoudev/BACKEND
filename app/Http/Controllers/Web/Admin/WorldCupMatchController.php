@@ -10,10 +10,11 @@ use App\Models\Channel;
 use App\Models\IptvItem;
 use App\Models\WorldCupMatch;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -182,6 +183,13 @@ class WorldCupMatchController extends Controller
         };
 
         return back()->with('status', __('Match updated.'));
+    }
+
+    public function autoEndOld(): RedirectResponse
+    {
+        Artisan::call('matches:auto-end-old');
+
+        return back()->with('status', trim(Artisan::output()) ?: __('Old matches checked.'));
     }
 
     public function iptvItems(Request $request): JsonResponse
