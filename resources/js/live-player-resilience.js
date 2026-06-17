@@ -1,10 +1,14 @@
 import { t } from './i18n.js';
 import { detectStreamType, getBufferedAhead, toAbsoluteUrl } from './stream-detection.js';
 
-const MAX_RETRIES_PER_SOURCE = 2;
-const STALL_TIMEOUT_MS = 20000;
-const RETRY_BASE_DELAY_MS = 3000;
+const SOFT_RETRIES_PER_SOURCE = 3;
+const HARD_RELOADS_PER_SOURCE = 1;
+const MAX_GLOBAL_RETRIES = 8;
+const STALL_TIMEOUT_MS = 12000;
+const BUFFER_CHECK_INTERVAL_MS = 2000;
 const MIN_HEALTHY_BUFFER_SECONDS = 2;
+const COMFORTABLE_BUFFER_SECONDS = 5;
+const RETRY_DELAYS_MS = [3000, 6000, 10000];
 let activePlayer = null;
 
 const extractHttpStatus = (value, depth = 0) => {
@@ -58,9 +62,18 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
     let healthTimer = null;
     let stableTimer = null;
     let finalCheckTimer = null;
+    let stallTimer = null;
     let destroyed = false;
-    let retryCount = 0;
-    const maxReconnects = Math.max(3, Number(options.maxReconnects ?? MAX_RETRIES_PER_SOURCE));
+    const retryState = {
+        sourceRetries: 0,
+        hardReloads: 0,
+        globalRetries: 0,
+        lastErrorAt: 0,
+        isRecovering: false,
+    };
+    const maxGlobalRetries = Math.max(1, Number(options.maxGlobalRetries ?? MAX_GLOBAL_RETRIES));
+    const softRetriesPerSource = Math.max(1, Number(options.softRetriesPerSource ?? SOFT_RETRIES_PER_SOURCE));
+    const hardReloadsPerSource = Math.max(0, Number(options.hardReloadsPerSource ?? HARD_RELOADS_PER_SOURCE));
     let hlsNetworkRecoveries = 0;
     let hlsMediaRecoveries = 0;
     let lastProgressAt = Date.now();
@@ -86,8 +99,10 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         channelId: options.channelId ?? null,
         detectedType,
         engine: engineKind,
-        retryCount,
-        maxRetries: maxReconnects,
+        retryCount: retryState.sourceRetries,
+        hardReloads: retryState.hardReloads,
+        globalRetries: retryState.globalRetries,
+        maxRetries: maxGlobalRetries,
         readyState: video.readyState,
         networkState: video.networkState,
         bufferedAhead: Number(getBufferedAhead(video).toFixed(2)),
@@ -181,14 +196,17 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         finalErrorShown = true;
         clearTimeout(retryTimer);
         clearTimeout(finalCheckTimer);
+        clearTimeout(stallTimer);
         retryTimer = null;
         finalCheckTimer = null;
+        stallTimer = null;
+        retryState.isRecovering = false;
         recordAction('source exhausted', message);
         notify('onFatal', message);
     };
 
     const finalizeWhenProven = () => {
-        if (destroyed || finalErrorShown || retryCount < maxReconnects || !fatalErrorSeen) return;
+        if (destroyed || finalErrorShown || retryState.globalRetries < maxGlobalRetries || !fatalErrorSeen) return;
         if (isReallyStalled()) {
             fatal(finalFailureMessage || t('We tried reconnecting and switching sources. Try again, choose another source, or open another channel.'));
             return;
@@ -207,8 +225,11 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         forbiddenHandled = true;
         clearTimeout(retryTimer);
         clearTimeout(stableTimer);
+        clearTimeout(stallTimer);
         retryTimer = null;
         stableTimer = null;
+        stallTimer = null;
+        retryState.isRecovering = false;
         cleanupEngine();
         resetMedia();
         recordAction('protected URL rejected', `HTTP ${status}`);
@@ -229,27 +250,29 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         retryTimer = window.setTimeout(() => {
             retryTimer = null;
             load();
-        }, RETRY_BASE_DELAY_MS);
+        }, RETRY_DELAYS_MS[0]);
         return true;
     };
 
     const loadHls = () => {
         engineKind = 'hls';
         hls = new Hls({
+            liveSyncDurationCount: 4,
+            liveMaxLatencyDurationCount: 10,
+            maxBufferLength: 30,
+            maxMaxBufferLength: 60,
+            backBufferLength: 60,
+            maxBufferSize: 60 * 1000 * 1000,
+            fragLoadingTimeOut: 20000,
+            manifestLoadingTimeOut: 15000,
+            levelLoadingTimeOut: 15000,
+            fragLoadingMaxRetry: 6,
+            manifestLoadingMaxRetry: 4,
+            levelLoadingMaxRetry: 4,
+            fragLoadingRetryDelay: 1000,
+            fragLoadingMaxRetryTimeout: 8000,
             enableWorker: true,
             lowLatencyMode: false,
-            backBufferLength: 30,
-            maxBufferLength: 60,
-            maxMaxBufferLength: 120,
-            manifestLoadingTimeOut: 25000,
-            manifestLoadingMaxRetry: 8,
-            manifestLoadingRetryDelay: 1000,
-            levelLoadingTimeOut: 25000,
-            levelLoadingMaxRetry: 8,
-            fragLoadingTimeOut: 35000,
-            fragLoadingMaxRetry: 10,
-            fragLoadingRetryDelay: 1000,
-            startFragPrefetch: true,
         });
         hls.loadSource(finalStreamUrl);
         hls.attachMedia(video);
@@ -288,7 +311,7 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
                 notify('onBrowserBlocked', finalFailureMessage);
             }
             if (tryUnknownEngineFallback(reason)) return;
-            scheduleReconnect(reason, true);
+            scheduleRecovery(reason, true);
         });
     };
 
@@ -307,16 +330,16 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         }, {
             enableWorker: true,
             enableStashBuffer: true,
-            stashInitialSize: 1024 * 1024,
+            stashInitialSize: 1024 * 1024 * 2,
             lazyLoad: false,
-            lazyLoadMaxDuration: 3 * 60,
-            lazyLoadRecoverDuration: 30,
             deferLoadAfterSourceOpen: false,
             autoCleanupSourceBuffer: true,
-            autoCleanupMaxBackwardDuration: 60,
+            autoCleanupMaxBackwardDuration: 90,
             autoCleanupMinBackwardDuration: 30,
             fixAudioTimestampGap: true,
             accurateSeek: false,
+            seekType: 'range',
+            reuseRedirectedURL: true,
         });
         mpegPlayer.attachMediaElement(video);
         mpegPlayer.on(mpegts.Events.ERROR, (...details) => {
@@ -333,7 +356,7 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
                 finalFailureMessage = t('This source works in external players but the browser blocked it. Use an authorized proxy or HLS-compatible source.');
                 notify('onBrowserBlocked', finalFailureMessage);
             }
-            scheduleReconnect('MPEG-TS playback error', true);
+            scheduleRecovery('MPEG-TS playback error', true);
         });
         [
             'LOADING_COMPLETE',
@@ -344,6 +367,13 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
             if (mpegts.Events[eventName]) {
                 mpegPlayer.on(mpegts.Events[eventName], (...details) => {
                     debug(`MPEG-TS ${eventName}.`, { details });
+                    if (eventName === 'LOADING_COMPLETE') {
+                        scheduleRecovery('MPEG-TS live connection closed', true);
+                        return;
+                    }
+                    if (eventName === 'RECOVERED_EARLY_EOF') {
+                        recordAction('MPEG-TS recovered early EOF');
+                    }
                     publishDebug();
                 });
             }
@@ -398,8 +428,49 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         publishDebug();
     }
 
-    function scheduleReconnect(reason, fatalError = false, immediate = false) {
-        if (destroyed || retryTimer || finalErrorShown) return;
+    function softRecoverPlayer(reason) {
+        recordAction('soft recovery', reason);
+
+        if (engineKind === 'hls' && hls) {
+            notify('onReconnecting', t('Connection is unstable, trying to recover...'));
+            hls.startLoad();
+            if (video.error) {
+                hls.recoverMediaError();
+            }
+            safePlay();
+            return;
+        }
+
+        if (engineKind === 'mpegts' && mpegPlayer) {
+            notify('onReconnecting', t('Connection is unstable, trying to recover...'));
+            try {
+                mpegPlayer.unload();
+            } catch (error) {
+                debug('MPEG-TS soft unload skipped.', { message: error?.message });
+            }
+            try {
+                mpegPlayer.load();
+            } catch (error) {
+                debug('MPEG-TS soft load skipped.', { message: error?.message });
+            }
+            safePlay();
+            return;
+        }
+
+        notify('onReconnecting', t('Connection is unstable, trying to recover...'));
+        safePlay();
+    }
+
+    function hardReloadSource(reason) {
+        recordAction('hard source reload', reason);
+        notify('onReconnecting', t('Reconnecting...'));
+        cleanupEngine();
+        resetMedia();
+        load();
+    }
+
+    function scheduleRecovery(reason, fatalError = false, immediate = false) {
+        if (destroyed || retryTimer || finalErrorShown || retryState.isRecovering) return;
         if (!navigator.onLine) {
             recordAction('waiting for network connection', reason);
             notify('onReconnecting', t('No connection'));
@@ -408,23 +479,46 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
 
         fatalErrorSeen ||= fatalError;
         lastError = reason;
-        if (retryCount >= maxReconnects) {
+        retryState.lastErrorAt = Date.now();
+
+        if (retryState.globalRetries >= maxGlobalRetries) {
             finalizeWhenProven();
             return;
         }
 
-        const delay = immediate ? 0 : RETRY_BASE_DELAY_MS * (2 ** retryCount);
-        retryCount += 1;
+        const attempt = retryState.sourceRetries + retryState.hardReloads + 1;
+        const delay = immediate ? 0 : RETRY_DELAYS_MS[Math.min(retryState.sourceRetries, RETRY_DELAYS_MS.length - 1)];
+        retryState.isRecovering = true;
+        retryState.globalRetries += 1;
+
         notify('onReconnecting', t('Reconnecting... attempt :attempt of :total', {
-            attempt: retryCount,
-            total: maxReconnects,
+            attempt: Math.min(retryState.globalRetries, maxGlobalRetries),
+            total: maxGlobalRetries,
         }));
-        recordAction(`reconnecting source in ${delay} ms`, reason);
+        recordAction(`scheduled recovery ${attempt} in ${delay} ms`, reason);
         clearTimeout(stableTimer);
-        cleanupEngine();
         retryTimer = window.setTimeout(() => {
             retryTimer = null;
-            load();
+            retryState.isRecovering = false;
+
+            if (destroyed || finalErrorShown) {
+                return;
+            }
+
+            if (retryState.sourceRetries < softRetriesPerSource) {
+                retryState.sourceRetries += 1;
+                softRecoverPlayer(reason);
+                return;
+            }
+
+            if (retryState.hardReloads < hardReloadsPerSource) {
+                retryState.hardReloads += 1;
+                hardReloadSource(reason);
+                return;
+            }
+
+            fatalErrorSeen = true;
+            fatal(finalFailureMessage || t('Channel temporarily unavailable. Try another server.'));
         }, delay);
     }
 
@@ -453,7 +547,9 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
         notify('onPlaying');
         clearTimeout(stableTimer);
         stableTimer = window.setTimeout(() => {
-            retryCount = 0;
+            retryState.sourceRetries = 0;
+            retryState.hardReloads = 0;
+            retryState.globalRetries = 0;
             hlsNetworkRecoveries = 0;
             hlsMediaRecoveries = 0;
             fatalErrorSeen = false;
@@ -471,47 +567,64 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
     addListener(video, 'waiting', () => {
         recordAction('buffering');
         notify('onReconnecting', t('The live stream is buffering...'));
+        clearTimeout(stallTimer);
+        stallTimer = window.setTimeout(() => {
+            stallTimer = null;
+            if (isReallyStalled()) scheduleRecovery('buffering timeout', true);
+        }, STALL_TIMEOUT_MS);
     });
     addListener(video, 'stalled', () => {
         recordAction('browser reported stalled media');
-        if (isReallyStalled()) scheduleReconnect('confirmed stalled event', true);
+        clearTimeout(stallTimer);
+        stallTimer = window.setTimeout(() => {
+            stallTimer = null;
+            if (isReallyStalled()) scheduleRecovery('confirmed stalled event', true);
+        }, STALL_TIMEOUT_MS);
     });
     addListener(video, 'suspend', () => debug('Browser suspended media loading.'));
     addListener(video, 'emptied', () => debug('Media buffer emptied.'));
     addListener(video, 'pause', publishDebug);
     addListener(video, 'ended', () => {
         fatalErrorSeen = true;
-        if (!document.hidden) scheduleReconnect('stream ended', true);
+        if (!document.hidden) scheduleRecovery('stream ended', true);
     });
     addListener(video, 'error', () => {
         fatalErrorSeen = true;
-        scheduleReconnect(`media error ${video.error?.code || 'unknown'}`, true);
+        scheduleRecovery(`media error ${video.error?.code || 'unknown'}`, true);
     });
     addListener(window, 'offline', () => {
         clearTimeout(retryTimer);
         retryTimer = null;
+        retryState.isRecovering = false;
         recordAction('offline');
         notify('onReconnecting', t('No connection'));
     });
-    addListener(window, 'online', () => scheduleReconnect('connection restored', false, true));
+    addListener(window, 'online', () => scheduleRecovery('connection restored', false, true));
     addListener(document, 'visibilitychange', () => {
-        if (!document.hidden && isReallyStalled()) scheduleReconnect('page became visible', true);
+        if (!document.hidden && isReallyStalled()) scheduleRecovery('page became visible', true);
     });
 
     healthTimer = window.setInterval(() => {
         if (destroyed || autoplayBlocked || document.hidden || video.paused || video.ended) return;
         markProgress();
-        if (isReallyStalled()) scheduleReconnect('playback health timeout', true);
-    }, 5000);
+        const bufferedAhead = getBufferedAhead(video);
+        if (bufferedAhead < MIN_HEALTHY_BUFFER_SECONDS && video.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) {
+            notify('onBuffering', t('Buffering...'));
+        } else if (bufferedAhead > COMFORTABLE_BUFFER_SECONDS && !retryState.isRecovering) {
+            notify('onBufferHealthy');
+        }
+        if (isReallyStalled()) scheduleRecovery('playback health timeout', true);
+    }, BUFFER_CHECK_INTERVAL_MS);
 
     load();
 
     const controller = {
         reconnect(reason = 'manual retry') {
-            retryCount = 0;
+            retryState.sourceRetries = 0;
+            retryState.hardReloads = 0;
             fatalErrorSeen = false;
             finalErrorShown = false;
-            scheduleReconnect(reason, false, true);
+            scheduleRecovery(reason, false, true);
         },
         play() {
             safePlay();
@@ -528,10 +641,12 @@ export function initResilientPlayer(video, streamUrl, options = {}) {
             clearTimeout(retryTimer);
             clearTimeout(stableTimer);
             clearTimeout(finalCheckTimer);
+            clearTimeout(stallTimer);
             clearInterval(healthTimer);
             retryTimer = null;
             stableTimer = null;
             finalCheckTimer = null;
+            stallTimer = null;
             healthTimer = null;
             listeners.splice(0).forEach((remove) => remove());
             cleanupEngine();

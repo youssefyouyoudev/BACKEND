@@ -154,7 +154,9 @@ class MatchPlayer {
             streamType: type,
             channelId: this.config.matchId,
             sourceId: source.id,
-            maxReconnects: 3,
+            softRetriesPerSource: 3,
+            hardReloadsPerSource: 1,
+            maxGlobalRetries: 8,
             autoplay: this.config.autoplay,
             onLoading: () => this.showLoading(t('Preparing stream...'), t('Connecting to :server', {
                 server: source.label || t('Server'),
@@ -175,6 +177,12 @@ class MatchPlayer {
             },
             onMixedContent: (message) => this.showError(message),
             onReconnecting: (message) => this.showLoading(t('Reconnecting...'), message),
+            onBuffering: (message) => this.showLoading(message || t('Buffering...'), t('Keeping the current stream alive while the buffer catches up.')),
+            onBufferHealthy: () => {
+                if (this.video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA && !this.video.paused) {
+                    this.hideOverlay();
+                }
+            },
             onForbidden: () => this.showError(t('This protected stream link has expired. Refresh the match page.')),
             onFatal: () => this.failover(t('Channel temporarily unavailable. Try another server.')),
         });
@@ -263,7 +271,14 @@ class MatchPlayer {
     }
 
     bindControls() {
-        this.root.querySelector('[data-match-player-reload]')?.addEventListener('click', () => this.load(this.activeIndex));
+        this.root.querySelector('[data-match-player-reload]')?.addEventListener('click', () => {
+            if (this.controller) {
+                this.controller.reconnect('manual retry');
+                return;
+            }
+
+            this.load(this.activeIndex);
+        });
         this.root.querySelector('[data-match-player-next]')?.addEventListener('click', () => {
             const next = this.nextIndex();
             if (next !== null) {

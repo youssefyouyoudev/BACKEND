@@ -47,6 +47,10 @@
                     <span class="sidebar__icon">$</span>
                     <span>{{ __("Monetization") }}</span>
                 </a>
+                <a href="{{ route('admin.stream-health') }}" class="sidebar__link {{ request()->routeIs('admin.stream-health') ? 'is-active' : '' }}">
+                    <span class="sidebar__icon">Hz</span>
+                    <span>{{ __("Stream Health") }}</span>
+                </a>
                 <a href="{{ route('admin.world-cup-matches.index', ['missing_channel' => 1]) }}" class="sidebar__link">
                     <span class="sidebar__icon">?</span>
                     <span>{{ __("Missing Channels") }}</span>

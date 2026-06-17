@@ -13,6 +13,7 @@ use App\Http\Controllers\Web\Admin\IptvItemController as AdminIptvItemController
 use App\Http\Controllers\Web\Admin\MonetizationController as AdminMonetizationController;
 use App\Http\Controllers\Web\Admin\PlaylistController as AdminPlaylistController;
 use App\Http\Controllers\Web\Admin\ProgramController as AdminProgramController;
+use App\Http\Controllers\Web\Admin\StreamHealthController as AdminStreamHealthController;
 use App\Http\Controllers\Web\Admin\WorldCupMatchController as AdminWorldCupMatchController;
 use App\Http\Controllers\Web\ChannelController;
 use App\Http\Controllers\Web\HomeController;
@@ -161,7 +162,7 @@ Route::options('/play/iptv/{item}', fn () => response('', 204, [
     'Pragma' => 'no-cache',
     'Expires' => '0',
     'Access-Control-Allow-Origin' => '*',
-    'Access-Control-Allow-Headers' => 'Range, Origin, Accept, Content-Type',
+    'Access-Control-Allow-Headers' => 'Range, Origin, Accept, Content-Type, User-Agent',
     'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
     'Accept-Ranges' => 'bytes',
     'X-Accel-Buffering' => 'no',
@@ -174,7 +175,7 @@ Route::options('/play/iptv-source/{source}', fn () => response('', 204, [
     'Pragma' => 'no-cache',
     'Expires' => '0',
     'Access-Control-Allow-Origin' => '*',
-    'Access-Control-Allow-Headers' => 'Range, Origin, Accept, Content-Type',
+    'Access-Control-Allow-Headers' => 'Range, Origin, Accept, Content-Type, User-Agent',
     'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
     'Accept-Ranges' => 'bytes',
     'X-Accel-Buffering' => 'no',
@@ -194,6 +195,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
         ->name('admin.monetization.edit');
     Route::put('/monetization', [AdminMonetizationController::class, 'update'])
         ->name('admin.monetization.update');
+    Route::get('/stream-health', AdminStreamHealthController::class)
+        ->name('admin.stream-health');
     Route::get('/iptv-items', [AdminIptvItemController::class, 'index'])
         ->name('admin.iptv-items.index');
     Route::patch('/iptv-items/visibility', [AdminIptvItemController::class, 'updateAllVisibility'])

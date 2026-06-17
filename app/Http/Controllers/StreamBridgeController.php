@@ -11,6 +11,7 @@ use App\Services\StreamingPolicy;
 use App\Support\StreamUrl;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -57,7 +58,15 @@ class StreamBridgeController extends Controller
             );
         }
 
-        $url = $item->primaryStreamUrl();
+        $url = Cache::remember(
+            "iptv_item_primary_stream_url:{$item->getKey()}",
+            now()->addSeconds(60),
+            fn (): ?string => IptvItem::query()
+                ->with(['sources' => fn ($query) => $query->where('is_active', true)->orderBy('priority')])
+                ->whereKey($item->getKey())
+                ->first()
+                ?->primaryStreamUrl()
+        );
         $this->abortUnlessAllowedStreamUrl($url);
 
         if (app()->isLocal()) {
@@ -147,13 +156,13 @@ class StreamBridgeController extends Controller
     private function bridge(string $url, Request $request): Response
     {
         if (StreamUrl::isLikelyPlaylistUrl($url)) {
-            return $this->bridgePlaylist($url);
+            return $this->bridgePlaylist($url, $request);
         }
 
         return $this->bridgeStream($url, $request);
     }
 
-    private function bridgePlaylist(string $url): Response
+    private function bridgePlaylist(string $url, Request $request): Response
     {
         set_time_limit(0);
         ignore_user_abort(true);
@@ -161,7 +170,7 @@ class StreamBridgeController extends Controller
         try {
             $response = Http::connectTimeout(10)
                 ->timeout(30)
-                ->retry(1, 250)
+                ->retry(1, 1000)
                 ->accept('application/vnd.apple.mpegurl, application/x-mpegURL, text/plain, */*')
                 ->withHeaders([
                     'User-Agent' => 'VLC/3.0.20 LibVLC/3.0.20 RifiMediaBrowserBridge/1.0',
@@ -175,10 +184,16 @@ class StreamBridgeController extends Controller
             abort(Response::HTTP_BAD_GATEWAY, 'Stream source returned HTTP '.$response->status().'.');
         }
 
-        return response($this->rewritePlaylist((string) $response->body(), $url), Response::HTTP_OK, [
+        $headers = [
             'Content-Type' => 'application/vnd.apple.mpegurl',
             ...$this->streamHeaders(),
-        ]);
+        ];
+
+        if ($request->isMethod('HEAD')) {
+            return response('', Response::HTTP_OK, $headers);
+        }
+
+        return response($this->rewritePlaylist((string) $response->body(), $url), Response::HTTP_OK, $headers);
     }
 
     private function bridgeStream(string $url, Request $request): Response
@@ -201,7 +216,7 @@ class StreamBridgeController extends Controller
             $response = Http::withOptions(['stream' => true])
                 ->connectTimeout(10)
                 ->timeout(0)
-                ->retry(1, 250)
+                ->retry(1, 1000)
                 ->withOptions(['read_timeout' => 30])
                 ->withHeaders($headers)
                 ->get($url);
@@ -230,10 +245,24 @@ class StreamBridgeController extends Controller
             }
         }
 
+        if ($request->isMethod('HEAD')) {
+            $body->close();
+
+            return response('', $status, $responseHeaders);
+        }
+
         return response()->stream(function () use ($body): void {
             try {
+                $this->flushOutputBuffers();
+
                 while (! $body->eof() && ! connection_aborted()) {
-                    echo $body->read(1024 * 64);
+                    $chunk = $body->read(1024 * 64);
+                    if ($chunk === '') {
+                        usleep(100000);
+                        continue;
+                    }
+
+                    echo $chunk;
 
                     if (ob_get_level() > 0) {
                         ob_flush();
@@ -262,11 +291,18 @@ class StreamBridgeController extends Controller
             'Pragma' => 'no-cache',
             'Expires' => '0',
             'Access-Control-Allow-Origin' => '*',
-            'Access-Control-Allow-Headers' => 'Range, Origin, Accept, Content-Type',
+            'Access-Control-Allow-Headers' => 'Range, Origin, Accept, Content-Type, User-Agent',
             'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
             'Accept-Ranges' => 'bytes',
             'X-Accel-Buffering' => 'no',
         ];
+    }
+
+    private function flushOutputBuffers(): void
+    {
+        while (ob_get_level() > 0) {
+            @ob_end_flush();
+        }
     }
 
     private function rewritePlaylist(string $body, string $baseUrl): string
