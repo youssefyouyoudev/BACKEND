@@ -109,8 +109,9 @@
 
             return value;
         };
+        window.RifiAdsConfig = @js(\App\Models\AdSetting::publicConfig());
     </script>
-    @vite(['resources/css/app.css', 'resources/css/theme.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/css/theme.css', 'resources/js/app.js', 'resources/js/ads.js'])
     @stack('styles')
 </head>
 <body class="app-body rm-body">
@@ -250,9 +251,6 @@
     </div>
 
     @stack('scripts')
-    @if(config('ads.enabled') && !request()->is('admin*') && trim($__env->yieldContent('ads')) !== 'disabled')
-        @include('partials.ads.global-scripts')
-    @endif
     <script>
         document.addEventListener('click', (event) => {
             const close = event.target.closest('[data-ad-dismiss]');

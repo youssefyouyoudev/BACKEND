@@ -50,3 +50,24 @@ it('does not render disabled public ad slots', function () {
         ->assertSuccessful()
         ->assertDontSee('data-ad-slot="sticky_mobile"', false);
 });
+
+it('exposes a single centralized public ad config', function () {
+    $config = AdSetting::publicConfig();
+
+    expect($config['rifimediaPopup']['url'])->toBe('https://rifimedia.com')
+        ->and($config['smartlinkUrl'])->toBe('https://omg10.com/4/11137969')
+        ->and(collect($config['monetag'])->pluck('id')->duplicates()->all())->toBe([])
+        ->and(collect($config['monetag'])->pluck('zone')->all())->toContain('11137947', '11137952', '11137954');
+});
+
+it('installs one public Monetag service worker at the root', function () {
+    $path = public_path('sw.js');
+
+    expect($path)->toBeFile();
+
+    $contents = file_get_contents($path);
+
+    expect($contents)
+        ->toContain('"zoneId": 11137945')
+        ->toContain("importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw')");
+});

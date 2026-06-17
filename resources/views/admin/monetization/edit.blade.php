@@ -53,9 +53,25 @@
                 </div>
 
                 <div class="field">
-                    <label for="script-{{ $key }}">{{ __('Monetag script') }}</label>
-                    <textarea id="script-{{ $key }}" name="settings[{{ $key }}][script_code]" rows="5" placeholder="<script ...></script>">{{ old("settings.$key.script_code", $setting->script_code) }}</textarea>
-                    <small class="field__hint">{{ __('Scripts are rendered only for public pages and only when this placement is enabled.') }}</small>
+                    <label for="script-{{ $key }}">
+                        @if($setting->placement_key === 'rifimedia_popup')
+                            {{ __('Popup copy JSON') }}
+                        @elseif(str_starts_with($setting->placement_key, 'zone_') || $setting->placement_key === 'vignette_11137954')
+                            {{ __('Zone reference') }}
+                        @else
+                            {{ __('Placement note') }}
+                        @endif
+                    </label>
+                    <textarea id="script-{{ $key }}" name="settings[{{ $key }}][script_code]" rows="5" placeholder='{"title":"RifiMedia Premium","message":"..."}'>{{ old("settings.$key.script_code", $setting->script_code) }}</textarea>
+                    <small class="field__hint">
+                        @if(str_starts_with($setting->placement_key, 'zone_') || $setting->placement_key === 'vignette_11137954')
+                            {{ __('The app loads this Monetag zone from the centralized frontend loader. Keep this as a note; do not paste duplicate scripts into layouts.') }}
+                        @elseif($setting->placement_key === 'rifimedia_popup')
+                            {{ __('Use JSON with title and message keys. The CTA URL is controlled by the URL field below.') }}
+                        @else
+                            {{ __('Optional internal note for this placement. Raw scripts are not injected from here.') }}
+                        @endif
+                    </small>
                 </div>
 
                 <div class="field">

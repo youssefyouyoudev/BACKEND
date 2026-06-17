@@ -20,11 +20,22 @@
     $slotType = $size ? $legacyType : $type;
     $slotName = $placement ?: ($name ?: $slotType);
     $slotLabel = $label ?: __('Advertisement');
-    $adSetting = \App\Models\AdSetting::enabledForPlacement($slotName);
-    $slotHref = $href ?: $adSetting?->direct_link_url ?: config('ads.sponsor_url');
+    $placementSetting = \App\Models\AdSetting::forPlacement($slotName);
+    $adSetting = $placementSetting?->enabled ? $placementSetting : null;
+    $adConfig = \App\Models\AdSetting::publicConfig();
+    $defaultPlacements = [
+        'sticky_mobile' => $adConfig['placements']['stickyMobile'] ?? true,
+        'desktop_sidebar' => $adConfig['placements']['desktopSidebar'] ?? true,
+        'between_matches' => $adConfig['placements']['betweenSections'] ?? true,
+        'header_banner' => true,
+    ];
+    $slotHref = $href ?: $adSetting?->direct_link_url ?: ($adConfig['smartlinkUrl'] ?? config('ads.sponsor_url'));
     $isCompact = filter_var($compact, FILTER_VALIDATE_BOOL);
     $hasDirectLink = filter_var($showDirectLink, FILTER_VALIDATE_BOOL) && filled($slotHref);
-    $shouldRender = config('ads.enabled') && !request()->is('admin*') && ($adSetting || app()->environment('local'));
+    $shouldRender = config('ads.enabled')
+        && !request()->is('admin*', 'embed*', 'player*')
+        && ! (($adConfig['isWatchPage'] ?? false) && ($adConfig['disableAdsOnWatchPage'] ?? false))
+        && (($adSetting || ($placementSetting === null && ($defaultPlacements[$slotName] ?? false))) || app()->environment('local'));
 @endphp
 
 @if($shouldRender)

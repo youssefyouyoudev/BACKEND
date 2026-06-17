@@ -21405,3 +21405,130 @@ html[dir="rtl"] video {
         font-size: 1rem;
     }
 }
+/* Respectful ad runtime */
+.rifimedia-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgb(7 11 22 / 68%);
+    backdrop-filter: blur(10px);
+    animation: rifimedia-popup-fade .18s ease-out;
+}
+
+.rifimedia-popup__card {
+    width: min(100%, 440px);
+    border: 1px solid rgb(255 255 255 / 16%);
+    border-radius: 22px;
+    padding: 28px;
+    color: #f8fafc;
+    background:
+        linear-gradient(145deg, rgb(19 26 43 / 96%), rgb(10 15 27 / 96%)),
+        #101827;
+    box-shadow: 0 24px 80px rgb(0 0 0 / 36%);
+    transform-origin: center;
+    animation: rifimedia-popup-rise .22s ease-out;
+}
+
+.rifimedia-popup__close {
+    float: inline-end;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    color: #cbd5e1;
+    background: rgb(255 255 255 / 9%);
+    cursor: pointer;
+}
+
+.rifimedia-popup__eyebrow {
+    display: inline-flex;
+    margin-bottom: 12px;
+    border-radius: 999px;
+    padding: 6px 10px;
+    color: #fecaca;
+    background: rgb(220 38 38 / 16%);
+    font-size: .75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.rifimedia-popup h2 {
+    margin: 0 0 10px;
+    font-size: clamp(1.45rem, 5vw, 2rem);
+    letter-spacing: 0;
+}
+
+.rifimedia-popup p {
+    margin: 0;
+    color: #dbe4ef;
+    line-height: 1.8;
+}
+
+.rifimedia-popup__actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.rifimedia-popup__primary,
+.rifimedia-popup__secondary {
+    min-height: 46px;
+    flex: 1;
+    border: 0;
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-weight: 800;
+    text-align: center;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.rifimedia-popup__primary {
+    color: #fff;
+    background: #dc2626;
+}
+
+.rifimedia-popup__secondary {
+    color: #e2e8f0;
+    background: rgb(255 255 255 / 10%);
+}
+
+body.rifitv-has-sticky-ad {
+    padding-bottom: 86px;
+}
+
+@keyframes rifimedia-popup-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes rifimedia-popup-rise {
+    from {
+        opacity: .88;
+        transform: translateY(10px) scale(.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (max-width: 640px) {
+    .rifimedia-popup {
+        align-items: end;
+        padding: 14px;
+    }
+
+    .rifimedia-popup__card {
+        border-radius: 20px;
+        padding: 22px;
+    }
+
+    .rifimedia-popup__actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+}
