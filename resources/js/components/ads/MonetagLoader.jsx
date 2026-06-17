@@ -1,6 +1,31 @@
 const HEAVY_AD_STORAGE_KEY = 'monetag_heavy_ad_last_seen';
 const SESSION_LOADED_KEY = 'monetag_session_loaded';
 
+export const DEFAULT_MONETAG_SCRIPTS = [
+    {
+        id: 'monetag-zone-11137947',
+        zone: '11137947',
+        src: 'https://al5sm.com/tag.min.js',
+        enabled: true,
+        heavy: false,
+    },
+    {
+        id: 'monetag-zone-11137952',
+        zone: '11137952',
+        src: 'https://nap5k.com/tag.min.js',
+        enabled: true,
+        heavy: false,
+    },
+    {
+        id: 'monetag-vignette-11137954',
+        zone: '11137954',
+        src: 'https://n6wxm.com/vignette.min.js',
+        enabled: true,
+        heavy: true,
+        delayMs: 30000,
+    },
+];
+
 export function loadAdScript({ id, zone, src }) {
     if (!id || !zone || !src || document.getElementById(id)) {
         return null;
@@ -41,7 +66,13 @@ export function loadMonetagScripts(config = {}) {
         return;
     }
 
-    const scripts = Array.isArray(config.monetag) ? config.monetag : [];
+    const configured = Array.isArray(config.monetag) ? config.monetag : [];
+    const configuredById = new Map(configured.map((script) => [script.id, script]));
+    const scripts = DEFAULT_MONETAG_SCRIPTS.map((script) => ({
+        ...script,
+        ...(configuredById.get(script.id) || {}),
+    }));
+
     scripts.forEach((scriptConfig) => {
         if (!scriptConfig?.enabled) {
             return;

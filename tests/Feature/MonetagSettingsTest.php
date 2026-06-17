@@ -60,6 +60,18 @@ it('exposes a single centralized public ad config', function () {
         ->and(collect($config['monetag'])->pluck('zone')->all())->toContain('11137947', '11137952', '11137954');
 });
 
+it('renders Monetag source URLs in the public layout config', function () {
+    $this->get(route('home'))
+        ->assertSuccessful()
+        ->assertSee('al5sm.com', false)
+        ->assertSee('nap5k.com', false)
+        ->assertSee('n6wxm.com', false)
+        ->assertSee('11137947', false)
+        ->assertSee('11137952', false)
+        ->assertSee('11137954', false)
+        ->assertSee('omg10.com', false);
+});
+
 it('installs one public Monetag service worker at the root', function () {
     $path = public_path('sw.js');
 
