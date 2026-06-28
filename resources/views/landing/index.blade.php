@@ -9,6 +9,19 @@
     @include('landing.partials.hero')
     <x-ad-slot name="home_after_hero" type="banner" />
     @include('landing.partials.matches')
+    @if($nextKnockoutMatches->isNotEmpty())
+        <section class="rtv-landing-section" aria-labelledby="rtv-road-final-title">
+            <div class="rtv-section-heading">
+                <div>
+                    <span class="rtv-kicker">{{ __('World Cup 2026') }}</span>
+                    <h2 id="rtv-road-final-title">{{ __('Road to Final') }}</h2>
+                    <p>{{ __('Next knockout matches from Round of 32 to Final in Morocco time.') }}</p>
+                </div>
+                <a class="rtv-text-link" href="{{ route('world-cup-2026.knockout') }}">{{ __('View full knockout schedule') }} <x-icon name="arrow-up-right" /></a>
+            </div>
+            <x-road-to-final :matches-by-stage="$nextKnockoutMatches->groupBy('stage')" compact />
+        </section>
+    @endif
     <x-ad-slot name="home_between_matches_world_cup" type="inline" compact />
     <section class="rtv-landing-section" aria-labelledby="morocco-focus-title">
         <div class="rtv-section-heading">

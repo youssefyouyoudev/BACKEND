@@ -32,6 +32,7 @@
         @foreach(['today' => 'Today', 'upcoming' => 'Upcoming', 'all' => 'All Matches', 'groups' => 'Groups'] as $value => $label)
             <a class="{{ $tab === $value ? 'is-active' : '' }}" href="{{ route('world-cup.index', array_merge(request()->except('page'), ['tab' => $value])) }}">{{ __($label) }}</a>
         @endforeach
+        <a href="{{ route('world-cup-2026.knockout') }}">{{ __('Road to Final') }}</a>
     </nav>
 
     <section class="wc-public-filters">
@@ -106,29 +107,7 @@
                         </div>
                         <div class="wc-schedule-grid">
                             @foreach($groupMatches as $match)
-                                <article class="wc-schedule-card match-card {{ $match->is_featured ? 'is-featured' : '' }}">
-                                    <header>
-                                        <span>{{ $match->group_name }}</span>
-                                        <span class="wc-match-status wc-match-status--{{ $match->broadcast_status }}">{{ str($match->broadcast_status)->headline() }}</span>
-                                    </header>
-                                    <div class="wc-schedule-card__time">
-                                        <strong>{{ $match->morocco_kickoff_at?->format('H:i') ?? '--:--' }}</strong>
-                                        <span>{{ $match->morocco_kickoff_at?->format('D, M d') }} · {{ app()->isLocale('ar') ? 'المغرب' : 'Morocco' }}</span>
-                                    </div>
-                                    <div class="wc-schedule-card__teams">
-                                        <strong><x-team-flag :team="$match->home_team" :src="$match->home_flag" size="lg" /><span>{{ $match->home_team }}</span></strong>
-                                        <span>VS</span>
-                                        <strong><x-team-flag :team="$match->away_team" :src="$match->away_flag" size="lg" /><span>{{ $match->away_team }}</span></strong>
-                                    </div>
-                                    <p class="wc-schedule-card__venue">{{ $match->venue }} · {{ $match->city }}</p>
-                                    <div class="wc-schedule-card__details">
-                                        <p><b>{{ __("Channel") }}</b><span>{{ $match->public_channel_name }}</span></p>
-                                        <p><b>{{ __("Commentator") }}</b><span>{{ $match->commentator ?: __('Commentator to be confirmed') }}</span></p>
-                                    </div>
-                                    <a class="wc-button wc-button--primary wc-schedule-card__watch" href="{{ route('matches.watch', $match) }}">
-                                        {{ __('Match details') }}
-                                    </a>
-                                </article>
+                                <x-match-card :match="$match" variant="world-cup" class="{{ $match->is_featured ? 'is-featured' : '' }}" />
                             @endforeach
                         </div>
                     </div>

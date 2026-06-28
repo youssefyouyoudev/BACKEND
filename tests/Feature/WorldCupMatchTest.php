@@ -8,6 +8,7 @@ use App\Models\WorldCupMatch;
 use App\Support\TeamFlag;
 use Carbon\CarbonImmutable;
 use Database\Seeders\WorldCup2026GroupStageSeeder;
+use Database\Seeders\WorldCup2026KnockoutSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 
@@ -47,6 +48,47 @@ it('seeds all group stage matches without duplicates and preserves admin fields'
         ->and($match->fresh()->commentator)->toBe('Admin Commentator')
         ->and($match->fresh()->channel_name_manual)->toBe('Admin Channel')
         ->and($match->fresh()->is_live_link_enabled)->toBeTrue();
+});
+
+it('seeds all knockout matches without duplicates and preserves manual broadcast fields', function () {
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    $match = WorldCupMatch::query()->where('match_number', 104)->firstOrFail();
+    $match->update([
+        'channel_name_manual' => 'beIN Sports Max 1',
+        'commentator' => 'Admin Commentator',
+        'stream_links' => [['label' => 'Server 1', 'url' => '', 'type' => 'iframe']],
+    ]);
+
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    $numbers = WorldCupMatch::query()
+        ->knockout()
+        ->orderBy('match_number')
+        ->pluck('match_number')
+        ->all();
+
+    expect(WorldCupMatch::query()->knockout()->count())->toBe(32)
+        ->and($numbers)->toBe(range(73, 104))
+        ->and(WorldCupMatch::query()->whereBetween('match_number', [73, 104])->whereNull('kickoff_at')->exists())->toBeFalse()
+        ->and($match->fresh()->channel_name_manual)->toBe('beIN Sports Max 1')
+        ->and($match->fresh()->commentator)->toBe('Admin Commentator')
+        ->and($match->fresh()->stream_links)->toBe([['label' => 'Server 1', 'url' => '', 'type' => 'iframe']]);
+});
+
+it('renders the knockout road page with Morocco time and channel fallback', function () {
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    $match = WorldCupMatch::query()->where('match_number', 73)->firstOrFail();
+
+    $this->get(route('world-cup-2026.knockout'))
+        ->assertSuccessful()
+        ->assertSee('World Cup 2026 Road to Final')
+        ->assertSee('Round of 32 to Final')
+        ->assertSee('Morocco Time')
+        ->assertSee('Match 73')
+        ->assertSee('Channels to be confirmed')
+        ->assertSee(route('matches.watch', $match), false);
 });
 
 it('allows an admin to assign an existing channel and edit the commentator', function () {
@@ -111,7 +153,7 @@ it('shows the selected channel publicly and links to the dedicated match page', 
         ->assertSee('RiFi Sports')
         ->assertSee('images/flags/ma.svg', false)
         ->assertSee('images/flags/br.svg', false)
-        ->assertSee('Match details')
+        ->assertSee('Open Match')
         ->assertSee(route('matches.watch', $match), false)
         ->assertDontSee(route('channels.show', $channel->slug), false);
 
@@ -287,7 +329,7 @@ it('unlocks assigned IPTV items one hour before kickoff', function () {
 
     $this->get(route('world-cup.index', ['tab' => 'all']))
         ->assertSuccessful()
-        ->assertSee('Match details')
+        ->assertSee('Open Match')
         ->assertSee(route('matches.watch', $match), false)
         ->assertDontSee(route('watch.item', $item), false)
         ->assertDontSee(route('watch.item', $secondItem), false);

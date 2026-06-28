@@ -18,6 +18,7 @@ class HomeController extends Controller
     {
         $todayMatches = collect();
         $upcomingMatches = collect();
+        $nextKnockoutMatches = collect();
         $worldCupMatchesCount = 0;
 
         if (Schema::hasTable('world_cup_matches')) {
@@ -45,6 +46,14 @@ class HomeController extends Controller
                 ->limit(8)
                 ->get());
 
+            $nextKnockoutMatches = Cache::remember('home:matches:knockout-next', now()->addMinutes(2), fn () => $matchQuery()
+                ->knockout()
+                ->where('kickoff_at', '>=', $now->utc())
+                ->orderBy('kickoff_at')
+                ->orderBy('match_number')
+                ->limit(3)
+                ->get());
+
             $worldCupMatchesCount = WorldCupMatch::query()->groupStage()->count();
         }
 
@@ -53,6 +62,7 @@ class HomeController extends Controller
             'upcomingMatches' => $upcomingMatches,
             'previewMatches' => $todayMatches->isNotEmpty() ? $todayMatches : $upcomingMatches,
             'showingUpcomingFallback' => $todayMatches->isEmpty(),
+            'nextKnockoutMatches' => $nextKnockoutMatches,
             'featuredChannels' => $this->featuredChannels(),
             'worldCupMatchesCount' => $worldCupMatchesCount,
             'schema' => $this->homeSchema(),

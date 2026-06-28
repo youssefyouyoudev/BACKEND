@@ -38,6 +38,10 @@ Route::get('/world-cup-2026', [WorldCupController::class, 'index'])
 Route::get('/world-cup-2026/schedule', [WorldCupController::class, 'index'])
     ->defaults('section', 'schedule')
     ->name('world-cup-2026.schedule');
+Route::get('/world-cup-2026/knockout', [WorldCupController::class, 'knockout'])
+    ->name('world-cup-2026.knockout');
+Route::get('/world-cup-2026/road-to-final', [WorldCupController::class, 'knockout'])
+    ->name('world-cup-2026.road-to-final');
 Route::get('/world-cup-2026/groups', [WorldCupController::class, 'index'])
     ->defaults('section', 'groups')
     ->name('world-cup-2026.groups');

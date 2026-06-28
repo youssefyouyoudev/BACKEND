@@ -39,9 +39,12 @@ class WorldCupMatch extends Model
         'match_number',
         'competition',
         'stage',
+        'stage_label',
         'group_name',
         'home_team',
         'away_team',
+        'home_placeholder',
+        'away_placeholder',
         'home_team_code',
         'away_team_code',
         'home_flag',
@@ -56,6 +59,7 @@ class WorldCupMatch extends Model
         'watch_opens_at',
         'watch_expires_at',
         'commentator',
+        'stream_links',
         'selected_channel_id',
         'selected_iptv_item_id',
         'channel_name_manual',
@@ -73,6 +77,7 @@ class WorldCupMatch extends Model
         'source_name',
         'source_url',
         'sort_order',
+        'is_knockout',
     ];
 
     protected function casts(): array
@@ -85,9 +90,11 @@ class WorldCupMatch extends Model
             'watch_opens_at' => 'immutable_datetime',
             'watch_expires_at' => 'immutable_datetime',
             'ended_at' => 'immutable_datetime',
+            'stream_links' => 'array',
             'use_manual_live_url' => 'boolean',
             'is_live_link_enabled' => 'boolean',
             'is_featured' => 'boolean',
+            'is_knockout' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
@@ -126,16 +133,48 @@ class WorldCupMatch extends Model
 
     public function getPublicChannelNameAttribute(): string
     {
+        $names = $this->broadcast_badges;
+
+        return $names->isNotEmpty()
+            ? $names->implode(' / ')
+            : 'Channels to be confirmed';
+    }
+
+    public function getBroadcastBadgesAttribute(): Collection
+    {
         $iptvNames = $this->assignedIptvItems()
             ->pluck('name')
             ->filter();
 
-        return $iptvNames->isNotEmpty()
-            ? $iptvNames->implode(' / ')
-            : ($this->selectedIptvItem?->name
-            ?: $this->selectedChannel?->clean_display_name
-            ?: $this->channel_name_manual
-            ?: 'Channel to be confirmed');
+        if ($iptvNames->isNotEmpty()) {
+            return $iptvNames->values();
+        }
+
+        return collect([
+            $this->selectedIptvItem?->name,
+            $this->selectedChannel?->clean_display_name,
+            $this->channel_name_manual,
+        ])
+            ->filter()
+            ->flatMap(fn (string $name): array => preg_split('/\s*\/\s*/', $name) ?: [])
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    public function getHomeDisplayNameAttribute(): string
+    {
+        return $this->home_team ?: ($this->home_placeholder ?: 'Home team to be confirmed');
+    }
+
+    public function getAwayDisplayNameAttribute(): string
+    {
+        return $this->away_team ?: ($this->away_placeholder ?: 'Away team to be confirmed');
+    }
+
+    public function getPublicStageLabelAttribute(): string
+    {
+        return $this->stage_label ?: str($this->stage)->replace('_', ' ')->headline()->toString();
     }
 
     public function getPublicWatchUrlAttribute(): ?string
@@ -260,6 +299,11 @@ class WorldCupMatch extends Model
     public function scopeGroupStage(Builder $query): Builder
     {
         return $query->where('stage', 'Group Stage');
+    }
+
+    public function scopeKnockout(Builder $query): Builder
+    {
+        return $query->where('is_knockout', true);
     }
 
     public function scopeUpcoming(Builder $query): Builder

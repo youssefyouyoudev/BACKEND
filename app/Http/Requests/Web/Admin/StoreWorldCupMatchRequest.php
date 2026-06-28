@@ -41,6 +41,10 @@ class StoreWorldCupMatchRequest extends FormRequest
             'channel_name_manual' => ['nullable', 'string', 'max:120'],
             'broadcaster' => ['nullable', 'string', 'max:120'],
             'commentator' => ['nullable', 'string', 'max:120'],
+            'stream_links' => ['nullable', 'array'],
+            'stream_links.*.label' => ['nullable', 'string', 'max:120'],
+            'stream_links.*.url' => ['nullable', 'url:http,https', 'max:2048'],
+            'stream_links.*.type' => ['nullable', Rule::in(['iframe', 'hls', 'mpegts', 'mp4', 'other'])],
             'live_url_manual' => ['nullable', 'required_if:use_manual_live_url,1', 'url:http,https', 'max:2048'],
             'player_type' => ['nullable', Rule::in(['auto', 'iframe', 'videojs', 'external_embed'])],
             'use_manual_live_url' => ['nullable', 'boolean'],
@@ -67,6 +71,45 @@ class StoreWorldCupMatchRequest extends FormRequest
             'match_iptv_items.*.starts_at' => ['nullable', 'date'],
             'match_iptv_items.*.expires_at' => ['nullable', 'date'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $streamLinks = $this->input('stream_links');
+
+        if (! is_string($streamLinks)) {
+            return;
+        }
+
+        $streamLinks = trim($streamLinks);
+
+        if ($streamLinks === '') {
+            $this->merge(['stream_links' => null]);
+
+            return;
+        }
+
+        $decoded = json_decode($streamLinks, true);
+
+        if (json_last_error() === JSON_ERROR_NONE) {
+            if (is_array($decoded)) {
+                $decoded = collect($decoded)
+                    ->map(function (mixed $row): mixed {
+                        if (! is_array($row)) {
+                            return $row;
+                        }
+
+                        if (($row['url'] ?? null) === '') {
+                            $row['url'] = null;
+                        }
+
+                        return $row;
+                    })
+                    ->all();
+            }
+
+            $this->merge(['stream_links' => $decoded]);
+        }
     }
 
     public function withValidator(Validator $validator): void

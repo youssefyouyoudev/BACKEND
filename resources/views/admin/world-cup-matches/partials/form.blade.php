@@ -23,6 +23,10 @@
                 'starts_at' => $item->pivot->starts_at ? \Illuminate\Support\Carbon::parse($item->pivot->starts_at)->format('Y-m-d\TH:i') : '',
                 'expires_at' => $item->pivot->expires_at ? \Illuminate\Support\Carbon::parse($item->pivot->expires_at)->format('Y-m-d\TH:i') : '',
             ]);
+    $streamLinksValue = old('stream_links');
+    $streamLinksValue = is_array($streamLinksValue)
+        ? json_encode($streamLinksValue, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        : ($streamLinksValue ?? ($worldCupMatch->stream_links ? json_encode($worldCupMatch->stream_links, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : ''));
 @endphp
 
 <div class="wc-match-form">
@@ -109,6 +113,7 @@
             <div class="field"><label for="channel_name_manual">{{ __("Manual channel name") }}</label><input id="channel_name_manual" name="channel_name_manual" maxlength="120" value="{{ old('channel_name_manual', $worldCupMatch->channel_name_manual) }}" placeholder="{{ __("Channel to be confirmed") }}"></div>
             <div class="field"><label for="broadcaster">{{ __("Broadcaster") }}</label><input id="broadcaster" name="broadcaster" maxlength="120" value="{{ old('broadcaster', $worldCupMatch->broadcaster) }}"></div>
             <div class="field"><label for="commentator">{{ __("Commentator") }}</label><input id="commentator" name="commentator" maxlength="120" value="{{ old('commentator', $worldCupMatch->commentator) }}" placeholder="{{ __("Commentator to be confirmed") }}"></div>
+            <div class="field form-grid__wide"><label for="stream_links">{{ __("Stream links JSON") }}</label><textarea id="stream_links" name="stream_links" rows="5" placeholder='[{"label":"Server 1","url":"","type":"iframe"}]'>{{ $streamLinksValue }}</textarea><small class="field__hint">{{ __("Optional structured server metadata. Leave URLs empty until you have approved links.") }}</small></div>
             <div class="field"><label for="watch_opens_at_stream">{{ __("Watch opens at") }}</label><input id="watch_opens_at_stream" type="datetime-local" name="watch_opens_at" value="{{ old('watch_opens_at', $worldCupMatch->getRawOriginal('watch_opens_at') ? $worldCupMatch->watch_opens_at?->format('Y-m-d\TH:i') : '') }}"></div>
             <div class="field"><label for="watch_expires_at_stream">{{ __("Watch expires at") }}</label><input id="watch_expires_at_stream" type="datetime-local" name="watch_expires_at" value="{{ old('watch_expires_at', $worldCupMatch->getRawOriginal('watch_expires_at') ? $worldCupMatch->watch_expires_at?->format('Y-m-d\TH:i') : '') }}"></div>
         </div>

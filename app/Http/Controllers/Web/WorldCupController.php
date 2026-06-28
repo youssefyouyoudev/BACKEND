@@ -7,6 +7,7 @@ use App\Models\Channel;
 use App\Models\WorldCupMatch;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class WorldCupController extends Controller
@@ -71,5 +72,83 @@ class WorldCupController extends Controller
                 ->values(),
             'section' => $section,
         ]);
+    }
+
+    public function knockout(): View
+    {
+        $stageOrder = $this->knockoutStageOrder();
+
+        $matches = WorldCupMatch::query()
+            ->publicVisible()
+            ->knockout()
+            ->with([
+                'selectedChannel.playlist',
+                'selectedChannel.category',
+                'selectedIptvItem.playlist',
+                'iptvItems.playlist',
+            ])
+            ->orderBy('kickoff_at')
+            ->orderBy('match_number')
+            ->get()
+            ->sortBy(fn (WorldCupMatch $match): string => sprintf(
+                '%02d-%s-%03d',
+                array_search($match->stage, $stageOrder, true),
+                $match->kickoff_at?->format('YmdHis') ?? '99999999999999',
+                $match->match_number
+            ))
+            ->values();
+
+        $matchesByStage = $matches
+            ->groupBy('stage')
+            ->sortBy(fn (Collection $_, string $stage): int => array_search($stage, $stageOrder, true));
+
+        return view('world-cup.knockout', [
+            'matches' => $matches,
+            'matchesByStage' => $matchesByStage,
+            'stageOrder' => $stageOrder,
+            'schema' => $this->knockoutSchema($matches),
+        ]);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function knockoutStageOrder(): array
+    {
+        return [
+            'round_of_32',
+            'round_of_16',
+            'quarter_final',
+            'semi_final',
+            'third_place',
+            'final',
+        ];
+    }
+
+    private function knockoutSchema(Collection $matches): array
+    {
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => $matches
+                ->map(fn (WorldCupMatch $match): array => [
+                    '@type' => 'SportsEvent',
+                    'name' => "{$match->home_display_name} vs {$match->away_display_name}",
+                    'startDate' => $match->kickoff_at?->toIso8601String(),
+                    'eventStatus' => 'https://schema.org/EventScheduled',
+                    'eventAttendanceMode' => 'https://schema.org/OfflineEventAttendanceMode',
+                    'url' => route('matches.watch', $match),
+                    'location' => [
+                        '@type' => 'Place',
+                        'name' => $match->venue,
+                        'address' => collect([$match->city, $match->country])->filter()->implode(', '),
+                    ],
+                    'organizer' => [
+                        '@type' => 'Organization',
+                        'name' => 'FIFA World Cup 2026',
+                    ],
+                ])
+                ->values()
+                ->all(),
+        ];
     }
 }
