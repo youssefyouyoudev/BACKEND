@@ -67,9 +67,24 @@ it('seeds all knockout matches without duplicates and preserves manual broadcast
         ->orderBy('match_number')
         ->pluck('match_number')
         ->all();
+    $roundOf32Teams = WorldCupMatch::query()
+        ->whereBetween('match_number', [79, 87])
+        ->orderBy('match_number')
+        ->get(['match_number', 'home_team', 'away_team'])
+        ->mapWithKeys(fn (WorldCupMatch $seededMatch): array => [
+            $seededMatch->match_number => [$seededMatch->home_team, $seededMatch->away_team],
+        ])
+        ->all();
 
     expect(WorldCupMatch::query()->knockout()->count())->toBe(32)
         ->and($numbers)->toBe(range(73, 104))
+        ->and($roundOf32Teams[79])->toBe(['Mexico', 'Ecuador'])
+        ->and($roundOf32Teams[80])->toBe(['England', 'DR Congo'])
+        ->and($roundOf32Teams[82])->toBe(['Belgium', 'Senegal'])
+        ->and($roundOf32Teams[83])->toBe(['Portugal', 'Croatia'])
+        ->and($roundOf32Teams[84])->toBe(['Spain', 'Austria'])
+        ->and($roundOf32Teams[85])->toBe(['Switzerland', 'Algeria'])
+        ->and($roundOf32Teams[87])->toBe(['Colombia', 'Ghana'])
         ->and(WorldCupMatch::query()->whereBetween('match_number', [73, 104])->whereNull('kickoff_at')->exists())->toBeFalse()
         ->and($match->fresh()->channel_name_manual)->toBe('beIN Sports Max 1')
         ->and($match->fresh()->commentator)->toBe('Admin Commentator')
