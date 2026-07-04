@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('title', "Match Center - {$match->home_display_name} vs {$match->away_display_name} | RiFiTV")
-@section('description', "Follow {$match->home_display_name} vs {$match->away_display_name} with kickoff time, match details, score updates, TV guide information, and football coverage on RiFiTV.")
+@section('description', "Follow {$match->home_display_name} vs {$match->away_display_name} with kickoff time, match details, qualification updates, TV guide information, and football coverage on RiFiTV.")
 @section('robots', 'noindex,follow')
 @section('image', $match->home_flag ?: asset('assets/images/promo/rifitv-world-football-2026-1122.webp'))
 
@@ -26,15 +26,15 @@
                     <div class="match-scoreboard__team">
                         <x-team-flag :team="$match->home_team" :src="$match->home_flag" size="lg" />
                         <strong>{{ $match->home_display_name }}</strong>
-                        @if($match->winner_team === $match->home_team)
+                        @if($match->qualified_team === $match->home_team)
                             <small>{{ __('Qualified') }}</small>
                         @endif
                     </div>
                     <div class="match-scoreboard__center">
-                        @if($match->is_completed_result && $match->scoreline)
+                        @if($match->hasQualifiedTeam())
                             <span>{{ $match->kickoff_at_morocco?->translatedFormat('D, M j') }}</span>
-                            <b>{{ $match->scoreline }}</b>
-                            <small>{{ $match->penalty_winner_text ?: __('Full time') }}</small>
+                            <b>{{ __('Qualified') }}</b>
+                            <small>{{ __(':team qualified', ['team' => $match->qualified_team]) }}</small>
                         @else
                             <span>{{ $match->kickoff_at_morocco?->translatedFormat('D, M j') }}</span>
                             <b>{{ $match->kickoff_at_morocco?->format('H:i') }}</b>
@@ -44,7 +44,7 @@
                     <div class="match-scoreboard__team">
                         <x-team-flag :team="$match->away_team" :src="$match->away_flag" size="lg" />
                         <strong>{{ $match->away_display_name }}</strong>
-                        @if($match->winner_team === $match->away_team)
+                        @if($match->qualified_team === $match->away_team)
                             <small>{{ __('Qualified') }}</small>
                         @endif
                     </div>
@@ -96,11 +96,8 @@
                 <span class="rm-kicker">{{ __('Match info') }}</span>
                 <h2>{{ $match->home_display_name }} vs {{ $match->away_display_name }}</h2>
                 <dl>
-                    @if($match->is_completed_result && $match->scoreline)
-                        <div><dt>{{ __('Result') }}</dt><dd>{{ $match->home_display_name }} {{ $match->scoreline }} {{ $match->away_display_name }}</dd></div>
-                    @endif
-                    @if($match->penalty_winner_text)
-                        <div><dt>{{ __('Penalties') }}</dt><dd>{{ $match->penalty_winner_text }}</dd></div>
+                    @if($match->hasQualifiedTeam())
+                        <div><dt>{{ __('Qualification') }}</dt><dd>{{ __(':team qualified', ['team' => $match->qualified_team]) }}</dd></div>
                     @endif
                     <div><dt>{{ __('Kickoff') }}</dt><dd>{{ $match->kickoff_at_morocco?->translatedFormat('M j - H:i') }} {{ __('Morocco') }}</dd></div>
                     <div><dt>{{ __('Competition') }}</dt><dd>{{ $match->competition }}{{ $match->stage ? ' - '.$match->stage : '' }}</dd></div>

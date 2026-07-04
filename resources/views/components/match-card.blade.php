@@ -8,8 +8,8 @@
     @php
         $kickoff = $match->kickoff_at_morocco;
         $badges = $match->broadcast_badges;
-        $homeQualified = $match->winner_team && $match->winner_team === $match->home_team;
-        $awayQualified = $match->winner_team && $match->winner_team === $match->away_team;
+        $homeQualified = $match->qualified_team && $match->qualified_team === $match->home_team;
+        $awayQualified = $match->qualified_team && $match->qualified_team === $match->away_team;
     @endphp
 
     <article {{ $attributes->merge(['class' => 'wc-schedule-card match-card']) }}>
@@ -26,14 +26,14 @@
                 <x-team-flag :team="$match->home_team" :src="$match->home_flag" size="lg" />
                 <span>{{ $match->home_display_name }} @if($homeQualified)<em>{{ __('Qualified') }}</em>@endif</span>
             </strong>
-            <span>{{ $match->is_completed_result && $match->scoreline ? $match->scoreline : 'VS' }}</span>
+            <span>VS</span>
             <strong>
                 <x-team-flag :team="$match->away_team" :src="$match->away_flag" size="lg" />
                 <span>{{ $match->away_display_name }} @if($awayQualified)<em>{{ __('Qualified') }}</em>@endif</span>
             </strong>
         </div>
-        @if($match->is_completed_result && $match->penalty_winner_text)
-            <p class="wc-schedule-card__venue">{{ $match->penalty_winner_text }}</p>
+        @if($match->hasQualifiedTeam())
+            <p class="wc-schedule-card__venue">{{ __(':team qualified', ['team' => $match->qualified_team]) }}</p>
         @endif
         @if($match->venue || $match->city)
             <p class="wc-schedule-card__venue">{{ collect([$match->venue, $match->city])->filter()->implode(' · ') }}</p>

@@ -32,6 +32,15 @@
             </select>
         </div>
         <div class="field">
+            <label for="stage">{{ __("Stage") }}</label>
+            <select id="stage" name="stage">
+                <option value="">{{ __("All stages") }}</option>
+                @foreach($stageOptions as $stageValue => $stageLabel)
+                    <option value="{{ $stageValue }}" @selected(request('stage') === $stageValue)>{{ $stageLabel }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="field">
             <label for="status">{{ __("Status") }}</label>
             <select id="status" name="status">
                 <option value="">{{ __("All statuses") }}</option>
@@ -89,6 +98,9 @@
                     <small>Match {{ $match->match_number }}</small>
                     <h3>{{ $match->home_display_name }} <span>{{ __("vs") }}</span> {{ $match->away_display_name }}</h3>
                     <p>{{ $match->venue }}, {{ $match->city }}</p>
+                    @if($match->hasQualifiedTeam())
+                        <p><span class="status-pill status-pill--ended">{{ __("Qualified: :team", ['team' => $match->qualified_team]) }}</span></p>
+                    @endif
                 </div>
                 <div class="wc-admin-match-card__broadcast">
                     <span class="status-pill status-pill--{{ str($match->public_status)->slug('-') }}">{{ $match->public_status_label }}</span>
@@ -110,8 +122,8 @@
                 </div>
                 <div class="wc-admin-match-card__actions">
                     <a class="button button--primary" href="{{ route('admin.world-cup-matches.edit', $match) }}">{{ __("Edit") }}</a>
-                    @if($match->is_knockout || ((int) $match->match_number >= 73 && (int) $match->match_number <= 104))
-                        <a class="button button--ghost" href="{{ route('admin.world-cup-matches.result.edit', $match) }}">{{ __("Result") }}</a>
+                    @if($match->isKnockout())
+                        <a class="button button--ghost" href="{{ route('admin.world-cup-matches.qualify.edit', $match) }}">{{ __("Choose qualified team") }}</a>
                     @endif
                     <button
                         class="button button--ghost"

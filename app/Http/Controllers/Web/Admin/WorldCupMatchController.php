@@ -45,6 +45,7 @@ class WorldCupMatchController extends Controller
                 });
             })
             ->when($request->filled('group'), fn (Builder $query) => $query->where('group_name', $request->string('group')))
+            ->when($request->filled('stage'), fn (Builder $query) => $query->where('stage', $this->stageValue($request->string('stage')->toString())))
             ->when($request->filled('status'), fn (Builder $query) => $query->where('broadcast_status', $request->string('status')))
             ->when($request->boolean('missing_channel'), fn (Builder $query) => $query
                 ->whereDoesntHave('iptvItems')
@@ -66,12 +67,14 @@ class WorldCupMatchController extends Controller
             })
             ->when($request->boolean('featured'), fn (Builder $query) => $query->featured())
             ->orderBy('kickoff_at', $request->string('sort')->toString() === 'desc' ? 'desc' : 'asc')
+            ->orderBy('match_number')
             ->paginate(24)
             ->withQueryString();
 
         return view('admin.world-cup-matches.index', [
             'matches' => $matches,
             'groups' => $this->groups(),
+            'stageOptions' => $this->stageOptions(),
             'statuses' => WorldCupMatch::STATUSES,
         ]);
     }
@@ -371,5 +374,23 @@ class WorldCupMatchController extends Controller
     private function groups(): array
     {
         return collect(range('A', 'L'))->map(fn (string $group): string => "Group {$group}")->all();
+    }
+
+    private function stageOptions(): array
+    {
+        return [
+            'group_stage' => __('Group Stage'),
+            'round_of_32' => __('Round of 32'),
+            'round_of_16' => __('Round of 16'),
+            'quarter_final' => __('Quarter-finals'),
+            'semi_final' => __('Semi-finals'),
+            'third_place' => __('3rd place game'),
+            'final' => __('Final'),
+        ];
+    }
+
+    private function stageValue(string $stage): string
+    {
+        return $stage === 'group_stage' ? 'Group Stage' : $stage;
     }
 }

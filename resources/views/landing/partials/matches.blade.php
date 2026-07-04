@@ -21,8 +21,8 @@
                         default => 'upcoming',
                     };
                     $kickoff = $match->kickoff_at_morocco;
-                    $homeQualified = $match->winner_team && $match->winner_team === $match->home_team;
-                    $awayQualified = $match->winner_team && $match->winner_team === $match->away_team;
+                    $homeQualified = $match->qualified_team && $match->qualified_team === $match->home_team;
+                    $awayQualified = $match->qualified_team && $match->qualified_team === $match->away_team;
                     $isAfterMidnight = $kickoff && $kickoff->hour < 6;
                     $isLateMatch = $kickoff && $kickoff->hour >= 22;
                 @endphp
@@ -42,11 +42,11 @@
                     </div>
                     <div class="rtv-match-card__teams">
                         <strong><x-team-flag :team="$match->home_team" :src="$match->home_flag" size="lg" /><span>{{ $match->home_display_name }} @if($homeQualified)<em>{{ __('Qualified') }}</em>@endif</span></strong>
-                        <span>{{ $match->is_completed_result && $match->scoreline ? $match->scoreline : 'VS' }}</span>
+                        <span>VS</span>
                         <strong><x-team-flag :team="$match->away_team" :src="$match->away_flag" size="lg" /><span>{{ $match->away_display_name }} @if($awayQualified)<em>{{ __('Qualified') }}</em>@endif</span></strong>
                     </div>
-                    @if($match->is_completed_result && $match->penalty_winner_text)
-                        <p class="rtv-match-card__venue">{{ $match->penalty_winner_text }}</p>
+                    @if($match->hasQualifiedTeam())
+                        <p class="rtv-match-card__venue">{{ __(':team qualified', ['team' => $match->qualified_team]) }}</p>
                     @endif
                     @if($match->venue)
                         <p class="rtv-match-card__venue">{{ collect([$match->venue, $match->city])->filter()->implode(', ') }}</p>

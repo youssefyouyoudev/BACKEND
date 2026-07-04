@@ -145,28 +145,59 @@ it('shows after-midnight matches in the same Morocco football day', function () 
         ->assertSee('After midnight');
 });
 
-it('advances match 73 winner into the W73 future slot', function () {
+it('allows an admin to choose the home team as qualified', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_active' => true]);
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    $match = WorldCupMatch::query()->where('match_number', 74)->firstOrFail();
+
+    $this->actingAs($admin)
+        ->post(route('admin.world-cup-matches.qualify.update', $match), [
+            'side' => 'home',
+        ])
+        ->assertRedirect()
+        ->assertSessionHas('status', 'Qualified team saved and advanced to the next round.');
+
+    expect($match->fresh()->qualified_team)->toBe('Germany')
+        ->and($match->fresh()->eliminated_team)->toBe('Paraguay')
+        ->and($match->fresh()->qualified_side)->toBe('home')
+        ->and($match->fresh()->status)->toBe('completed');
+});
+
+it('allows an admin to choose the away team as qualified', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_active' => true]);
     $this->seed(WorldCup2026KnockoutSeeder::class);
 
     $match = WorldCupMatch::query()->where('match_number', 73)->firstOrFail();
 
-    app(WorldCupKnockoutService::class)->saveResult($match, [
-        'winner_side' => 'away',
-        'home_score' => 1,
-        'away_score' => 2,
-        'status' => 'completed',
-    ]);
+    $this->actingAs($admin)
+        ->post(route('admin.world-cup-matches.qualify.update', $match), [
+            'side' => 'away',
+        ])
+        ->assertRedirect();
+
+    expect($match->fresh()->qualified_team)->toBe('Canada')
+        ->and($match->fresh()->eliminated_team)->toBe('South Africa')
+        ->and($match->fresh()->qualified_side)->toBe('away');
+});
+
+it('advances match 73 qualified team into the W73 future slot', function () {
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    $match = WorldCupMatch::query()->where('match_number', 73)->firstOrFail();
+
+    app(WorldCupKnockoutService::class)->qualifyTeam($match, 'away');
 
     $nextMatch = WorldCupMatch::query()->where('match_number', 90)->firstOrFail();
 
-    expect($match->fresh()->winner_team)->toBe('Canada')
+    expect($match->fresh()->qualified_team)->toBe('Canada')
         ->and($match->fresh()->status)->toBe('completed')
         ->and($match->fresh()->broadcast_status)->toBe(WorldCupMatch::STATUS_ENDED)
         ->and($nextMatch->home_team)->toBe('Canada')
         ->and($nextMatch->home_placeholder)->toBe('W73');
 });
 
-it('advances a semi-final loser into the third-place match', function () {
+it('advances a semi-final winner into the final and loser into the third-place match', function () {
     $this->seed(WorldCup2026KnockoutSeeder::class);
 
     $semiFinal = WorldCupMatch::query()->where('match_number', 101)->firstOrFail();
@@ -175,18 +206,13 @@ it('advances a semi-final loser into the third-place match', function () {
         'away_team' => 'Morocco',
     ]);
 
-    app(WorldCupKnockoutService::class)->saveResult($semiFinal, [
-        'winner_side' => 'home',
-        'home_score' => 2,
-        'away_score' => 0,
-        'status' => 'completed',
-    ]);
+    app(WorldCupKnockoutService::class)->qualifyTeam($semiFinal, 'home');
 
     $thirdPlace = WorldCupMatch::query()->where('match_number', 103)->firstOrFail();
     $final = WorldCupMatch::query()->where('match_number', 104)->firstOrFail();
 
-    expect($semiFinal->fresh()->winner_team)->toBe('Argentina')
-        ->and($semiFinal->fresh()->loser_team)->toBe('Morocco')
+    expect($semiFinal->fresh()->qualified_team)->toBe('Argentina')
+        ->and($semiFinal->fresh()->eliminated_team)->toBe('Morocco')
         ->and($thirdPlace->home_team)->toBe('Morocco')
         ->and($thirdPlace->home_placeholder)->toBe('L101')
         ->and($final->home_team)->toBe('Argentina')
@@ -197,21 +223,39 @@ it('does not duplicate knockout matches or erase advanced teams when rerunning t
     $this->seed(WorldCup2026KnockoutSeeder::class);
 
     $match = WorldCupMatch::query()->where('match_number', 73)->firstOrFail();
-    app(WorldCupKnockoutService::class)->saveResult($match, [
-        'winner_side' => 'away',
-        'home_score' => 1,
-        'away_score' => 1,
-        'home_penalties' => 4,
-        'away_penalties' => 5,
-        'status' => 'completed',
-    ]);
+    app(WorldCupKnockoutService::class)->qualifyTeam($match, 'away');
 
     $this->seed(WorldCup2026KnockoutSeeder::class);
 
     expect(WorldCupMatch::query()->knockout()->count())->toBe(32)
         ->and(WorldCupMatch::query()->where('match_number', 90)->value('home_team'))->toBe('Canada')
-        ->and(WorldCupMatch::query()->where('match_number', 73)->value('winner_team'))->toBe('Canada')
+        ->and(WorldCupMatch::query()->where('match_number', 73)->value('qualified_team'))->toBe('Canada')
         ->and(WorldCupMatch::query()->where('match_number', 73)->value('status'))->toBe('completed');
+});
+
+it('filters the admin list to round of 32 matches', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_active' => true]);
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    $this->actingAs($admin)
+        ->get(route('admin.world-cup-matches.index', ['stage' => 'round_of_32']))
+        ->assertSuccessful()
+        ->assertSee('Match 73')
+        ->assertSee('Match 88')
+        ->assertDontSee('Match 89')
+        ->assertDontSee('Match 104');
+});
+
+it('filters the admin list to the final match', function () {
+    $admin = User::factory()->create(['role' => User::ROLE_ADMIN, 'is_active' => true]);
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    $this->actingAs($admin)
+        ->get(route('admin.world-cup-matches.index', ['stage' => 'final']))
+        ->assertSuccessful()
+        ->assertSee('1 matches')
+        ->assertSee('Match 104')
+        ->assertDontSee('Match 103');
 });
 
 it('renders the knockout road page with Morocco time and channel fallback', function () {
