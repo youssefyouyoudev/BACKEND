@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\Admin\CategoryController as AdminCategoryController
 use App\Http\Controllers\Web\Admin\ChannelManagementController as AdminChannelController;
 use App\Http\Controllers\Web\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Web\Admin\IptvItemController as AdminIptvItemController;
+use App\Http\Controllers\Web\Admin\MatchResultController as AdminMatchResultController;
 use App\Http\Controllers\Web\Admin\MonetizationController as AdminMonetizationController;
 use App\Http\Controllers\Web\Admin\PlaylistController as AdminPlaylistController;
 use App\Http\Controllers\Web\Admin\ProgramController as AdminProgramController;
@@ -238,6 +239,10 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function (): void {
         ->name('admin.world-cup-matches.assign-iptv-item');
     Route::patch('/world-cup-matches/{world_cup_match}/iptv-items/{item}', [AdminWorldCupMatchController::class, 'updateIptvItem'])
         ->name('admin.world-cup-matches.update-iptv-item');
+    Route::get('/world-cup-matches/{world_cup_match}/result', [AdminMatchResultController::class, 'edit'])
+        ->name('admin.world-cup-matches.result.edit');
+    Route::post('/world-cup-matches/{world_cup_match}/result', [AdminMatchResultController::class, 'update'])
+        ->name('admin.world-cup-matches.result.update');
     Route::resource('world-cup-matches', AdminWorldCupMatchController::class)
         ->except('show')
         ->parameters(['world-cup-matches' => 'world_cup_match'])

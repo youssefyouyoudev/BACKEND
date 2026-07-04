@@ -2,8 +2,8 @@
     <div class="rtv-section-heading">
         <div>
             <span class="rtv-kicker">{{ __('landing.matches.eyebrow') }}</span>
-            <h2 id="rtv-matches-title">{{ $showingUpcomingFallback ? __('Next upcoming matches') : __("Today's matches") }}</h2>
-            <p>{{ __('Kickoff times, competitions, teams, and TV information in Morocco time.') }}</p>
+            <h2 id="rtv-matches-title">{{ $showingUpcomingFallback ? __('Next upcoming matches') : __("Today's Matches") }}</h2>
+            <p>{{ __('Football day: 06:00 - 05:59 Morocco time') }}</p>
         </div>
         <a class="rtv-text-link" href="{{ route('football.today') }}">
             {{ __('All matches') }} <x-icon name="arrow-up-right" />
@@ -20,6 +20,11 @@
                         'finished', 'cancelled', 'postponed' => 'ended',
                         default => 'upcoming',
                     };
+                    $kickoff = $match->kickoff_at_morocco;
+                    $homeQualified = $match->winner_team && $match->winner_team === $match->home_team;
+                    $awayQualified = $match->winner_team && $match->winner_team === $match->away_team;
+                    $isAfterMidnight = $kickoff && $kickoff->hour < 6;
+                    $isLateMatch = $kickoff && $kickoff->hour >= 22;
                 @endphp
                 <article class="rtv-match-card match-card" data-reveal>
                     <header>
@@ -27,14 +32,22 @@
                         <b class="match-window-badge match-window-badge--{{ $statusClass }}">{{ $statusLabel }}</b>
                     </header>
                     <div class="rtv-match-card__time">
-                        <strong>{{ $match->kickoff_at_morocco?->format('H:i') ?: '--:--' }}</strong>
-                        <span>{{ $match->kickoff_at_morocco?->translatedFormat('M d') }} - {{ __('Morocco time') }}</span>
+                        <strong>{{ $kickoff?->format('H:i') ?: '--:--' }}</strong>
+                        <span>{{ $kickoff?->translatedFormat('M d') }} - {{ __('Morocco Time') }}</span>
+                        @if($isAfterMidnight)
+                            <span class="match-window-badge match-window-badge--soon">{{ __('After midnight') }}</span>
+                        @elseif($isLateMatch)
+                            <span class="match-window-badge match-window-badge--soon">{{ __('Late match') }}</span>
+                        @endif
                     </div>
                     <div class="rtv-match-card__teams">
-                        <strong><x-team-flag :team="$match->home_team" :src="$match->home_flag" size="lg" /><span>{{ $match->home_team }}</span></strong>
-                        <span>VS</span>
-                        <strong><x-team-flag :team="$match->away_team" :src="$match->away_flag" size="lg" /><span>{{ $match->away_team }}</span></strong>
+                        <strong><x-team-flag :team="$match->home_team" :src="$match->home_flag" size="lg" /><span>{{ $match->home_display_name }} @if($homeQualified)<em>{{ __('Qualified') }}</em>@endif</span></strong>
+                        <span>{{ $match->is_completed_result && $match->scoreline ? $match->scoreline : 'VS' }}</span>
+                        <strong><x-team-flag :team="$match->away_team" :src="$match->away_flag" size="lg" /><span>{{ $match->away_display_name }} @if($awayQualified)<em>{{ __('Qualified') }}</em>@endif</span></strong>
                     </div>
+                    @if($match->is_completed_result && $match->penalty_winner_text)
+                        <p class="rtv-match-card__venue">{{ $match->penalty_winner_text }}</p>
+                    @endif
                     @if($match->venue)
                         <p class="rtv-match-card__venue">{{ collect([$match->venue, $match->city])->filter()->implode(', ') }}</p>
                     @endif

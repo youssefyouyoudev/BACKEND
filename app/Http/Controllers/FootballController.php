@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\ChannelMatcherService;
+use App\Services\FootballDayService;
 use App\Services\TheSportsDbService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
@@ -11,7 +12,10 @@ use Illuminate\Support\Carbon;
 
 class FootballController extends Controller
 {
-    public function __construct(private readonly TheSportsDbService $sportsDb) {}
+    public function __construct(
+        private readonly TheSportsDbService $sportsDb,
+        private readonly FootballDayService $footballDayService
+    ) {}
 
     public function index(Request $request): View
     {
@@ -44,7 +48,9 @@ class FootballController extends Controller
 
     public function today(): JsonResponse
     {
-        return $this->matchesResponse($this->sportsDb->getTopLeagueMatchesByDate(now()->toDateString()));
+        $footballDay = $this->footballDayService->currentFootballDay();
+
+        return $this->matchesResponse($this->sportsDb->getTopLeagueMatchesByDate($footballDay['football_date']));
     }
 
     public function byDate(Request $request): JsonResponse

@@ -5,14 +5,21 @@ use App\Models\IptvItem;
 use App\Models\Playlist;
 use App\Models\User;
 use App\Models\WorldCupMatch;
+use App\Services\WorldCupKnockoutService;
 use App\Support\TeamFlag;
 use Carbon\CarbonImmutable;
 use Database\Seeders\WorldCup2026GroupStageSeeder;
 use Database\Seeders\WorldCup2026KnockoutSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 uses(RefreshDatabase::class);
+
+afterEach(function () {
+    Carbon::setTestNow();
+    Cache::flush();
+});
 
 it('has a local national flag for every seeded team', function () {
     $this->seed(WorldCup2026GroupStageSeeder::class);
@@ -89,6 +96,122 @@ it('seeds all knockout matches without duplicates and preserves manual broadcast
         ->and($match->fresh()->channel_name_manual)->toBe('beIN Sports Max 1')
         ->and($match->fresh()->commentator)->toBe('Admin Commentator')
         ->and($match->fresh()->stream_links)->toBe([['label' => 'Server 1', 'url' => '', 'type' => 'iframe']]);
+});
+
+it('keeps a 23:00 Morocco match visible after midnight in the same football day', function () {
+    Carbon::setTestNow(CarbonImmutable::parse('2026-06-16 00:30:00', WorldCupMatch::MOROCCO_TIMEZONE));
+
+    $kickoff = CarbonImmutable::parse('2026-06-15 23:00:00', WorldCupMatch::MOROCCO_TIMEZONE);
+
+    WorldCupMatch::query()->create([
+        'match_number' => 501,
+        'home_team' => 'Morocco',
+        'away_team' => 'Spain',
+        'stage' => 'Group Stage',
+        'kickoff_at' => $kickoff->utc(),
+        'morocco_kickoff_at' => $kickoff->format('Y-m-d H:i:s'),
+        'broadcast_status' => 'scheduled',
+    ]);
+
+    $this->get(route('home'))
+        ->assertSuccessful()
+        ->assertSee('Morocco')
+        ->assertSee('Spain')
+        ->assertSee('23:00')
+        ->assertSee('Late match')
+        ->assertSee('Football day: 06:00 - 05:59 Morocco time');
+});
+
+it('shows after-midnight matches in the same Morocco football day', function () {
+    Carbon::setTestNow(CarbonImmutable::parse('2026-06-15 20:00:00', WorldCupMatch::MOROCCO_TIMEZONE));
+
+    $kickoff = CarbonImmutable::parse('2026-06-16 00:30:00', WorldCupMatch::MOROCCO_TIMEZONE);
+
+    WorldCupMatch::query()->create([
+        'match_number' => 502,
+        'home_team' => 'Canada',
+        'away_team' => 'Japan',
+        'stage' => 'Group Stage',
+        'kickoff_at' => $kickoff->utc(),
+        'morocco_kickoff_at' => $kickoff->format('Y-m-d H:i:s'),
+        'broadcast_status' => 'scheduled',
+    ]);
+
+    $this->get(route('home'))
+        ->assertSuccessful()
+        ->assertSee('Canada')
+        ->assertSee('Japan')
+        ->assertSee('00:30')
+        ->assertSee('After midnight');
+});
+
+it('advances match 73 winner into the W73 future slot', function () {
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    $match = WorldCupMatch::query()->where('match_number', 73)->firstOrFail();
+
+    app(WorldCupKnockoutService::class)->saveResult($match, [
+        'winner_side' => 'away',
+        'home_score' => 1,
+        'away_score' => 2,
+        'status' => 'completed',
+    ]);
+
+    $nextMatch = WorldCupMatch::query()->where('match_number', 90)->firstOrFail();
+
+    expect($match->fresh()->winner_team)->toBe('Canada')
+        ->and($match->fresh()->status)->toBe('completed')
+        ->and($match->fresh()->broadcast_status)->toBe(WorldCupMatch::STATUS_ENDED)
+        ->and($nextMatch->home_team)->toBe('Canada')
+        ->and($nextMatch->home_placeholder)->toBe('W73');
+});
+
+it('advances a semi-final loser into the third-place match', function () {
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    $semiFinal = WorldCupMatch::query()->where('match_number', 101)->firstOrFail();
+    $semiFinal->update([
+        'home_team' => 'Argentina',
+        'away_team' => 'Morocco',
+    ]);
+
+    app(WorldCupKnockoutService::class)->saveResult($semiFinal, [
+        'winner_side' => 'home',
+        'home_score' => 2,
+        'away_score' => 0,
+        'status' => 'completed',
+    ]);
+
+    $thirdPlace = WorldCupMatch::query()->where('match_number', 103)->firstOrFail();
+    $final = WorldCupMatch::query()->where('match_number', 104)->firstOrFail();
+
+    expect($semiFinal->fresh()->winner_team)->toBe('Argentina')
+        ->and($semiFinal->fresh()->loser_team)->toBe('Morocco')
+        ->and($thirdPlace->home_team)->toBe('Morocco')
+        ->and($thirdPlace->home_placeholder)->toBe('L101')
+        ->and($final->home_team)->toBe('Argentina')
+        ->and($final->home_placeholder)->toBe('W101');
+});
+
+it('does not duplicate knockout matches or erase advanced teams when rerunning the seeder', function () {
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    $match = WorldCupMatch::query()->where('match_number', 73)->firstOrFail();
+    app(WorldCupKnockoutService::class)->saveResult($match, [
+        'winner_side' => 'away',
+        'home_score' => 1,
+        'away_score' => 1,
+        'home_penalties' => 4,
+        'away_penalties' => 5,
+        'status' => 'completed',
+    ]);
+
+    $this->seed(WorldCup2026KnockoutSeeder::class);
+
+    expect(WorldCupMatch::query()->knockout()->count())->toBe(32)
+        ->and(WorldCupMatch::query()->where('match_number', 90)->value('home_team'))->toBe('Canada')
+        ->and(WorldCupMatch::query()->where('match_number', 73)->value('winner_team'))->toBe('Canada')
+        ->and(WorldCupMatch::query()->where('match_number', 73)->value('status'))->toBe('completed');
 });
 
 it('renders the knockout road page with Morocco time and channel fallback', function () {

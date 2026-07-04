@@ -8,12 +8,17 @@ use App\Models\Channel;
 use App\Models\ChannelStream;
 use App\Models\Playlist;
 use App\Models\WorldCupMatch;
+use App\Services\FootballDayService;
 use Illuminate\Contracts\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(private readonly FootballDayService $footballDayService) {}
+
     public function __invoke(): View
     {
+        [$todayStartUtc, $todayEndUtc] = $this->footballDayService->todayQueryRangeUtc();
+
         $stats = [
             'playlists' => Playlist::query()->count(),
             'channels' => Channel::query()->count(),
@@ -38,7 +43,7 @@ class DashboardController extends Controller
             'world_cup_missing_commentator' => WorldCupMatch::query()->whereNull('commentator')->count(),
             'world_cup_live_enabled' => WorldCupMatch::query()->where('is_live_link_enabled', true)->count(),
             'matches_today' => WorldCupMatch::query()
-                ->whereBetween('kickoff_at', [now('UTC')->startOfDay(), now('UTC')->endOfDay()])
+                ->whereBetween('kickoff_at', [$todayStartUtc, $todayEndUtc])
                 ->count(),
             'matches_live' => WorldCupMatch::query()->where('broadcast_status', 'live')->count(),
             'matches_upcoming' => WorldCupMatch::query()->whereIn('broadcast_status', ['to_confirm', 'scheduled'])->count(),

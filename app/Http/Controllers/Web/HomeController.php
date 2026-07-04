@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
 use App\Models\WorldCupMatch;
+use App\Services\FootballDayService;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Schema;
 
 class HomeController extends Controller
 {
+    public function __construct(private readonly FootballDayService $footballDayService) {}
+
     public function __invoke(): View
     {
         $todayMatches = collect();
@@ -23,8 +26,8 @@ class HomeController extends Controller
 
         if (Schema::hasTable('world_cup_matches')) {
             $now = CarbonImmutable::now(WorldCupMatch::MOROCCO_TIMEZONE);
-            $todayStartUtc = $now->startOfDay()->utc();
-            $todayEndUtc = $now->endOfDay()->utc();
+            $footballDay = $this->footballDayService->currentFootballDay();
+            [$todayStartUtc, $todayEndUtc] = [$footballDay['start_utc'], $footballDay['end_utc']];
             $matchQuery = fn (): Builder => WorldCupMatch::query()
                 ->publicVisible()
                 ->with([
@@ -34,7 +37,7 @@ class HomeController extends Controller
                     'iptvItems.playlist',
                 ]);
 
-            $todayMatches = Cache::remember('home:matches:today', now()->addMinutes(2), fn () => $matchQuery()
+            $todayMatches = Cache::remember('home:matches:today:'.$footballDay['football_date'], now()->addMinutes(2), fn () => $matchQuery()
                 ->whereBetween('kickoff_at', [$todayStartUtc, $todayEndUtc])
                 ->orderBy('kickoff_at')
                 ->limit(8)
@@ -63,6 +66,7 @@ class HomeController extends Controller
             'previewMatches' => $todayMatches->isNotEmpty() ? $todayMatches : $upcomingMatches,
             'showingUpcomingFallback' => $todayMatches->isEmpty(),
             'nextKnockoutMatches' => $nextKnockoutMatches,
+            'footballDay' => $footballDay ?? null,
             'featuredChannels' => $this->featuredChannels(),
             'worldCupMatchesCount' => $worldCupMatchesCount,
             'schema' => $this->homeSchema(),

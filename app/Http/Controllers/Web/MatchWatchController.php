@@ -158,7 +158,7 @@ class MatchWatchController extends Controller
             'id' => 'manual-'.$match->getKey(),
             'source' => 'manual',
             'channel' => $match->channel_name_manual ?: $match->broadcaster ?: __('Manual source'),
-            'title' => $match->channel_name_manual ?: "{$match->home_team} vs {$match->away_team}",
+            'title' => $match->channel_name_manual ?: "{$match->home_display_name} vs {$match->away_display_name}",
             'label' => __('Server 1'),
             'quality' => 'Auto',
             'language' => null,
@@ -380,7 +380,7 @@ class MatchWatchController extends Controller
         return [
             '@context' => 'https://schema.org',
             '@type' => 'SportsEvent',
-            'name' => "{$match->home_team} vs {$match->away_team}",
+            'name' => "{$match->home_display_name} vs {$match->away_display_name}",
             'startDate' => $match->kickoff_at_morocco?->toIso8601String(),
             'endDate' => $match->expected_ends_at?->toIso8601String(),
             'eventStatus' => 'https://schema.org/EventScheduled',
@@ -391,8 +391,8 @@ class MatchWatchController extends Controller
                 'name' => collect([$match->venue, $match->city])->filter()->implode(', '),
             ] : null,
             'competitor' => [
-                ['@type' => 'SportsTeam', 'name' => $match->home_team],
-                ['@type' => 'SportsTeam', 'name' => $match->away_team],
+                ['@type' => 'SportsTeam', 'name' => $match->home_display_name],
+                ['@type' => 'SportsTeam', 'name' => $match->away_display_name],
             ],
         ];
     }

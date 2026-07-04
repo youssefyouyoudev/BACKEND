@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Channel;
 use App\Models\WorldCupMatch;
+use App\Services\FootballDayService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -12,10 +13,13 @@ use Illuminate\View\View;
 
 class WorldCupController extends Controller
 {
+    public function __construct(private readonly FootballDayService $footballDayService) {}
+
     public function index(Request $request): View
     {
         $section = (string) $request->route('section', 'schedule');
         $tab = $request->string('tab', $section === 'groups' ? 'groups' : 'upcoming')->toString();
+        [$todayStartUtc, $todayEndUtc] = $this->footballDayService->todayQueryRangeUtc();
 
         $matches = WorldCupMatch::query()
             ->publicVisible()
@@ -49,7 +53,7 @@ class WorldCupController extends Controller
                         ->orWhere('channel_name_manual', 'like', "%{$channel}%");
                 });
             })
-            ->when($tab === 'today', fn (Builder $query) => $query->whereDate('morocco_kickoff_at', now('Africa/Casablanca')->toDateString()))
+            ->when($tab === 'today', fn (Builder $query) => $query->whereBetween('kickoff_at', [$todayStartUtc, $todayEndUtc]))
             ->when($tab === 'upcoming', fn (Builder $query) => $query->where('kickoff_at', '>=', now()))
             ->orderBy('kickoff_at')
             ->get();

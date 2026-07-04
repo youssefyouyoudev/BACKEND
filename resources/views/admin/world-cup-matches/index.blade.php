@@ -67,7 +67,7 @@
 >
     <div class="surface-card__header">
         <div>
-            <p class="surface-card__eyebrow">{{ __("Group stage") }}</p>
+            <p class="surface-card__eyebrow">{{ __("World Cup matches") }}</p>
             <h2>{{ number_format($matches->total()) }} matches</h2>
         </div>
     </div>
@@ -87,7 +87,7 @@
                 </div>
                 <div class="wc-admin-match-card__teams">
                     <small>Match {{ $match->match_number }}</small>
-                    <h3>{{ $match->home_team }} <span>{{ __("vs") }}</span> {{ $match->away_team }}</h3>
+                    <h3>{{ $match->home_display_name }} <span>{{ __("vs") }}</span> {{ $match->away_display_name }}</h3>
                     <p>{{ $match->venue }}, {{ $match->city }}</p>
                 </div>
                 <div class="wc-admin-match-card__broadcast">
@@ -110,6 +110,9 @@
                 </div>
                 <div class="wc-admin-match-card__actions">
                     <a class="button button--primary" href="{{ route('admin.world-cup-matches.edit', $match) }}">{{ __("Edit") }}</a>
+                    @if($match->is_knockout || ((int) $match->match_number >= 73 && (int) $match->match_number <= 104))
+                        <a class="button button--ghost" href="{{ route('admin.world-cup-matches.result.edit', $match) }}">{{ __("Result") }}</a>
+                    @endif
                     <button
                         class="button button--ghost"
                         type="button"

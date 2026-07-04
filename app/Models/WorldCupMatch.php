@@ -28,6 +28,13 @@ class WorldCupMatch extends Model
 
     public const STATUS_ENDED = 'ended';
 
+    public const RESULT_STATUSES = [
+        'scheduled',
+        'live',
+        'completed',
+        'cancelled',
+    ];
+
     public const AUTO_END_STATUSES = [
         'to_confirm',
         'scheduled',
@@ -78,6 +85,18 @@ class WorldCupMatch extends Model
         'source_url',
         'sort_order',
         'is_knockout',
+        'home_score',
+        'away_score',
+        'home_penalties',
+        'away_penalties',
+        'winner_team',
+        'loser_team',
+        'winner_source',
+        'loser_source',
+        'winner_match_number',
+        'loser_match_number',
+        'status',
+        'played_at',
     ];
 
     protected function casts(): array
@@ -96,6 +115,13 @@ class WorldCupMatch extends Model
             'is_featured' => 'boolean',
             'is_knockout' => 'boolean',
             'sort_order' => 'integer',
+            'home_score' => 'integer',
+            'away_score' => 'integer',
+            'home_penalties' => 'integer',
+            'away_penalties' => 'integer',
+            'winner_match_number' => 'integer',
+            'loser_match_number' => 'integer',
+            'played_at' => 'immutable_datetime',
         ];
     }
 
@@ -257,6 +283,51 @@ class WorldCupMatch extends Model
             'cancelled' => 'Cancelled',
             default => str($this->public_status)->headline()->toString(),
         };
+    }
+
+    public function getIsCompletedResultAttribute(): bool
+    {
+        return $this->status === 'completed' || $this->virtualBroadcastStatus() === self::STATUS_ENDED;
+    }
+
+    public function getHasScoreAttribute(): bool
+    {
+        return $this->home_score !== null && $this->away_score !== null;
+    }
+
+    public function getHasPenaltiesAttribute(): bool
+    {
+        return $this->home_penalties !== null && $this->away_penalties !== null;
+    }
+
+    public function getScorelineAttribute(): ?string
+    {
+        if (! $this->has_score) {
+            return null;
+        }
+
+        return "{$this->home_score} - {$this->away_score}";
+    }
+
+    public function getPenaltyScorelineAttribute(): ?string
+    {
+        if (! $this->has_penalties) {
+            return null;
+        }
+
+        return "{$this->home_penalties} - {$this->away_penalties}";
+    }
+
+    public function getPenaltyWinnerTextAttribute(): ?string
+    {
+        if (! $this->has_penalties || ! $this->winner_team) {
+            return null;
+        }
+
+        return __(':team wins :score on penalties', [
+            'team' => $this->winner_team,
+            'score' => $this->penalty_scoreline,
+        ]);
     }
 
     public function virtualBroadcastStatus(?CarbonImmutable $now = null): string

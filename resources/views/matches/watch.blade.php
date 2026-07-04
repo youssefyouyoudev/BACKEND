@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
-@section('title', "Match Center - {$match->home_team} vs {$match->away_team} | RiFiTV")
-@section('description', "Follow {$match->home_team} vs {$match->away_team} with kickoff time, match details, score updates, TV guide information, and football coverage on RiFiTV.")
+@section('title', "Match Center - {$match->home_display_name} vs {$match->away_display_name} | RiFiTV")
+@section('description', "Follow {$match->home_display_name} vs {$match->away_display_name} with kickoff time, match details, score updates, TV guide information, and football coverage on RiFiTV.")
 @section('robots', 'noindex,follow')
 @section('image', $match->home_flag ?: asset('assets/images/promo/rifitv-world-football-2026-1122.webp'))
 
@@ -10,7 +10,7 @@
     <nav class="football-breadcrumb" aria-label="{{ __('Breadcrumb') }}">
         <a href="{{ route('home') }}">{{ __('Home') }}</a><span>/</span>
         <a href="{{ route('world-cup-2026.index') }}">{{ __('World Cup 2026') }}</a><span>/</span>
-        <span>{{ $match->home_team }} vs {{ $match->away_team }}</span>
+        <span>{{ $match->home_display_name }} vs {{ $match->away_display_name }}</span>
     </nav>
 
     <section class="watch-layout">
@@ -25,16 +25,28 @@
                 <div class="match-scoreboard">
                     <div class="match-scoreboard__team">
                         <x-team-flag :team="$match->home_team" :src="$match->home_flag" size="lg" />
-                        <strong>{{ $match->home_team }}</strong>
+                        <strong>{{ $match->home_display_name }}</strong>
+                        @if($match->winner_team === $match->home_team)
+                            <small>{{ __('Qualified') }}</small>
+                        @endif
                     </div>
                     <div class="match-scoreboard__center">
-                        <span>{{ $match->kickoff_at_morocco?->translatedFormat('D, M j') }}</span>
-                        <b>{{ $match->kickoff_at_morocco?->format('H:i') }}</b>
-                        <small>{{ __('Morocco time') }}</small>
+                        @if($match->is_completed_result && $match->scoreline)
+                            <span>{{ $match->kickoff_at_morocco?->translatedFormat('D, M j') }}</span>
+                            <b>{{ $match->scoreline }}</b>
+                            <small>{{ $match->penalty_winner_text ?: __('Full time') }}</small>
+                        @else
+                            <span>{{ $match->kickoff_at_morocco?->translatedFormat('D, M j') }}</span>
+                            <b>{{ $match->kickoff_at_morocco?->format('H:i') }}</b>
+                            <small>{{ __('Morocco time') }}</small>
+                        @endif
                     </div>
                     <div class="match-scoreboard__team">
                         <x-team-flag :team="$match->away_team" :src="$match->away_flag" size="lg" />
-                        <strong>{{ $match->away_team }}</strong>
+                        <strong>{{ $match->away_display_name }}</strong>
+                        @if($match->winner_team === $match->away_team)
+                            <small>{{ __('Qualified') }}</small>
+                        @endif
                     </div>
                 </div>
             </section>
@@ -82,8 +94,14 @@
         <aside class="watch-sidebar">
             <section class="match-info-card">
                 <span class="rm-kicker">{{ __('Match info') }}</span>
-                <h2>{{ $match->home_team }} vs {{ $match->away_team }}</h2>
+                <h2>{{ $match->home_display_name }} vs {{ $match->away_display_name }}</h2>
                 <dl>
+                    @if($match->is_completed_result && $match->scoreline)
+                        <div><dt>{{ __('Result') }}</dt><dd>{{ $match->home_display_name }} {{ $match->scoreline }} {{ $match->away_display_name }}</dd></div>
+                    @endif
+                    @if($match->penalty_winner_text)
+                        <div><dt>{{ __('Penalties') }}</dt><dd>{{ $match->penalty_winner_text }}</dd></div>
+                    @endif
                     <div><dt>{{ __('Kickoff') }}</dt><dd>{{ $match->kickoff_at_morocco?->translatedFormat('M j - H:i') }} {{ __('Morocco') }}</dd></div>
                     <div><dt>{{ __('Competition') }}</dt><dd>{{ $match->competition }}{{ $match->stage ? ' - '.$match->stage : '' }}</dd></div>
                     <div><dt>{{ __('TV info') }}</dt><dd>{{ $match->public_channel_name }}</dd></div>
@@ -107,7 +125,7 @@
                         @foreach($upcomingMatches as $upcoming)
                             <a class="match-watch-suggestion" href="{{ route('matches.watch', $upcoming) }}">
                                 <span>{{ $upcoming->competition }}</span>
-                                <strong>{{ $upcoming->home_team }} <small>vs</small> {{ $upcoming->away_team }}</strong>
+                                <strong>{{ $upcoming->home_display_name }} <small>vs</small> {{ $upcoming->away_display_name }}</strong>
                                 <b>{{ $upcoming->kickoff_at_morocco?->translatedFormat('M j - H:i') }} {{ __('Morocco') }}</b>
                             </a>
                         @endforeach

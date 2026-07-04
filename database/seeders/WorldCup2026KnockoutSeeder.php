@@ -22,7 +22,7 @@ class WorldCup2026KnockoutSeeder extends Seeder
                 $match = WorldCupMatch::query()->firstOrNew(['match_number' => $data['match_number']]);
                 $isNew = ! $match->exists;
 
-                $match->fill([
+                $matchData = [
                     'competition' => 'FIFA World Cup 2026',
                     'stage' => $data['stage'],
                     'stage_label' => $data['stage_label'],
@@ -38,23 +38,51 @@ class WorldCup2026KnockoutSeeder extends Seeder
                     'morocco_kickoff_at' => $moroccoKickoff->format('Y-m-d H:i:s'),
                     'local_kickoff_at' => $data['kickoff_local'],
                     'local_timezone' => $data['timezone'],
-                    'broadcast_status' => 'scheduled',
                     'source_name' => self::SOURCE_NAME,
                     'sort_order' => $data['match_number'],
                     'is_knockout' => true,
-                ]);
+                ];
 
                 if ($isNew) {
-                    $match->fill([
+                    $matchData = [
+                        ...$matchData,
+                        'broadcast_status' => 'scheduled',
+                        'status' => 'scheduled',
                         'channel_name_manual' => $data['channel'],
                         'commentator' => $data['commentator'],
                         'stream_links' => $data['stream_links'],
-                    ]);
+                    ];
+                } else {
+                    $matchData['home_team'] = $this->shouldSeedTeamSlot($match->home_team, $data['home_team'], $data['home_placeholder'])
+                        ? $data['home_team']
+                        : $match->home_team;
+                    $matchData['away_team'] = $this->shouldSeedTeamSlot($match->away_team, $data['away_team'], $data['away_placeholder'])
+                        ? $data['away_team']
+                        : $match->away_team;
                 }
 
-                $match->save();
+                $match->fill($matchData)->save();
             }
         });
+    }
+
+    private function shouldSeedTeamSlot(?string $currentTeam, string $seedTeam, ?string $placeholder): bool
+    {
+        $currentTeam = trim((string) $currentTeam);
+        $placeholder = trim((string) $placeholder);
+
+        if ($currentTeam === '') {
+            return true;
+        }
+
+        if (in_array(mb_strtolower($currentTeam), ['tbd', 'to be confirmed'], true)) {
+            return true;
+        }
+
+        return $currentTeam === $seedTeam
+            || ($placeholder !== '' && strcasecmp($currentTeam, $placeholder) === 0)
+            || preg_match('/^(winner|loser)\s+match\s+\d+$/i', $currentTeam) === 1
+            || preg_match('/^[WL]\d+$/i', $currentTeam) === 1;
     }
 
     /**
